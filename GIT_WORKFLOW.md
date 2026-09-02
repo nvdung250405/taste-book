@@ -84,13 +84,76 @@ Branch được tạo từ `main`. Sau khi hoàn thành phải cập nhật thay
 
 ---
 
-## 3. Quy tắc đặt tên branch
+## 3. Cấu trúc Monorepo và phân tách Frontend / Backend
+
+TasteBook sử dụng mô hình **Monorepo**, trong đó Frontend và Backend được quản lý trong cùng một repository nhưng tách biệt không gian làm việc:
+
+```text
+tastebook/
+├── backend/          # DEV BE: code Backend, package và API
+├── frontend/         # DEV FE: code Frontend, UI
+├── docker-compose.yml
+├── Dockerfile
+├── .gitignore
+└── .github/
+    ├── workflows/
+    │   └── ci.yml
+    └── pull_request_template.md
+```
+
+### 3.1. Phạm vi làm việc
+
+- `/backend`: thành viên phụ trách Backend phát triển code Backend, quản lý package và API.
+- `/frontend`: thành viên phụ trách Frontend phát triển giao diện và code Frontend.
+- Các file cấu hình chung như `docker-compose.yml`, `Dockerfile`, `.gitignore` và workflow CI cần được review nếu thay đổi có ảnh hưởng toàn hệ thống.
+
+### 3.2. Quy tắc branch theo phân hệ
+
+```text
+feature/be-<ten-tinh-nang>
+feature/fe-<ten-tinh-nang>
+fix/be-<ten-loi>
+fix/fe-<ten-loi>
+```
+
+Ví dụ:
+
+```text
+feature/be-recipe-api
+feature/fe-recipe-page
+fix/be-login-validation
+fix/fe-recipe-form
+```
+
+Các branch `hotfix/*` vẫn dùng cho lỗi nghiêm trọng trên Production.
+
+### 3.3. Quy tắc commit theo phân hệ
+
+```text
+feat(be): add recipe api
+feat(fe): add recipe page
+fix(be): validate recipe input
+fix(fe): fix recipe form
+```
+
+Với thay đổi chung:
+
+```text
+chore: update docker config
+ci: update github actions workflow
+docs: update git workflow
+```
+
+---
+
+## 4. Quy tắc đặt tên branch
 
 - Sử dụng chữ thường.
 - Dùng dấu `-` để phân tách các từ.
 - Không sử dụng khoảng trắng.
 - Tên phải ngắn gọn và mô tả đúng công việc.
 - Sử dụng đúng prefix: `feature/`, `fix/`, `hotfix/`.
+- Với thay đổi riêng Backend/Frontend, dùng `feature/be-*`, `feature/fe-*`, `fix/be-*`, `fix/fe-*`.
 
 Ví dụ hợp lệ:
 
@@ -206,7 +269,37 @@ Trước khi push cần đảm bảo:
 
 ---
 
-## 7. Quy trình Pull Request
+## 7. Quy trình xử lý Merge Conflict bằng `git rebase`
+
+Merge conflict phải được xử lý **tại máy cục bộ (Local)**. Không xử lý conflict trực tiếp trên giao diện Web của GitHub.
+
+Trình tự bắt buộc:
+
+```bash
+git fetch origin
+git rebase origin/develop
+
+# Mở IDE và sửa các khối conflict:
+# <<<<<<< HEAD
+# =======
+# >>>>>>> ...
+
+git add <file-da-sua>
+git rebase --continue
+git push --force-with-lease origin <ten-nhanh>
+```
+
+- Sau khi rebase phải kiểm tra và chạy lại các test/build cần thiết.
+- Không dùng `git push --force` thông thường sau rebase.
+- Nếu cần hủy rebase:
+
+```bash
+git rebase --abort
+```
+
+---
+
+## 8. Quy trình Pull Request
 
 Luồng chuẩn:
 
@@ -228,7 +321,7 @@ feature/* / fix/*
  Merge → develop
 ```
 
-### 7.1. Tạo Pull Request
+### 8.1. Tạo Pull Request
 
 Pull Request phải:
 
@@ -236,10 +329,38 @@ Pull Request phải:
 - Mô tả nội dung thay đổi.
 - Nêu các chức năng/lỗi đã xử lý.
 - Nêu cách kiểm thử.
-- Sử dụng Pull Request Template.
+- Sử dụng Pull Request Template tại `.github/pull_request_template.md`.
+- Chọn đúng phân hệ ảnh hưởng: Backend, Frontend hoặc DevOps/Cấu hình chung.
+- Đính kèm minh chứng kiểm thử như Screenshot hoặc API Log khi phù hợp.
 - Liên kết Issue nếu có.
 
-### 7.2. Pull Request vào `develop`
+### 8.1.1. Mẫu Pull Request chuẩn
+
+File: `.github/pull_request_template.md`
+
+```markdown
+## 📝 Mô tả thay đổi (WHAT & WHY)
+- Tóm tắt công việc đã thực hiện:
+
+## 📦 Phân hệ ảnh hưởng
+- [ ] ⚙️ Backend (`/backend`)
+- [ ] 🖥️ Frontend (`/frontend`)
+- [ ] 🐳 DevOps / Cấu hình chung
+
+## ✅ Checklist tự kiểm tra của Developer
+- [ ] Code đã build và chạy thử thành công trên local.
+- [ ] Đã rebase với `develop` mới nhất, không có conflict.
+- [ ] Tuân thủ Conventional Commits.
+- [ ] Tuyệt đối KHÔNG commit file `.env`, mật khẩu, secrets.
+
+## 📸 Minh chứng kiểm thử (Screenshot / API Log)
+```
+
+Developer phải hoàn thành checklist trước khi yêu cầu review.
+
+---
+
+### 8.2. Pull Request vào `develop`
 
 Chỉ merge khi:
 
@@ -250,7 +371,7 @@ Chỉ merge khi:
 - Review đạt yêu cầu.
 - Các comment bắt buộc đã được xử lý.
 
-### 7.3. Pull Request vào `main`
+### 8.3. Pull Request vào `main`
 
 Pull Request `develop → main` dùng để phát hành Production.
 
@@ -266,7 +387,7 @@ Yêu cầu:
 
 ---
 
-## 8. Quy trình Code Review
+## 9. Quy trình Code Review
 
 Reviewer cần kiểm tra:
 
@@ -305,7 +426,7 @@ Reviewer cần kiểm tra:
 
 ---
 
-## 9. Quy định Approval và Merge
+## 10. Quy định Approval và Merge
 
 Pull Request phải có ít nhất **1 reviewer approval** nếu nhóm có nhiều thành viên.
 
@@ -323,7 +444,7 @@ Có thể sử dụng **Squash and Merge** để giữ lịch sử branch `main`
 
 ---
 
-## 10. Quy trình xử lý Review Comment
+## 11. Quy trình xử lý Review Comment
 
 ```text
 Reviewer phát hiện vấn đề
@@ -345,7 +466,7 @@ Developer không nên đóng hoặc bỏ qua comment quan trọng khi chưa xử
 
 ---
 
-## 11. Đồng bộ branch
+## 12. Đồng bộ branch
 
 Trước khi tạo Pull Request, Developer nên cập nhật branch từ `develop`:
 
@@ -360,7 +481,30 @@ Mục tiêu là giảm khả năng xảy ra merge conflict và đảm bảo code
 
 ---
 
-## 12. Tích hợp với CI/CD
+## 13. Dọn dẹp branch sau khi Merge
+
+Sau khi Pull Request đã merge thành công vào `develop`:
+
+1. Xóa branch làm việc trên GitHub.
+2. Xóa branch local:
+
+```bash
+git checkout develop
+git pull origin develop
+git branch -d <ten-nhanh>
+```
+
+Ví dụ:
+
+```bash
+git branch -d feature/be-recipe-api
+```
+
+Bắt buộc áp dụng cho các branch `feature/*` và `fix/*` sau khi đã merge thành công.
+
+---
+
+## 14. Tích hợp với CI/CD
 
 GitHub Actions thực hiện CI:
 
@@ -392,7 +536,7 @@ Sau khi `develop` được kiểm thử ổn định và merge vào `main`, phi�
 
 ---
 
-## 13. Quản lý Secret
+## 15. Quản lý Secret
 
 Không được lưu trực tiếp các thông tin sau trong repository:
 
@@ -412,7 +556,39 @@ File `.env.local` phải được thêm vào `.gitignore`.
 
 ---
 
-## 14. Rollback
+## 16. Quy định `.gitignore`
+
+`.gitignore` áp dụng cho toàn bộ Monorepo:
+
+```gitignore
+# Dependencies
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Build outputs
+dist/
+build/
+frontend/dist/
+
+# Environment & Secrets
+.env
+.env.*
+backend/.env
+frontend/.env
+
+# Logs & OS Metadata
+*.log
+.DS_Store
+.idea/
+.vscode/
+```
+
+Không commit password, API key, API secret, JWT secret hoặc database credential.
+
+---
+
+## 17. Rollback
 
 Khi phiên bản Production gặp lỗi nghiêm trọng:
 
@@ -425,7 +601,7 @@ Khi phiên bản Production gặp lỗi nghiêm trọng:
 
 ---
 
-## 15. Quy trình tổng thể
+## 18. Quy trình tổng thể
 
 ```text
 Developer
@@ -461,7 +637,7 @@ Review + CI
 Production trên Render
 ```
 
-## 16. Nguyên tắc bắt buộc
+## 19. Nguyên tắc bắt buộc
 
 - Mọi thay đổi source code phải được quản lý bằng Git.
 - Không commit trực tiếp vào `main`.
@@ -471,3 +647,5 @@ Production trên Render
 - Không lưu secret trong repository.
 - Chỉ triển khai Production phiên bản đã được kiểm tra.
 - Khi phát hiện lỗi Production phải có khả năng rollback.
+- Branch `feature/*` và `fix/*` phải được xóa sau khi PR merge thành công vào `develop`.
+- Merge conflict phải được xử lý tại Local bằng `git rebase`, không xử lý trực tiếp trên GitHub Web.
