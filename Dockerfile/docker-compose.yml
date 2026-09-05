@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # Cấu hình cho Database PostgreSQL
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123 # Thay đổi mật khẩu thực tế
+      POSTGRES_DB: taste_book_db     # Thay đổi tên DB thực tế
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # Cấu hình cho Backend (Node.js)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_HOST=db
+      - DB_USER=postgres
+      - DB_PASSWORD=password123
+      - DB_NAME=taste_book_db
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  # Cấu hình cho Frontend (React/Vite)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+volumes:
+  pgdata:
+
+networks:
+  app-network:
+    driver: bridge
