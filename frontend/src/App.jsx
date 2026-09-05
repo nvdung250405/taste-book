@@ -1,4 +1,4 @@
-import { toast, Toaster } from 'sonner'
+import { Toaster } from 'sonner'
 import { BrowserRouter, Routes, Route } from 'react-router'
 
 // Layouts
