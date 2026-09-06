@@ -1,7 +1,10 @@
 import { Link, Outlet } from 'react-router'
 import {
   UserCircle,
+  Menu,
   Search,
+  Home,
+  Compass,
   Heart,
   UtensilsCrossed,
   ListTodo,
@@ -14,7 +17,7 @@ import {
   MapPin,
 } from 'lucide-react'
 import { Button } from '../ui/button'
-
+import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet'
 export default function MainLayout() {
   // TODO: Add auth state to conditionally render links and avatar
   const isAuthenticated = false
@@ -32,41 +35,62 @@ export default function MainLayout() {
           </Link>
 
           {/* Navigation Links (Desktop) */}
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-            <Link to="/" className="hover:text-orange-500 transition-colors">
-              Trang chủ
+          <nav className="hidden md:flex items-center gap-8 lg:gap-10 text-sm font-medium">
+            <Link
+              to="/"
+              className="relative flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-orange-500 transition-colors group py-2"
+              title="Trang chủ"
+            >
+              <Home className="w-5 h-5" />
+              <span className="hidden lg:inline">Trang chủ</span>
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
             </Link>
             <Link
               to="/search"
-              className="hover:text-orange-500 transition-colors"
+              className="relative flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-orange-500 transition-colors group py-2"
+              title="Khám phá"
             >
-              Khám phá
+              <Compass className="w-5 h-5" />
+              <span className="hidden lg:inline">Khám phá</span>
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
             </Link>
 
             {/* Authenticated Links */}
             <Link
               to="/my-recipes"
-              className="hover:text-orange-500 transition-colors flex items-center gap-1"
+              className="relative flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-orange-500 transition-colors group py-2"
+              title="Công thức của tôi"
             >
-              <UtensilsCrossed className="w-4 h-4" /> Công thức của tôi
+              <UtensilsCrossed className="w-5 h-5" />
+              <span className="hidden lg:inline">Công thức của tôi</span>
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
             </Link>
             <Link
               to="/menus"
-              className="hover:text-orange-500 transition-colors flex items-center gap-1"
+              className="relative flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-orange-500 transition-colors group py-2"
+              title="Thực đơn"
             >
-              <ListTodo className="w-4 h-4" /> Thực đơn
+              <ListTodo className="w-5 h-5" />
+              <span className="hidden lg:inline">Thực đơn</span>
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
             </Link>
             <Link
               to="/favorites"
-              className="hover:text-orange-500 transition-colors flex items-center gap-1"
+              className="relative flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-orange-500 transition-colors group py-2"
+              title="Yêu thích"
             >
-              <Heart className="w-4 h-4" /> Yêu thích
+              <Heart className="w-5 h-5" />
+              <span className="hidden lg:inline">Yêu thích</span>
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
             </Link>
             <Link
               to="/shopping-lists"
-              className="hover:text-orange-500 transition-colors flex items-center gap-1"
+              className="relative flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-orange-500 transition-colors group py-2"
+              title="Đi chợ"
             >
-              <ShoppingCart className="w-4 h-4" /> Đi chợ
+              <ShoppingCart className="w-5 h-5" />
+              <span className="hidden lg:inline">Đi chợ</span>
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
             </Link>
           </nav>
 
@@ -78,6 +102,105 @@ export default function MainLayout() {
             >
               <Search className="w-5 h-5" />
             </Link>
+
+            {/* Mobile Menu */}
+            <div className="md:hidden flex items-center">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-slate-500"
+                  >
+                    <Menu className="w-6 h-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side="left"
+                  className="w-[280px] p-0 flex flex-col"
+                >
+                  <div className="h-16 flex items-center px-6 border-b shrink-0">
+                    <span className="text-xl font-bold bg-linear-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
+                      TasteBook
+                    </span>
+                  </div>
+                  <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                    <Link
+                      to="/"
+                      className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <Home className="w-5 h-5 text-slate-500" />
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                        Trang chủ
+                      </span>
+                    </Link>
+                    <Link
+                      to="/search"
+                      className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <Compass className="w-5 h-5 text-slate-500" />
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                        Khám phá
+                      </span>
+                    </Link>
+                    <Link
+                      to="/my-recipes"
+                      className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <UtensilsCrossed className="w-5 h-5 text-slate-500" />
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                        Công thức của tôi
+                      </span>
+                    </Link>
+                    <Link
+                      to="/menus"
+                      className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <ListTodo className="w-5 h-5 text-slate-500" />
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                        Thực đơn
+                      </span>
+                    </Link>
+                    <Link
+                      to="/favorites"
+                      className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <Heart className="w-5 h-5 text-slate-500" />
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                        Yêu thích
+                      </span>
+                    </Link>
+                    <Link
+                      to="/shopping-lists"
+                      className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <ShoppingCart className="w-5 h-5 text-slate-500" />
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                        Đi chợ
+                      </span>
+                    </Link>
+                  </nav>
+
+                  {!isAuthenticated && (
+                    <div className="p-4 border-t shrink-0 flex flex-col gap-2">
+                      <Button
+                        variant="outline"
+                        asChild
+                        className="w-full justify-center"
+                      >
+                        <Link to="/login">Đăng nhập</Link>
+                      </Button>
+                      <Button
+                        asChild
+                        className="w-full justify-center bg-orange-500 hover:bg-orange-600 text-white"
+                      >
+                        <Link to="/register">Đăng ký</Link>
+                      </Button>
+                    </div>
+                  )}
+                </SheetContent>
+              </Sheet>
+            </div>
 
             {isAuthenticated ? (
               <Link
