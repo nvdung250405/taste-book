@@ -1,13 +1,12 @@
-version: '3.8'
-
 services:
   # Cấu hình cho Database PostgreSQL
   db:
     image: postgres:15-alpine
+    container_name: postgresql
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password123 # Thay đổi mật khẩu thực tế
-      POSTGRES_DB: taste_book_db     # Thay đổi tên DB thực tế
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: TasteBookDB     
     ports:
       - "5432:5432"
     volumes:
@@ -18,15 +17,19 @@ services:
   # Cấu hình cho Backend (Node.js)
   backend:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - "8080:8080"
     environment:
-      - DB_HOST=db
-      - DB_USER=postgres
-      - DB_PASSWORD=password123
-      - DB_NAME=taste_book_db
+      PORT: 8080
+      REACT_URL: http://localhost:3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE_NAME: TasteBookDB
+      DB_USERNAME: postgres
+      DB_PASSWORD: root
+      DB_DIALECT: postgres
     depends_on:
       - db
     networks:
@@ -35,7 +38,7 @@ services:
   # Cấu hình cho Frontend (React/Vite)
   frontend:
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
     ports:
       - "3000:80"
