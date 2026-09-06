@@ -20,6 +20,7 @@ const handleUploadSingleImage = (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({
       EC: -1,
       EM: "error from server",
@@ -43,8 +44,9 @@ const handleDeleteImage = async (req, res) => {
     let response = await uploadService.deleteImage(url);
     return res.status(200).json(response);
   } catch (error) {
+    console.log(error);
     return res.status(500).json({
-      EC: -500,
+      EC: -1,
       EM: "error from server",
       DT: null,
     });

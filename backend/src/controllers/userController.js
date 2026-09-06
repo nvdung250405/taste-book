@@ -26,7 +26,7 @@ const mapEcToStatus = (ec) => {
 // 1.4 GET /users/me
 const handleGetProfile = async (req, res) => {
   try {
-    let userId = req.user ? req.user.id : null;
+    let userId = req.user ? (req.user.userId || req.user.id) : null;
     if (!userId) {
       return res.status(401).json({
         EC: 5,
@@ -38,6 +38,7 @@ const handleGetProfile = async (req, res) => {
     let result = await userService.getUserProfile(userId);
     return res.status(mapEcToStatus(result.EC)).json(result);
   } catch (error) {
+    console.log(error);
     return res.status(500).json({
       EC: -1,
       EM: "Lỗi kết nối máy chủ!",
@@ -49,7 +50,7 @@ const handleGetProfile = async (req, res) => {
 // 1.5 PUT /users/me
 const handleUpdateProfile = async (req, res) => {
   try {
-    let userId = req.user ? req.user.id : null;
+    let userId = req.user ? (req.user.userId || req.user.id) : null;
     if (!userId) {
       return res.status(401).json({
         EC: 5,
@@ -61,6 +62,7 @@ const handleUpdateProfile = async (req, res) => {
     let result = await userService.updateUserProfile(userId, req.body);
     return res.status(mapEcToStatus(result.EC)).json(result);
   } catch (error) {
+    console.log(error);
     return res.status(500).json({
       EC: -1,
       EM: "Lỗi kết nối máy chủ!",
@@ -72,7 +74,7 @@ const handleUpdateProfile = async (req, res) => {
 // 1.6 PUT /users/me/password
 const handleChangePassword = async (req, res) => {
   try {
-    let userId = req.user ? req.user.id : null;
+    let userId = req.user ? (req.user.userId || req.user.id) : null;
     if (!userId) {
       return res.status(401).json({
         EC: 5,
@@ -84,6 +86,7 @@ const handleChangePassword = async (req, res) => {
     let result = await userService.changeUserPassword(userId, req.body);
     return res.status(mapEcToStatus(result.EC)).json(result);
   } catch (error) {
+    console.log(error);
     return res.status(500).json({
       EC: -1,
       EM: "Lỗi kết nối máy chủ!",
@@ -98,6 +101,7 @@ const handleAdminGetUsers = async (req, res) => {
     let result = await userService.getAllUsersAdmin(req.query);
     return res.status(mapEcToStatus(result.EC)).json(result);
   } catch (error) {
+    console.log(error);
     return res.status(500).json({
       EC: -1,
       EM: "Lỗi kết nối máy chủ!",
@@ -113,6 +117,7 @@ const handleAdminGetUserDetail = async (req, res) => {
     let result = await userService.getUserDetailAdmin(userId);
     return res.status(mapEcToStatus(result.EC)).json(result);
   } catch (error) {
+    console.log(error);
     return res.status(500).json({
       EC: -1,
       EM: "Lỗi kết nối máy chủ!",

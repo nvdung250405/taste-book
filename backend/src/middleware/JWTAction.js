@@ -45,8 +45,9 @@ const checkUserJWT = async (req, res, next) => {
     let token = cookies && cookies.jwt ? cookies.jwt : tokenFromHeader;
     let decoded = verifyToken(token);
     if (decoded) {
-      if (decoded.id) {
-        let user = await db.User.findOne({ where: { id: decoded.id } });
+      let currentUserId = decoded.userId || decoded.id;
+      if (currentUserId) {
+        let user = await db.User.findOne({ where: { id: currentUserId } });
         if (!user) {
           return res.status(401).json({
             EC: 5,

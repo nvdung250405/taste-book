@@ -39,6 +39,7 @@ const deleteImage = async (url) => {
       };
     }
   } catch (error) {
+    console.log(error);
     return {
       EC: -500,
       EM: "sth wrongs with services",

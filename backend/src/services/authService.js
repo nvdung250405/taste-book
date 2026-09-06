@@ -122,7 +122,7 @@ const handleUserLogin = async (rawData) => {
       let isCorrectPassword = checkPassword(rawData.password, user.password);
       if (isCorrectPassword === true) {
         let payload = {
-          id: user.id,
+          userId: user.id,
           email: user.email,
           username: user.username,
           phone: user.phone,

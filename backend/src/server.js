@@ -8,7 +8,7 @@ import connection from "./config/connectDB";
 import configSwagger from "./config/swagger";
 import initDatabase from "./config/initDB";
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 5000;
 
 //config cors
 configCors(app);

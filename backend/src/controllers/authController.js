@@ -34,6 +34,7 @@ const handleRegister = async (req, res) => {
 
     return res.status(statusCode).json(data);
   } catch (error) {
+    console.log(error);
     return res.status(500).json({
       EC: -1,
       EM: "Lỗi kết nối máy chủ!",
@@ -64,6 +65,7 @@ const handleLogin = async (req, res) => {
       DT: data.DT,
     });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({
       EC: -1,
       EM: "Lỗi kết nối máy chủ!",
