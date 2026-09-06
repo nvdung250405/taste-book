@@ -42,6 +42,12 @@ jobs:
           test -f package-lock.json
           test -f src/server.js
 
+      - name: Lint backend
+        run: npm run lint
+
+      - name: Run backend tests
+        run: npm test
+
   # FRONTEND CI
   frontend:
     name: Frontend CI
