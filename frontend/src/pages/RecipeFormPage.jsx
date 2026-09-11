@@ -44,6 +44,7 @@ export default function RecipeFormPage() {
   useEffect(() => {
     if (isEdit && recipeRes?.DT) {
       const r = recipeRes.DT
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         title: r.title || '',
         description: r.description || '',

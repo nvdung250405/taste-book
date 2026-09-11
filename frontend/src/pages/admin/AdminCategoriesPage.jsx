@@ -1,4 +1,4 @@
-import { useState } from 'react'
+
 import {
   Tags,
   Plus,
@@ -8,8 +8,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react'
 import { Button } from '../../components/ui/button'
-import { Card, CardContent } from '../../components/ui/card'
-import { Input } from '../../components/ui/input'
+import { Card } from '../../components/ui/card'
 import {
   useAdminCategories,
   useCreateAdminCategory,

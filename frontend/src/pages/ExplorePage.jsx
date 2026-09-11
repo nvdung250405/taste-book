@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Star, Clock, ChefHat, Heart, Loader2, SlidersHorizontal, X } from 'lucide-react'
+import { Search, Star, Clock, ChefHat, Heart, Loader2, X } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Card, CardContent } from '../components/ui/card'
-import { Badge } from '../components/ui/badge'
 import { useRecipes } from '../hooks/queries/useRecipeQueries'
 import { useCategories } from '../hooks/queries/useCategoryQueries'
-import { useAddFavorite, useRemoveFavorite } from '../hooks/queries/useFavoriteQueries'
 import { toast } from 'sonner'
 
 const DIFFICULTY_COLORS = {
@@ -29,8 +27,6 @@ export default function ExplorePage() {
 
   const { data: recipesRes, isLoading } = useRecipes(params)
   const { data: categoriesRes } = useCategories()
-  const { mutate: addFav } = useAddFavorite()
-  const { mutate: removeFav } = useRemoveFavorite()
 
   const recipes = Array.isArray(recipesRes?.DT) ? recipesRes.DT : (recipesRes?.DT?.items || recipesRes?.DT?.recipes || [])
   const categories = categoriesRes?.DT || []

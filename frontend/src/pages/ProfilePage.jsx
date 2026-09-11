@@ -36,6 +36,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProfileForm({
         name: user.name || user.username || '',
         phone: user.phone || '',
