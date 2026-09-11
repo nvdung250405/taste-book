@@ -19,14 +19,12 @@ const createJWT = (payload) => {
 
 const verifyToken = (token) => {
   let key = process.env.JWT_SECRET;
-  let decoded = null;
   try {
-    decoded = jwt.verify(token, key);
-  } catch (err) {
+    return jwt.verify(token, key);
+  } catch {
     // Token hết hạn hoặc chữ ký không hợp lệ
     return null;
   }
-  return decoded;
 };
 
 const extractToken = (req) => {
