@@ -42,6 +42,12 @@ export const useLogout = () => {
   });
 };
 
+export const useForgotPassword = () => {
+  return useMutation({
+    mutationFn: (data) => authApi.forgotPassword(data),
+  });
+};
+
 // --- PROFILE QUERIES & MUTATIONS ---
 
 export const useProfile = (options = {}) => {
