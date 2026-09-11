@@ -6,7 +6,6 @@ require("dotenv").config();
 import cookieParser from "cookie-parser";
 import connection from "./config/connectDB";
 import configSwagger from "./config/swagger";
-import initDatabase from "./config/initDB";
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -24,9 +23,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 //test connection db
-connection().then(() => {
-  initDatabase();
-});
+connection();
 
 // Khởi chạy Swagger UI
 configSwagger(app);

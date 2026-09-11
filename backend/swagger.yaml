@@ -1,0 +1,268 @@
+openapi: 3.0.3
+info:
+  title: TasteBook API Specification
+  description: >-
+    Tài liệu đặc tả RESTful API chính thức cho nền tảng TasteBook (Phiên bản
+    Sprint 2).
+
+    Toàn bộ các API tuân thủ cấu trúc phản hồi chuẩn 3 trường: { EC, EM, DT }.
+
+    - EC (Error Code): 0 (Thành công), 1 (Tham số không hợp lệ), 2 (Trùng lặp dữ liệu), 3 (Không tìm thấy tài nguyên), 4 (Không có quyền), 5 (Chưa đăng nhập/Hết hạn token), 6 (Sai thông tin đăng nhập), -1 (Lỗi máy chủ).
+
+    - EM (Error Message): Thông điệp phản hồi chi tiết.
+
+    - DT (Data): Dữ liệu trả về (Object, Array hoặc null).
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Local Development Server
+tags:
+  - name: Authentication
+    description: "UC-02, UC-03, UC-04: Đăng ký, Đăng nhập, Đăng xuất"
+  - name: User Profile
+    description: "UC-05: Xem thông tin cá nhân, cập nhật hồ sơ, đổi mật khẩu"
+  - name: Admin Users
+    description: "UC-24: Quản trị danh sách người dùng và chi tiết người dùng"
+  - name: Categories
+    description: "UC-06, UC-08, UC-25: Xem danh mục món ăn, tạo/sửa/xóa danh mục cá nhân"
+  - name: Admin Categories
+    description: "UC-21: Quản trị danh mục món ăn chuẩn hệ thống"
+  - name: Ingredients & Units
+    description: "UC-22, UC-23: Từ điển nguyên liệu, nhóm nguyên liệu và đơn vị đo chuẩn"
+  - name: Recipes
+    description: "UC-06, UC-07: Tìm kiếm, lọc món ăn, xem chi tiết và tính toán khẩu
+      phần ăn N người"
+  - name: User Recipes
+    description: "UC-08, UC-09, UC-10, UC-11: Tạo công thức mới, quản lý, chỉnh sửa
+      và xóa mềm công thức"
+  - name: Admin Recipes
+    description: "UC-19, UC-20: Quản trị công thức hệ thống và duyệt bài viết
+      (Pending / Approved / Rejected)"
+  - name: Favorites
+    description: "UC-12: Quản lý danh sách món yêu thích và ghi chú nấu nướng cá nhân"
+  - name: Recipe Lists
+    description: "UC-13, UC-14, UC-15, UC-16: Quản lý thực đơn và các món ăn trong thực đơn"
+  - name: Shopping Lists
+    description: "UC-17, UC-18: Quản lý phiên đi chợ, gộp nguyên liệu tự động và
+      checklist mua sắm"
+  - name: Images
+    description: Tải lên và xóa hình ảnh qua dịch vụ Cloudinary
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Nhập JWT Bearer Token lấy từ API đăng nhập
+  schemas:
+    StandardResponse:
+      type: object
+      properties:
+        EC:
+          type: integer
+          example: 0
+          description: Error Code
+        EM:
+          type: string
+          example: Thao tác thành công!
+          description: Error Message
+        DT:
+          nullable: true
+          description: Data payload
+    ErrorResponse:
+      type: object
+      properties:
+        EC:
+          type: integer
+          example: 1
+        EM:
+          type: string
+          example: Dữ liệu không hợp lệ!
+        DT:
+          type: "null"
+          example: null
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: "UC-02: Đăng ký tài khoản người dùng mới"
+      description: Tiếp nhận thông tin đăng ký, kiểm tra trùng lặp email/SĐT, mã hóa
+        Bcrypt mật khẩu và tạo tài khoản với vai trò User.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+                - confirmPassword
+                - phone
+              properties:
+                username:
+                  type: string
+                  example: Nguyễn Văn A
+                email:
+                  type: string
+                  format: email
+                  example: vana@gmail.com
+                password:
+                  type: string
+                  minLength: 6
+                  example: Password123@
+                confirmPassword:
+                  type: string
+                  example: Password123@
+                phone:
+                  type: string
+                  example: "0912345678"
+      responses:
+        "201":
+          description: Đăng ký tài khoản thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Đăng ký tài khoản thành công!
+                DT:
+                  userId: 10
+                  username: Nguyễn Văn A
+                  email: vana@gmail.com
+                  phone: "0912345678"
+                  role: User
+        "400":
+          description: Lỗi dữ liệu đầu vào hoặc thiếu tham số bắt buộc
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Dữ liệu đầu vào không hợp lệ!
+                DT: null
+        "409":
+          description: Dữ liệu đã tồn tại hoặc bị trùng lặp
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Dữ liệu đã tồn tại trên hệ thống!
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: "UC-03: Đăng nhập vào hệ thống"
+      description: Xác thực người dùng bằng Email/SĐT và mật khẩu; trả về Access Token
+        JWT và thông tin tài khoản.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - valueLogin
+                - password
+              properties:
+                valueLogin:
+                  type: string
+                  example: chef.hoang@tastebook.vn
+                  description: Email hoặc số điện thoại
+                password:
+                  type: string
+                  example: "123456"
+      responses:
+        "200":
+          description: Đăng nhập thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Đăng nhập thành công!
+                DT:
+                  accessToken: eyJhbGciOiJIUzI1NiIsIn...
+                  user:
+                    userId: 2
+                    username: Bếp Trưởng Hoàng
+                    email: chef.hoang@tastebook.vn
+                    phone: "0912345678"
+                    role: User
+        "400":
+          description: Lỗi dữ liệu đầu vào hoặc thiếu tham số bắt buộc
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Dữ liệu đầu vào không hợp lệ!
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: "UC-04: Đăng xuất khỏi hệ thống"
+      description: Hủy phiên làm việc phía client.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Đăng xuất thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Đăng xuất thành công!
+                DT: null
+        "401":
+          description: Chưa gửi token hoặc token hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null

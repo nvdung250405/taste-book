@@ -29,6 +29,8 @@ const connection = async () => {
   try {
     await sequelize.authenticate();
     console.log("Connection to PostgreSQL has been established successfully.");
+    // Kích hoạt extension unaccent để hỗ trợ tìm kiếm tiếng Việt không dấu
+    await sequelize.query("CREATE EXTENSION IF NOT EXISTS unaccent;");
   } catch (error) {
     console.error("Unable to connect to PostgreSQL:", error);
   }

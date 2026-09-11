@@ -79,6 +79,11 @@ module.exports = (sequelize, DataTypes) => {
       rejectionReason: {
         type: DataTypes.TEXT,
       },
+      pendingUpdateData: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: null,
+      },
     },
     {
       sequelize,

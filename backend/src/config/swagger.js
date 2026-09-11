@@ -1,29 +1,27 @@
-import swaggerJSDoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
+import fs from "fs";
+import path from "path";
+import YAML from "yaml";
 
-const options = {
-  definition: {
-    openapi: "3.0.0",
-    info: {
-      title: "TasteBook API Documentation",
-      version: "1.0.0",
-      description: "Tài liệu đặc tả API cho dự án TasteBook",
-    },
-    servers: [
-      {
-        url: "http://localhost:8080/api/v1",
-        description: "Local Development Server",
-      },
-    ],
-  },
-  // Đường dẫn quét các file chứa chú thích Swagger (@swagger)
-  apis: ["./src/routes/*.js"],
-};
+const swaggerYamlPath = path.resolve(__dirname, "../../swagger.yaml");
+let swaggerDocument = null;
 
-const swaggerSpec = swaggerJSDoc(options);
+try {
+  if (fs.existsSync(swaggerYamlPath)) {
+    const file = fs.readFileSync(swaggerYamlPath, "utf8");
+    swaggerDocument = YAML.parse(file);
+    if (swaggerDocument && swaggerDocument.servers && swaggerDocument.servers[0]) {
+      swaggerDocument.servers[0].url = `http://localhost:${process.env.PORT || 5000}/api/v1`;
+    }
+  }
+} catch (error) {
+  console.error("Lỗi khi đọc file swagger.yaml:", error);
+}
 
 const configSwagger = (app) => {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  if (swaggerDocument) {
+    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  }
 };
 
 export default configSwagger;
