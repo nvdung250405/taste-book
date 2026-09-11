@@ -16,6 +16,11 @@ const authApi = {
     return axiosClient.post('/auth/logout');
   },
 
+  // Quên mật khẩu
+  forgotPassword(data) {
+    return axiosClient.post('/auth/forgot-password', data);
+  },
+
   // Lấy thông tin cá nhân
   getProfile() {
     return axiosClient.get('/users/me');
