@@ -1,5 +1,6 @@
 import express from "express";
 import authController from "../controllers/authController";
+import { checkUserJWT } from "../middleware/JWTAction";
 
 const router = express.Router();
 
@@ -10,6 +11,6 @@ router.post("/register", authController.handleRegister);
 router.post("/login", authController.handleLogin);
 
 // 1.3 POST /api/v1/auth/logout
-router.post("/logout", authController.handleLogout);
+router.post("/logout", checkUserJWT, authController.handleLogout);
 
 export default router;
