@@ -12,14 +12,19 @@ const hashUserPassword = (userPassword) => {
 };
 
 const isEmailValid = (email) => {
-  const re = /\S+@\S+\.\S+/;
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(email);
+};
+
+const isPhoneValid = (phone) => {
+  const re = /^(0|\+84)[35789][0-9]{8}$/;
+  return re.test(String(phone).trim());
 };
 
 const checkEmailExist = async (userEmail) => {
   let user = await db.User.findOne({
     where: {
-      email: userEmail,
+      email: userEmail.trim(),
     },
   });
   if (user) {
@@ -31,7 +36,7 @@ const checkEmailExist = async (userEmail) => {
 const checkPhoneExist = async (userPhone) => {
   let user = await db.User.findOne({
     where: {
-      phone: userPhone,
+      phone: userPhone.trim(),
     },
   });
   if (user) {
@@ -42,57 +47,112 @@ const checkPhoneExist = async (userPhone) => {
 
 const registerNewUser = async (rawUserData) => {
   try {
-    let isValidEmail = isEmailValid(rawUserData.email);
-    if (!isValidEmail) {
+    let { username, email, password, confirmPassword, phone } = rawUserData;
+
+    // 1. Kiểm tra thiếu trường bắt buộc
+    if (
+      !username ||
+      !email ||
+      !password ||
+      !confirmPassword ||
+      !phone ||
+      !username.trim() ||
+      !email.trim() ||
+      !phone.trim()
+    ) {
       return {
-        EM: "Địa chỉ Email không đúng định dạng!",
         EC: 1,
+        EM: "Vui lòng nhập đầy đủ các thông tin bắt buộc!",
         DT: null,
       };
     }
 
-    let isEmailExist = await checkEmailExist(rawUserData.email);
+    // 2. Kiểm tra định dạng Email
+    if (!isEmailValid(email)) {
+      return {
+        EC: 1,
+        EM: "Địa chỉ Email không đúng định dạng!",
+        DT: null,
+      };
+    }
+
+    // 3. Kiểm tra định dạng Số điện thoại
+    if (!isPhoneValid(phone)) {
+      return {
+        EC: 1,
+        EM: "Số điện thoại không đúng định dạng (phải là số điện thoại 10 số hợp lệ)!",
+        DT: null,
+      };
+    }
+
+    // 4. Kiểm tra độ dài mật khẩu (< 6 ký tự)
+    if (password.length < 6) {
+      return {
+        EC: 1,
+        EM: "Mật khẩu phải có độ dài từ 6 ký tự trở lên!",
+        DT: null,
+      };
+    }
+
+    // 5. Kiểm tra mật khẩu xác nhận không trùng khớp
+    if (password !== confirmPassword) {
+      return {
+        EC: 1,
+        EM: "Mật khẩu xác nhận không trùng khớp!",
+        DT: null,
+      };
+    }
+
+    // 6. Kiểm tra email đã tồn tại
+    let isEmailExist = await checkEmailExist(email);
     if (isEmailExist === true) {
       return {
-        EM: "Email hoặc số điện thoại đã được đăng ký trên hệ thống!",
         EC: 2,
+        EM: "Email hoặc số điện thoại đã được đăng ký trên hệ thống!",
         DT: null,
       };
     }
-    let isPhoneExist = await checkPhoneExist(rawUserData.phone);
+
+    // 7. Kiểm tra số điện thoại đã tồn tại
+    let isPhoneExist = await checkPhoneExist(phone);
     if (isPhoneExist === true) {
       return {
-        EM: "Email hoặc số điện thoại đã được đăng ký trên hệ thống!",
         EC: 2,
+        EM: "Email hoặc số điện thoại đã được đăng ký trên hệ thống!",
         DT: null,
       };
     }
-    //hash user password
-    let hashPassword = hashUserPassword(rawUserData.password);
-    //create new user
+
+    // 8. Mã hóa mật khẩu
+    let hashPassword = hashUserPassword(password);
+
+    // 9. Tạo tài khoản mới
     let newUser = await db.User.create({
-      email: rawUserData.email,
-      username: rawUserData.username,
+      email: email.trim(),
+      username: username.trim(),
       password: hashPassword,
-      phone: rawUserData.phone,
+      phone: phone.trim(),
+      avatarUrl: "https://res.cloudinary.com/sf4yjct9/image/upload/v1788611681/tastebook_uploads/f1plgomkateq3nufqchm.png",
       role: "User",
     });
+
     return {
-      EM: "Đăng ký tài khoản thành công!",
       EC: 0,
+      EM: "Đăng ký tài khoản thành công!",
       DT: {
         userId: newUser.id,
         username: newUser.username,
         email: newUser.email,
         phone: newUser.phone,
+        avatarUrl: newUser.avatarUrl,
         role: newUser.role,
       },
     };
   } catch (e) {
     console.log(e);
     return {
-      EM: "Lỗi kết nối máy chủ!",
       EC: -1,
+      EM: "Lỗi kết nối máy chủ!",
       DT: null,
     };
   }
@@ -104,22 +164,26 @@ const checkPassword = (inputPassword, hashPassword) => {
 
 const handleUserLogin = async (rawData) => {
   try {
-    if (!rawData.valueLogin || !rawData.password) {
+    let { valueLogin, password } = rawData || {};
+
+    if (!valueLogin || !password || !valueLogin.trim() || !password.trim()) {
       return {
-        EM: "Vui lòng nhập tài khoản và mật khẩu!",
         EC: 1,
+        EM: "Vui lòng nhập tài khoản và mật khẩu!",
         DT: null,
       };
     }
 
+    let cleanValue = valueLogin.trim();
+
     let user = await db.User.findOne({
       where: {
-        [Op.or]: [{ email: rawData.valueLogin }, { phone: rawData.valueLogin }],
+        [Op.or]: [{ email: cleanValue }, { phone: cleanValue }],
       },
     });
 
     if (user) {
-      let isCorrectPassword = checkPassword(rawData.password, user.password);
+      let isCorrectPassword = checkPassword(password, user.password);
       if (isCorrectPassword === true) {
         let payload = {
           userId: user.id,
@@ -130,8 +194,8 @@ const handleUserLogin = async (rawData) => {
         };
         let token = createJWT(payload);
         return {
-          EM: "Đăng nhập thành công!",
           EC: 0,
+          EM: "Đăng nhập thành công!",
           DT: {
             accessToken: token,
             user: {
@@ -139,6 +203,7 @@ const handleUserLogin = async (rawData) => {
               username: user.username,
               email: user.email,
               phone: user.phone,
+              avatarUrl: user.avatarUrl,
               role: user.role,
             },
           },
@@ -147,23 +212,32 @@ const handleUserLogin = async (rawData) => {
     }
 
     return {
-      EM: "Thông tin tài khoản hoặc mật khẩu không chính xác!",
       EC: 6,
+      EM: "Thông tin tài khoản hoặc mật khẩu không chính xác!",
       DT: null,
     };
   } catch (e) {
     console.log(e);
     return {
-      EM: "Lỗi kết nối máy chủ!",
       EC: -1,
+      EM: "Lỗi kết nối máy chủ!",
       DT: null,
     };
   }
 };
 
+const handleUserLogout = () => {
+  return {
+    EC: 0,
+    EM: "Đăng xuất thành công!",
+    DT: null,
+  };
+};
+
 module.exports = {
   registerNewUser,
   handleUserLogin,
+  handleUserLogout,
   hashUserPassword,
   checkEmailExist,
   checkPhoneExist,

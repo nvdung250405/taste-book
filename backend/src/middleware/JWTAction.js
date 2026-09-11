@@ -2,15 +2,17 @@ require("dotenv").config();
 import jwt from "jsonwebtoken";
 import db from "../models/index";
 
-const nonSecurePaths = ["/logout", "/login", "/register"];
+const nonSecurePaths = ["/login", "/register"];
 
 const createJWT = (payload) => {
   let key = process.env.JWT_SECRET;
   let token = null;
   try {
-    token = jwt.sign(payload, key, { expiresIn: process.env.JWT_EXPIRES_IN || "1d" });
+    token = jwt.sign(payload, key, {
+      expiresIn: process.env.JWT_EXPIRES_IN || "1d",
+    });
   } catch (err) {
-    console.log(err);
+    console.log("createJWT error:", err);
   }
   return token;
 };
@@ -21,55 +23,68 @@ const verifyToken = (token) => {
   try {
     decoded = jwt.verify(token, key);
   } catch (err) {
-    console.log(err);
+    // Token hết hạn hoặc chữ ký không hợp lệ
+    return null;
   }
   return decoded;
 };
 
-const extracToken = (req) => {
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.split(" ")[0] === "Bearer"
-  ) {
-    return req.headers.authorization.split(" ")[1];
+const extractToken = (req) => {
+  if (req.headers && req.headers.authorization) {
+    const parts = req.headers.authorization.trim().split(/\s+/);
+    if (parts.length === 2 && parts[0].toLowerCase() === "bearer") {
+      return parts[1];
+    }
   }
   return null;
 };
 
 const checkUserJWT = async (req, res, next) => {
-  if (nonSecurePaths.includes(req.path)) return next();
-  let cookies = req.cookies;
-  let tokenFromHeader = extracToken(req);
+  try {
+    if (nonSecurePaths.some((path) => req.path.endsWith(path))) return next();
 
-  if ((cookies && cookies.jwt) || tokenFromHeader) {
-    let token = cookies && cookies.jwt ? cookies.jwt : tokenFromHeader;
-    let decoded = verifyToken(token);
-    if (decoded) {
-      let currentUserId = decoded.userId || decoded.id;
-      if (currentUserId) {
-        let user = await db.User.findOne({ where: { id: currentUserId } });
-        if (!user) {
-          return res.status(401).json({
-            EC: 5,
-            EM: "Tài khoản không tồn tại trên hệ thống!",
-            DT: null,
-          });
+    let tokenFromHeader = extractToken(req);
+    let cookies = req.cookies;
+
+    // Ưu tiên Authorization Header trước, nếu không có mới lấy từ Cookie
+    let token = tokenFromHeader || (cookies && cookies.jwt ? cookies.jwt : null);
+
+    if (token) {
+      let decoded = verifyToken(token);
+      if (decoded) {
+        let currentUserId = decoded.userId || decoded.id;
+        let user = null;
+        if (currentUserId) {
+          user = await db.User.findOne({ where: { id: currentUserId } });
         }
+        if (user) {
+          // Gắn dữ liệu người dùng mới nhất từ DB vào req.user
+          req.user = {
+            userId: user.id,
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            phone: user.phone,
+            role: user.role,
+          };
+        } else {
+          req.user = decoded;
+        }
+        req.token = token;
+        return next();
       }
-      req.user = decoded;
-      req.token = token;
-      return next();
-    } else {
-      return res.status(401).json({
-        EC: 5,
-        EM: "Phiên làm việc không hợp lệ hoặc đã hết hạn!",
-        DT: null,
-      });
     }
-  } else {
+
     return res.status(401).json({
       EC: 5,
       EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!",
+      DT: null,
+    });
+  } catch (error) {
+    console.log("checkUserJWT error:", error);
+    return res.status(500).json({
+      EC: -1,
+      EM: "Lỗi kết nối máy chủ!",
       DT: null,
     });
   }
@@ -86,9 +101,47 @@ const checkAdminPermission = (req, res, next) => {
   });
 };
 
+const checkUserJWTOptional = async (req, res, next) => {
+  try {
+    let tokenFromHeader = extractToken(req);
+    let cookies = req.cookies;
+    let token = tokenFromHeader || (cookies && cookies.jwt ? cookies.jwt : null);
+
+    if (token) {
+      let decoded = verifyToken(token);
+      if (decoded) {
+        let currentUserId = decoded.userId || decoded.id;
+        let user = null;
+        if (currentUserId) {
+          user = await db.User.findOne({ where: { id: currentUserId } });
+        }
+        if (user) {
+          req.user = {
+            userId: user.id,
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            phone: user.phone,
+            role: user.role,
+          };
+        } else {
+          req.user = decoded;
+        }
+        req.token = token;
+      }
+    }
+    return next();
+  } catch (error) {
+    console.log("checkUserJWTOptional error:", error);
+    return next();
+  }
+};
+
 module.exports = {
   createJWT,
   verifyToken,
+  extractToken,
   checkUserJWT,
+  checkUserJWTOptional,
   checkAdminPermission,
 };
