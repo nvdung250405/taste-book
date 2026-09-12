@@ -10,6 +10,8 @@ module.exports = {
     const defaultAvatar =
       "https://res.cloudinary.com/sf4yjct9/image/upload/v1788611681/tastebook_uploads/f1plgomkateq3nufqchm.png";
 
+    await queryInterface.bulkDelete("Users", null, {});
+
     await queryInterface.bulkInsert("Users", [
       {
         id: 1,

@@ -6,7 +6,6 @@ import {
   Heart,
   ListTodo,
   ShoppingCart,
-  Plus,
   Menu,
   UserCircle,
   LogOut
@@ -65,19 +64,7 @@ export default function Header({ isAuthenticated, user, profileLoading, handleLo
 
         {/* Right Actions */}
         <div className="flex items-center gap-2">
-          {/* Create recipe shortcut */}
-          {isAuthenticated && (
-            <Button
-              size="sm"
-              className="hidden sm:flex bg-orange-500 hover:bg-orange-600 text-white rounded-xl gap-1.5"
-              asChild
-            >
-              <Link to="/recipe/create">
-                <Plus className="w-4 h-4" />
-                <span className="hidden lg:inline">Tạo công thức</span>
-              </Link>
-            </Button>
-          )}
+
 
           {/* Mobile Menu */}
           <div className="md:hidden flex items-center">
@@ -132,10 +119,6 @@ export default function Header({ isAuthenticated, user, profileLoading, handleLo
                       <Link to="/profile" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors">
                         <UserCircle className="w-5 h-5" />
                         <span className="font-medium">Hồ sơ cá nhân</span>
-                      </Link>
-                      <Link to="/recipe/create" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors">
-                        <Plus className="w-5 h-5" />
-                        <span className="font-medium">Tạo công thức</span>
                       </Link>
                     </>
                   )}

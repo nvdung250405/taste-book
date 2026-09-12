@@ -13,6 +13,9 @@ import RegisterPage from './pages/auth/RegisterPage'
 import DashboardPage from './pages/admin/DashboardPage'
 import AdminApprovalsPage from './pages/admin/AdminApprovalsPage'
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage'
+import AdminUsersPage from './pages/admin/AdminUsersPage'
+import AdminIngredientsPage from './pages/admin/AdminIngredientsPage'
+import AdminUnitsPage from './pages/admin/AdminUnitsPage'
 import ExplorePage from './pages/ExplorePage'
 import MyRecipesPage from './pages/MyRecipesPage'
 import MenuPage from './pages/MenuPage'
@@ -52,7 +55,9 @@ function App() {
             <Route index element={<DashboardPage />} />
             <Route path="approvals" element={<AdminApprovalsPage />} />
             <Route path="categories" element={<AdminCategoriesPage />} />
-            {/* More admin routes will be added here later */}
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="ingredients" element={<AdminIngredientsPage />} />
+            <Route path="units" element={<AdminUnitsPage />} />
           </Route>
 
           {/* Fallback 404 Route */}

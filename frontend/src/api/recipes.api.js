@@ -6,12 +6,12 @@ const recipesApi = {
   // Tìm kiếm / lọc công thức public
   getRecipes(params) {
     // params: { keyword, categoryId, ingredientId, difficulty }
-    return axiosClient.get('/recipes', { params });
+    return axiosClient.get('/recipe/read', { params });
   },
 
-  // Xem chi tiết công thức
+  // Xem chi tiết công thức (Backend chưa support query by ID, tạm truyền qua query)
   getRecipeDetail(recipeId) {
-    return axiosClient.get(`/recipes/${recipeId}`);
+    return axiosClient.get('/recipe/read', { params: { id: recipeId } });
   },
 
   // Tính định lượng theo số người
@@ -21,7 +21,7 @@ const recipesApi = {
 
   // Tạo công thức mới
   createRecipe(data) {
-    return axiosClient.post('/recipes', data);
+    return axiosClient.post('/recipe/create', data);
   },
 
   // Quản lý công thức của tôi
@@ -31,12 +31,12 @@ const recipesApi = {
 
   // Sửa công thức cá nhân
   updateRecipe(recipeId, data) {
-    return axiosClient.put(`/recipes/${recipeId}`, data);
+    return axiosClient.put('/recipe/update', { ...data, id: recipeId });
   },
 
   // Xóa mềm công thức
   deleteRecipe(recipeId) {
-    return axiosClient.delete(`/recipes/${recipeId}`);
+    return axiosClient.delete('/recipe/delete', { data: { id: recipeId } });
   },
 
 

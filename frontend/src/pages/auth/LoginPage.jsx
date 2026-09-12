@@ -3,12 +3,13 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { toast } from 'sonner'
-import { UtensilsCrossed, ArrowRight } from 'lucide-react'
+import { UtensilsCrossed, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { useLogin } from '../../hooks/queries/useAuthQueries'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
   const { mutate: login, isPending: isLoading } = useLogin()
 
@@ -20,14 +21,14 @@ export default function LoginPage() {
     }
 
     login(
-      { email, password },
+      { valueLogin: email, email, password },
       {
         onSuccess: () => {
           toast.success('Đăng nhập thành công!')
           navigate('/')
         },
         onError: (error) => {
-          toast.error(error.response?.data?.EM || 'Đăng nhập thất bại')
+          toast.error(error.EM || error.response?.data?.EM || 'Đăng nhập thất bại')
         },
       },
     )
@@ -105,13 +106,23 @@ export default function LoginPage() {
                     Quên mật khẩu?
                   </Link>
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-slate-50 dark:bg-slate-800"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-slate-50 dark:bg-slate-800 pr-10"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <Button

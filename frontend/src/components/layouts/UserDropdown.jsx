@@ -2,8 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   UserCircle,
-  Plus,
-  Settings,
+  ShieldCheck,
   LogOut,
   ChevronDown
 } from 'lucide-react'
@@ -18,8 +17,9 @@ export default function UserDropdown({ user, onLogout }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const avatar = user?.avatar || user?.profileImage
+  const avatar = user?.avatar || user?.avatarUrl || user?.profileImage
   const name = user?.name || user?.username || 'Người dùng'
+  const isAdmin = user?.role === 'Admin'
 
   return (
     <div className="relative" ref={ref}>
@@ -53,20 +53,15 @@ export default function UserDropdown({ user, onLogout }) {
           >
             <UserCircle className="w-4 h-4" /> Hồ sơ cá nhân
           </Link>
-          <Link
-            to="/recipe/create"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
-          >
-            <Plus className="w-4 h-4" /> Tạo công thức
-          </Link>
-          <Link
-            to="/profile/settings"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
-          >
-            <Settings className="w-4 h-4" /> Cài đặt
-          </Link>
+          {isAdmin && (
+            <Link
+              to="/admin"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2 text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors font-medium"
+            >
+              <ShieldCheck className="w-4 h-4" /> Quản lý Admin
+            </Link>
+          )}
 
           <div className="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1">
             <button

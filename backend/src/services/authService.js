@@ -132,7 +132,8 @@ const registerNewUser = async (rawUserData) => {
       username: username.trim(),
       password: hashPassword,
       phone: phone.trim(),
-      avatarUrl: "https://res.cloudinary.com/sf4yjct9/image/upload/v1788611681/tastebook_uploads/f1plgomkateq3nufqchm.png",
+      avatarUrl:
+        "https://res.cloudinary.com/sf4yjct9/image/upload/v1788611681/tastebook_uploads/f1plgomkateq3nufqchm.png",
       role: "User",
     });
 
