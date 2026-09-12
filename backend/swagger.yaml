@@ -479,3 +479,134 @@ paths:
                 EC: -1
                 EM: Lỗi kết nối máy chủ!
                 DT: null
+  /images:
+    post:
+      tags:
+        - Images
+      summary: "8.1: Tải lên hình ảnh"
+      description: "Tải 1 file hình ảnh lên Cloudinary (hỗ trợ các định dạng .jpg, .jpeg, .png, .webp với dung lượng tối đa 5MB)."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File ảnh cần tải lên (tối đa 5MB)
+      responses:
+        "201":
+          description: Tải lên thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Tải ảnh lên thành công!
+                DT:
+                  imageUrl: https://res.cloudinary.com/sf4yjct9/image/upload/v1788611681/tastebook_uploads/example.png
+                  publicId: tastebook_uploads/example
+        "400":
+          description: Không có file đính kèm, sai định dạng hoặc vượt quá 5MB
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: File không hợp lệ hoặc vượt quá dung lượng tối đa 5MB!
+                DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  /images/{publicId}:
+    delete:
+      tags:
+        - Images
+      summary: "8.2: Xóa hình ảnh trên Cloudinary theo publicId"
+      description: "Xóa vĩnh viễn hình ảnh lưu trữ trên Cloudinary thông qua mã định danh publicId được truyền trên URI (Lưu ý: Nếu publicId chứa tiền tố thư mục dạng folder/image_id, client cần mã hóa URL Encode trước khi truyền vào đường dẫn)."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          description: Mã định danh ảnh trên Cloudinary (URL Encoded nếu có ký tự '/')
+          schema:
+            type: string
+          example: tastebook_uploads%2Fsample
+      responses:
+        "200":
+          description: Đã xóa ảnh thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Đã xóa ảnh thành công!
+                DT: null
+        "400":
+          description: Mã định danh publicId không hợp lệ hoặc để trống
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Mã định danh ảnh (publicId) không hợp lệ!
+                DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "404":
+          description: Ảnh không tồn tại hoặc sai mã định danh publicId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy file ảnh cần xóa!
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null

@@ -1,5 +1,5 @@
 import express from "express";
-import uploadRoutes from "./upload";
+import imageRoutes from "./image";
 import authRoutes from "./auth";
 import userRoutes from "./user";
 import adminRoutes from "./admin";
@@ -13,7 +13,7 @@ const router = express.Router();
  */
 const initApiRoutes = (app) => {
   // Mount các routes con theo đúng đặc tả API v1
-  router.use("/image", uploadRoutes);
+  router.use("/images", imageRoutes);
   router.use("/auth", authRoutes);
   router.use("/users", userRoutes);
   router.use("/admin", adminRoutes);
