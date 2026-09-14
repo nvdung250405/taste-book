@@ -37,6 +37,9 @@ services:
       DB_DIALECT: postgres
       JWT_SECRET: hiusmall
       JWT_EXPIRES_IN: 24h
+      CLOUDINARY_CLOUD_NAME: sf4yjct9
+      CLOUDINARY_API_KEY: 998281996461733
+      CLOUDINARY_API_SECRET: w3chSBvdcAt6bFfYipb3iCaHVSU
     command: sh -c "npm run db:setup && npm start"
     depends_on:
       db:
