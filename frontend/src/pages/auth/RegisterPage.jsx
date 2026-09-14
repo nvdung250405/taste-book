@@ -8,8 +8,9 @@ import { useRegister } from '../../hooks/queries/useAuthQueries';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
-    name: '',
-    emailOrPhone: '',
+    username: '',
+    email: '',
+    phone: '',
     password: '',
     confirmPassword: ''
   });
@@ -22,15 +23,22 @@ export default function RegisterPage() {
 
   const handleRegister = (e) => {
     e.preventDefault();
-    const { name, emailOrPhone, password, confirmPassword } = formData;
+    const { username, email, phone, password, confirmPassword } = formData;
     
-    if (!name || !emailOrPhone || !password || !confirmPassword) {
+    if (!username?.trim() || !email?.trim() || !phone?.trim() || !password || !confirmPassword) {
       toast.error('Vui lòng nhập đầy đủ thông tin');
       return;
     }
 
-    if (password !== confirmPassword) {
-      toast.error('Mật khẩu xác nhận không khớp');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      toast.error('Địa chỉ email không đúng định dạng');
+      return;
+    }
+
+    const phoneRegex = /^(0|\+84)[35789][0-9]{8}$/;
+    if (!phoneRegex.test(phone.trim())) {
+      toast.error('Số điện thoại không hợp lệ (phải là số điện thoại 10 số hợp lệ)');
       return;
     }
     
@@ -39,15 +47,26 @@ export default function RegisterPage() {
       return;
     }
 
+    if (password !== confirmPassword) {
+      toast.error('Mật khẩu xác nhận không khớp');
+      return;
+    }
+
     register(
-      { name, email: emailOrPhone, password },
+      {
+        username: username.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        password,
+        confirmPassword
+      },
       {
         onSuccess: () => {
           toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
           navigate('/login');
         },
         onError: (error) => {
-          toast.error(error.response?.data?.EM || 'Đăng ký thất bại');
+          toast.error(error.EM || error.response?.data?.EM || 'Đăng ký thất bại');
         }
       }
     );
@@ -69,28 +88,42 @@ export default function RegisterPage() {
 
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium leading-none" htmlFor="name">
+                <label className="text-sm font-medium leading-none" htmlFor="username">
                   Tên hiển thị
                 </label>
                 <Input 
-                  id="name" 
+                  id="username" 
                   type="text" 
                   placeholder="Nguyễn Văn A" 
-                  value={formData.name}
+                  value={formData.username}
                   onChange={handleChange}
                   className="bg-slate-50 dark:bg-slate-800"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium leading-none" htmlFor="emailOrPhone">
-                  Email hoặc Số điện thoại
+                <label className="text-sm font-medium leading-none" htmlFor="email">
+                  Địa chỉ Email
                 </label>
                 <Input 
-                  id="emailOrPhone" 
-                  type="text" 
+                  id="email" 
+                  type="email" 
                   placeholder="name@example.com" 
-                  value={formData.emailOrPhone}
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="bg-slate-50 dark:bg-slate-800"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none" htmlFor="phone">
+                  Số điện thoại
+                </label>
+                <Input 
+                  id="phone" 
+                  type="tel" 
+                  placeholder="0912345678" 
+                  value={formData.phone}
                   onChange={handleChange}
                   className="bg-slate-50 dark:bg-slate-800"
                 />
@@ -103,6 +136,7 @@ export default function RegisterPage() {
                 <Input 
                   id="password" 
                   type="password" 
+                  placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
                   className="bg-slate-50 dark:bg-slate-800"
@@ -116,13 +150,14 @@ export default function RegisterPage() {
                 <Input 
                   id="confirmPassword" 
                   type="password" 
+                  placeholder="••••••••"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   className="bg-slate-50 dark:bg-slate-800"
                 />
               </div>
 
-              <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white mt-2" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white mt-2 cursor-pointer" disabled={isLoading}>
                 {isLoading ? 'Đang xử lý...' : 'Đăng ký'}
                 {!isLoading && <UserPlus className="w-4 h-4 ml-2" />}
               </Button>
