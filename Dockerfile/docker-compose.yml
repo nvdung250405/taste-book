@@ -11,6 +11,11 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d taste_book_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - app-network
 
@@ -24,14 +29,18 @@ services:
     environment:
       PORT: 5000
       REACT_URL: http://localhost:5173
-      DB_HOST: postgresql
+      DB_HOST: db
       DB_PORT: 5432
       DB_DATABASE_NAME: taste_book_db
       DB_USERNAME: postgres
       DB_PASSWORD: password123
       DB_DIALECT: postgres
+      JWT_SECRET: tastebook-docker-secret-change-me
+      JWT_EXPIRES_IN: 1d
+    command: sh -c "npx sequelize-cli db:migrate && npm start"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - app-network
 
