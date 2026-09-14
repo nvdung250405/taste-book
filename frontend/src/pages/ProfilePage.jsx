@@ -41,7 +41,7 @@ export default function ProfilePage() {
         name: user.name || user.username || '',
         phone: user.phone || '',
         address: user.address || '',
-        avatar: user.avatar || user.profileImage || '',
+        avatar: user.avatarUrl || user.avatar || user.profileImage || '',
       })
     }
   }, [user])
@@ -78,7 +78,7 @@ export default function ProfilePage() {
     updateProfile(payload, {
       onSuccess: (res) => toast.success(res?.EM || 'Cập nhật hồ sơ thành công!'),
       onError: (err) => {
-        const msg = err?.response?.data?.EM || err?.response?.data?.message || 'Lỗi khi cập nhật hồ sơ'
+        const msg = err?.EM || err?.response?.data?.EM || err?.response?.data?.message || 'Lỗi khi cập nhật hồ sơ'
         toast.error(msg)
       },
     })
