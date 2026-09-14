@@ -35,9 +35,12 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: password123
       DB_DIALECT: postgres
-      JWT_SECRET: tastebook-docker-secret-change-me
-      JWT_EXPIRES_IN: 1d
-    command: sh -c "npx sequelize-cli db:migrate && npm start"
+      JWT_SECRET: hiusmall
+      JWT_EXPIRES_IN: 24h
+      CLOUDINARY_CLOUD_NAME: sf4yjct9
+      CLOUDINARY_API_KEY: 998281996461733
+      CLOUDINARY_API_SECRET: w3chSBvdcAt6bFfYipb3iCaHVSU
+    command: sh -c "npm run db:setup && npm start"
     depends_on:
       db:
         condition: service_healthy
