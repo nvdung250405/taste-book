@@ -69,9 +69,18 @@ export default function ProfilePage() {
     e.preventDefault()
     if (!profileForm.name.trim()) return toast.error('Tên không được để trống')
 
-    updateProfile(profileForm, {
-      onSuccess: () => toast.success('Cập nhật hồ sơ thành công!'),
-      onError: () => toast.error('Lỗi khi cập nhật hồ sơ'),
+    const payload = {
+      username: profileForm.name.trim(),
+      phone: profileForm.phone ? profileForm.phone.trim() : undefined,
+      avatarUrl: profileForm.avatar ? profileForm.avatar.trim() : '',
+    }
+
+    updateProfile(payload, {
+      onSuccess: (res) => toast.success(res?.EM || 'Cập nhật hồ sơ thành công!'),
+      onError: (err) => {
+        const msg = err?.response?.data?.EM || err?.response?.data?.message || 'Lỗi khi cập nhật hồ sơ'
+        toast.error(msg)
+      },
     })
   }
 
@@ -88,15 +97,17 @@ export default function ProfilePage() {
     }
 
     changePassword({
-      currentPassword: passwordForm.oldPassword,
-      newPassword: passwordForm.newPassword
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword,
+      confirmPassword: passwordForm.confirmPassword,
     }, {
-      onSuccess: () => {
-        toast.success('Đổi mật khẩu thành công!')
+      onSuccess: (res) => {
+        toast.success(res?.EM || 'Đổi mật khẩu thành công!')
         setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' })
       },
       onError: (err) => {
-        toast.error(err?.response?.data?.message || 'Lỗi khi đổi mật khẩu')
+        const msg = err?.response?.data?.EM || err?.response?.data?.message || 'Lỗi khi đổi mật khẩu'
+        toast.error(msg)
       },
     })
   }

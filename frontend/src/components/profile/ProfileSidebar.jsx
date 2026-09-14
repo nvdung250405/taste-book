@@ -1,25 +1,28 @@
 import { UserCircle, Shield } from 'lucide-react'
 
 export default function ProfileSidebar({ user, profileForm, activeTab, setActiveTab }) {
+  const displayName = profileForm?.name || user?.username || user?.name || 'Người dùng'
+  const displayAvatar = profileForm?.avatar || user?.avatarUrl || user?.avatar
+
   return (
     <div className="md:col-span-1 space-y-6">
       <div className="flex flex-col items-center gap-4 text-center">
         <div className="relative group w-24 h-24">
-          {profileForm.avatar ? (
+          {displayAvatar ? (
             <img 
-              src={profileForm.avatar} 
-              alt={user.name} 
+              src={displayAvatar} 
+              alt={displayName} 
               className="w-full h-full rounded-full object-cover border-4 border-white shadow-lg dark:border-slate-800"
             />
           ) : (
             <div className="w-full h-full rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-3xl uppercase border-4 border-white shadow-lg dark:border-slate-800">
-              {(user.name || 'U').charAt(0)}
+              {displayName.charAt(0)}
             </div>
           )}
         </div>
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">{user.name}</h2>
-          <p className="text-sm text-slate-500">{user.email}</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">{displayName}</h2>
+          <p className="text-sm text-slate-500">{user?.email}</p>
         </div>
       </div>
 

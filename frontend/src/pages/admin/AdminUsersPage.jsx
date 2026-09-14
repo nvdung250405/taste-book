@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Users, Search, Eye } from 'lucide-react'
+import { Users, Search } from 'lucide-react'
 import { useAdminUsers } from '../../hooks/queries/useUserQueries'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 
