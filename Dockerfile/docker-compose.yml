@@ -37,7 +37,7 @@ services:
       DB_DIALECT: postgres
       JWT_SECRET: hiusmall
       JWT_EXPIRES_IN: 24h
-    command: sh -c "npx sequelize-cli db:migrate && npm start"
+    command: sh -c "npm run db:setup && npm start"
     depends_on:
       db:
         condition: service_healthy
