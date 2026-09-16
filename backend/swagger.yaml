@@ -19,6 +19,8 @@ servers:
 tags:
   - name: Authentication
     description: "UC-02, UC-03, UC-04: Đăng ký, Đăng nhập, Đăng xuất"
+  - name: Home
+    description: "UC-01: Lấy dữ liệu công thức Trang chủ (mới nhất và thịnh hành)"
   - name: User Profile
     description: "UC-05: Xem thông tin cá nhân, cập nhật hồ sơ, đổi mật khẩu"
   - name: Admin Users
@@ -82,6 +84,70 @@ components:
           type: "null"
           example: null
 paths:
+  /home:
+    get:
+      tags:
+        - Home
+      summary: "UC-01: Lấy dữ liệu công thức Trang chủ (mới nhất và thịnh hành)"
+      description: Lấy danh sách các công thức nấu ăn mới nhất và các công thức thịnh hành (được yêu thích nhiều nhất) hiển thị công khai trên trang chủ.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 6
+          description: Số lượng món ăn lấy ra cho mỗi mục (mặc định 6)
+      responses:
+        "200":
+          description: Lấy dữ liệu trang chủ thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Lấy dữ liệu trang chủ thành công!
+                DT:
+                  latestRecipes:
+                    - recipeId: 105
+                      title: Canh chua cá lóc miền Tây
+                      thumbnailUrl: https://res.cloudinary.com/tastebook/image/upload/v1/recipes/canhchua.jpg
+                      cookTimeMinutes: 35
+                      difficulty: Medium
+                      defaultServings: 4
+                      author:
+                        userId: 10
+                        username: Nguyễn Văn A
+                      categories:
+                        - categoryId: 1
+                          categoryName: Món Canh
+                      createdAt: "2026-08-25T08:30:00.000Z"
+                  trendingRecipes:
+                    - recipeId: 101
+                      title: Bò lúc lắc sốt tiêu đen
+                      thumbnailUrl: https://res.cloudinary.com/tastebook/image/upload/v1/recipes/bo.jpg
+                      cookTimeMinutes: 25
+                      difficulty: Easy
+                      defaultServings: 2
+                      favoriteCount: 45
+                      author:
+                        userId: 2
+                        username: Bếp Trưởng Hoàng
+                      categories:
+                        - categoryId: 2
+                          categoryName: Món Xào
+                      createdAt: "2026-08-20T10:00:00.000Z"
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
   /auth/register:
     post:
       tags:
@@ -470,6 +536,51 @@ paths:
                 EM: Mật khẩu hiện tại không chính xác!
                 DT: null
         "500":
+  /categories:
+    get:
+      tags:
+        - Categories
+      summary: "UC-06/08: Lấy danh mục hiển thị (Danh mục hệ thống + danh mục do user
+        tạo)"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lấy danh sách danh mục thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Lấy danh sách danh mục thành công!
+                DT:
+                  - id: 1
+                    categoryName: Món chính
+                    createdBy: null
+                  - id: 2
+                    categoryName: Món canh
+                    createdBy: null
+        "400":
+          description: Lỗi dữ liệu đầu vào hoặc thiếu tham số bắt buộc
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Dữ liệu đầu vào không hợp lệ!
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
           description: Lỗi kết nối máy chủ
           content:
             application/json:
