@@ -75,7 +75,9 @@ module.exports = {
       await queryInterface.sequelize.query(
         'SELECT setval(pg_get_serial_sequence(\'"Categories"\', \'id\'), coalesce(max(id), 1)) FROM "Categories";'
       );
-    } catch (e) {}
+    } catch (error) {
+      console.error("Error setting sequence for Categories:", error);
+    }
   },
 
   down: async (queryInterface, Sequelize) => {

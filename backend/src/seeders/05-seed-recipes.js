@@ -156,7 +156,9 @@ module.exports = {
       await queryInterface.sequelize.query(
         'SELECT setval(pg_get_serial_sequence(\'"Recipes"\', \'id\'), coalesce(max(id), 1)) FROM "Recipes";'
       );
-    } catch (e) {}
+    } catch (error) {
+      console.error("Error setting sequence for Recipes:", error);
+    }
   },
 
   down: async (queryInterface, Sequelize) => {

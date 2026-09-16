@@ -254,7 +254,9 @@ module.exports = {
       await queryInterface.sequelize.query(
         'SELECT setval(pg_get_serial_sequence(\'"ShoppingListItems"\', \'id\'), coalesce(max(id), 1)) FROM "ShoppingListItems";'
       );
-    } catch (e) {}
+    } catch (error) {
+      console.error("Error setting sequence for Interactions:", error);
+    }
   },
 
   down: async (queryInterface, Sequelize) => {
