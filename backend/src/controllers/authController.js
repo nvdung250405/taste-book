@@ -28,6 +28,11 @@ const handleLogin = async (req, res) => {
       res.cookie("jwt", data.DT.accessToken, {
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000,
+        sameSite:
+          process.env.NODE_ENV === "production"
+            ? "none"
+            : "lax",
+        secure: process.env.NODE_ENV === "production",
       });
     }
 
@@ -52,6 +57,11 @@ const handleLogout = async (req, res) => {
     res.cookie("jwt", "", {
       httpOnly: true,
       maxAge: 0,
+      sameSite:
+        process.env.NODE_ENV === "production"
+          ? "none"
+          : "lax",
+      secure: process.env.NODE_ENV === "production",
     });
     let data = authService.handleUserLogout();
     return res.status(200).json(data);
