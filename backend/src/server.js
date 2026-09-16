@@ -6,11 +6,17 @@ require("dotenv").config();
 import cookieParser from "cookie-parser";
 import connection from "./config/connectDB";
 import configSwagger from "./config/swagger";
+import logger from "./config/logger";
+import requestLogger from "./middleware/requestLogger";
+import errorHandler from "./middleware/errorHandler";
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 //config cors
 configCors(app);
+
+//config request logger
+app.use(requestLogger);
 
 //config view engine
 configViewEngine(app);
@@ -33,8 +39,15 @@ initApiRoutes(app);
 
 //req => middleware => res
 app.use((req, res) => {
-  return res.send("404 not found");
+  return res.status(404).json({
+    EC: -1,
+    EM: "API endpoint not found.",
+    DT: null,
+  });
 });
+
+//config error handler
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log("tastebook backend is running on the port = ", PORT);
