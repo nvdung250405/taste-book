@@ -12,10 +12,12 @@ module.exports = (sequelize, DataTypes) => {
       userId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        primaryKey: true,
       },
       recipeId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        primaryKey: true,
       },
       personalNotes: {
         type: DataTypes.TEXT,

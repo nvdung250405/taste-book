@@ -26,11 +26,11 @@ const mapEcToStatus = (ec) => {
 // 1.4 GET /users/me
 const handleGetProfile = async (req, res) => {
   try {
-    let userId = req.user ? (req.user.userId || req.user.id) : null;
+    let userId = req.user?.userId;
     if (!userId) {
       return res.status(401).json({
         EC: 5,
-        EM: "Phiên làm việc không hợp lệ!",
+        EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!",
         DT: null,
       });
     }
@@ -50,11 +50,11 @@ const handleGetProfile = async (req, res) => {
 // 1.5 PUT /users/me
 const handleUpdateProfile = async (req, res) => {
   try {
-    let userId = req.user ? (req.user.userId || req.user.id) : null;
+    let userId = req.user?.userId;
     if (!userId) {
       return res.status(401).json({
         EC: 5,
-        EM: "Vui lòng đăng nhập để thực hiện!",
+        EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!",
         DT: null,
       });
     }
@@ -74,11 +74,11 @@ const handleUpdateProfile = async (req, res) => {
 // 1.6 PUT /users/me/password
 const handleChangePassword = async (req, res) => {
   try {
-    let userId = req.user ? (req.user.userId || req.user.id) : null;
+    let userId = req.user?.userId;
     if (!userId) {
       return res.status(401).json({
         EC: 5,
-        EM: "Vui lòng đăng nhập để thực hiện!",
+        EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!",
         DT: null,
       });
     }

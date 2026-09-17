@@ -1,64 +1,74 @@
 # TasteBook Backend API 🍳
 
-Dự án Backend cung cấp APIs cho ứng dụng chia sẻ công thức nấu ăn và đi chợ **TasteBook**. Được xây dựng dựa trên Node.js, Express, Sequelize ORM và PostgreSQL.
+Dự án Backend cung cấp dịch vụ RESTful API cho nền tảng gợi ý công thức nấu ăn, quản lý thực đơn và đi chợ thông minh **TasteBook**. Được xây dựng dựa trên Node.js, Express.js, Sequelize ORM (v6) và cơ sở dữ liệu PostgreSQL.
 
 ---
 
 ## 🛠️ Yêu Cầu Hệ Thống & Cài Đặt Công Cụ
 
-Để dự án hoạt động trơn tru dưới local của bạn, vui lòng cài đặt các phần mềm sau:
+Để dự án hoạt động trơn tru dưới môi trường local, vui lòng cài đặt các phần mềm sau:
 
 ### 1. Node.js
-* Tải và cài đặt phiên bản LTS (khuyên dùng Node v18 hoặc v20 trở lên, ở dự án này thì nên cài v24.17.0 cho giống với ở Backend).
+* Khuyên dùng phiên bản LTS (Node v18, v20 hoặc v24.x trở lên).
 * Link tải: [NodeJS Official Site](https://nodejs.org/)
 
-### 2. Docker (Khuyên dùng để cài PostgreSQL nhanh chóng)
-* Sử dụng Docker giúp chạy cơ sở dữ liệu PostgreSQL ngay lập tức chỉ với 1 câu lệnh mà không cần cài đặt trực tiếp trên hệ điều hành.
+### 2. Docker (Khuyên dùng để chạy PostgreSQL nhanh chóng)
+* Sử dụng Docker giúp khởi chạy PostgreSQL chỉ với 1 câu lệnh mà không cần cài đặt trực tiếp lên hệ điều hành.
 * Link tải: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
 ### 3. DBeaver (Trình quản lý cơ sở dữ liệu trực quan)
-* Công cụ UI giúp kết nối và quản lý cơ sở dữ liệu PostgreSQL trực quan hơn.
+* Công cụ UI mã nguồn mở giúp kết nối và quản trị CSDL PostgreSQL trực quan, thuận tiện.
 * Link tải: [DBeaver Community](https://dbeaver.io/download/)
 
 ---
 
 ## 🚀 Hướng Dẫn Khởi Chạy Dự Án (Từng bước)
 
-### Bước 1: Khởi động PostgreSQL Database
-Bạn có 2 lựa chọn để thiết lập cơ sở dữ liệu:
+> **Lưu ý:** Nếu bạn đang đứng ở thư mục gốc của repository (`taste-book`), hãy mở terminal và di chuyển vào thư mục Backend:
+> ```bash
+> cd backend
+> ```
 
-* **Lựa chọn A (Dùng Docker - Khuyên dùng)**:
-  Mở Terminal tại thư mục gốc dự án và chạy lệnh sau để khởi động Postgres container trong nền:
+### Bước 1: Khởi động PostgreSQL Database
+Bạn có thể chọn 1 trong 2 cách sau để thiết lập cơ sở dữ liệu:
+
+* **Lựa chọn A (Sử dụng Docker Compose đi kèm dự án - Khuyên dùng)**:
+  Từ thư mục gốc `taste-book`, khởi động dịch vụ PostgreSQL container:
   ```bash
-  docker compose up -d
+  docker compose -f Dockerfile/docker-compose.yml up -d db
   ```
-  *(Database `TasteBookDB` sẽ tự động được tạo với thông tin kết nối mặc định: port `5432`, user `postgres`, password `root`)*
+  *(Database mặc định: port `5432`, username `postgres`, password `root` hoặc theo file cấu hình).*
 
 * **Lựa chọn B (Cài PostgreSQL trực tiếp trên máy)**:
-  Tải và cài đặt PostgreSQL thủ công từ [PostgreSQL Official](https://www.postgresql.org/download/). Nhớ tạo sẵn một database trống có tên là `TasteBookDB` thông qua pgAdmin hoặc DBeaver.
+  Cài đặt PostgreSQL từ [PostgreSQL Official](https://www.postgresql.org/download/). Sử dụng DBeaver hoặc pgAdmin để tạo sẵn một database trống có tên `TasteBookDB` (hoặc `taste_book_db`).
 
 ---
 
 ### Bước 2: Cấu hình Môi Trường (`.env`)
-1. Nhân bản file cấu hình mẫu từ `.env.example` thành `.env`:
+1. Di chuyển vào thư mục `backend`:
+   ```bash
+   cd backend
+   ```
+2. Nhân bản file cấu hình mẫu từ `.env.example` thành `.env`:
    ```bash
    cp .env.example .env
    ```
-2. Mở file `.env` ra và điền các thông tin phù hợp. Nếu bạn chạy PostgreSQL qua Docker ở Bước 1, sử dụng cấu hình mặc định sau:
+3. Mở file `.env` và điền thông tin kết nối phù hợp:
    ```env
-   PORT=8080
-   JWT_SECRET=hiusmall
-   JWT_EXPIRES_IN=1h
+   PORT=5000
+   REACT_URL=http://localhost:5173
+   JWT_SECRET=
+   JWT_EXPIRES_IN=
 
    # Cấu hình PostgreSQL
    DB_HOST=localhost
    DB_PORT=5432
-   DB_DATABASE_NAME=TasteBookDB
+   DB_DATABASE_NAME=taste_book_db
    DB_USERNAME=postgres
-   DB_PASSWORD=root
+   DB_PASSWORD=password123
    DB_DIALECT=postgres
 
-   # Cấu hình Cloudinary (Thành viên Backend cung cấp)
+   # Cấu hình Cloudinary (Dành cho tính năng upload ảnh)
    CLOUDINARY_CLOUD_NAME=
    CLOUDINARY_API_KEY=
    CLOUDINARY_API_SECRET=
@@ -67,63 +77,119 @@ Bạn có 2 lựa chọn để thiết lập cơ sở dữ liệu:
 ---
 
 ### Bước 3: Cài đặt Dependencies
-Chạy lệnh sau để tải các thư viện cần thiết:
+Cài đặt toàn bộ các thư viện cần thiết cho Backend:
 ```bash
 npm install
 ```
 
 ---
 
-### Bước 4: Chạy Cơ Chế Khởi Tạo Bảng (Migrations)
-Sequelize sẽ tự động đồng bộ hóa cấu trúc database (tạo các bảng, ràng buộc khóa ngoại):
-```bash
-npx sequelize-cli db:migrate
-```
-*(Nếu muốn xóa sạch toàn bộ các bảng trong database để chạy lại từ đầu, bạn có thể chạy lệnh rollback: `npx sequelize-cli db:migrate:undo:all`)*
+### Bước 4: Khởi Tạo Bảng & Nạp Dữ Liệu Mẫu (Migrations & Seeders)
+
+Hệ thống hỗ trợ các lệnh quản trị CSDL tự động qua Sequelize CLI:
+
+* **Cách 1: Thiết lập tự động trọn gói (Khuyên dùng)**:
+  Tạo cấu trúc bảng và tự động nạp toàn bộ 15 bảng dữ liệu mẫu chỉ với 1 lệnh duy nhất:
+  ```bash
+  npm run db:setup
+  ```
+
+* **Cách 2: Chạy riêng từng bước**:
+  1. Chạy Migrations (tạo bảng & khóa ngoại):
+     ```bash
+     npm run db:migrate
+     ```
+  2. Chạy Seeders (nạp dữ liệu mẫu 15 bảng vào CSDL):
+     ```bash
+     npm run db:seed
+     ```
+
+* **Các lệnh quản trị CSDL hữu ích khác**:
+  * Hủy / Xóa sạch dữ liệu mẫu đã nạp:
+    ```bash
+    npm run db:seed:undo
+    ```
+  * Reset toàn bộ CSDL (xóa sạch bảng, tạo lại bảng mới và nạp lại dữ liệu mẫu từ đầu):
+    ```bash
+    npm run db:reset
+    ```
 
 ---
 
-### Bước 5: Khởi chạy Server
-Chạy lệnh sau để khởi động dự án ở chế độ Development (sử dụng nodemon tự động reload khi sửa code):
+### Bước 5: Khởi chạy Server Backend
+Khởi động server ở chế độ Development (tự động reload khi sửa code với nodemon):
 ```bash
 npm run start
 ```
 
-Dự án sẽ chạy tại địa chỉ: `http://localhost:8080`
+Máy chủ API sẽ hoạt động tại: **`http://localhost:5000`**
 
 ---
 
-## 📖 Tài Liệu Đặc Tả API (Swagger)
-
-Dự án tích hợp sẵn **Swagger UI** để đội FrontEnd tra cứu nhanh danh sách API, các tham số đầu vào, định dạng dữ liệu đầu ra và chạy thử nghiệm.
-
-* Địa chỉ truy cập Swagger: [http://localhost:8080/api-docs](http://localhost:8080/api-docs)
-
----
-
-## 💾 Đồng Bộ Dữ Liệu Thực Tế (Backup & Restore)
-
-Để đội ngũ FrontEnd có dữ liệu thực tế giống với dữ liệu bạn đang thao tác dưới Backend, bạn có thể thực hiện Import/Export theo hướng dẫn sau:
-
-### Cách 1: Sử dụng DBeaver (Khuyên dùng)
-* **Xuất file SQL (Backup)**: Click chuột phải vào database `TasteBookDB` -> **Tools** -> **Backup database** -> Chọn schema `public` -> Thiết lập file đầu ra dạng `.sql` -> Nhấn **Start**.
-
-* **Nhập file SQL (Restore)**: Tạo database trống tên `TasteBookDB` -> Click chuột phải vào database mới -> **Tools** -> **Restore database** -> Chọn file `.sql` nhận từ Backend -> Nhấn **Start**.
-
-### Cách 2: Sử dụng Dòng lệnh (Khi chạy PostgreSQL bằng Docker)
-* **Xuất dữ liệu từ Backend**:
-  ```bash
-  docker exec -t postgresql pg_dump -U postgres -d TasteBookDB > tastebook_backup.sql
-  ```
-* **Nhập dữ liệu phía FrontEnd** (Sau khi copy file backup vào thư mục gốc dự án):
-  ```bash
-  cat tastebook_backup.sql | docker exec -i postgresql psql -U postgres -d TasteBookDB
-  ```
+### Bước 6: Kiểm Tra Chuẩn Code (Linting)
+Trước khi commit hoặc tạo Pull Request, luôn chạy ESLint để đảm bảo không bị lỗi CI:
+```bash
+npm run lint
+```
 
 ---
 
-## 📂 Cấu trúc thư mục quan trọng đối với FrontEnd
+## 🔑 Tài Khoản Kiểm Thử Mẫu (Đã nạp sẵn trong Seed Data)
 
-* `src/routes/`: Nơi định nghĩa các tuyến đường API và Swagger annotations. Ví dụ:
-  * `src/routes/upload.js`: Chứa API upload & xóa ảnh (`/api/v1/image/upload`, `/api/v1/image/delete`).
-* `src/models/`: Cấu trúc dữ liệu của các thực thể trong cơ sở dữ liệu để tham chiếu kiểu dữ liệu nếu cần.
+Sau khi chạy lệnh `npm run db:seed` hoặc `npm run db:setup`, bạn có thể sử dụng ngay các tài khoản sau để đăng nhập và kiểm thử chức năng:
+
+| Loại tài khoản | Email đăng nhập | Mật khẩu mặc định | Vai trò (Role) | Ghi chú |
+| :--- | :--- | :---: | :---: | :--- |
+| **Quản trị viên (Admin)** | `admin@gmail.com` | `admin123` | **Admin** | Kiểm duyệt công thức, quản lý người dùng |
+| **Bếp Trưởng Hoàng** | `chef.hoang@tastebook.vn` | `123456` | **User** | Tác giả của các món canh chua, thịt kho tàu |
+| **Nguyễn Thị Lan Anh** | `lananh.kitchen@gmail.com` | `123456` | **User** | Người dùng đã có sẵn thực đơn & danh sách đi chợ mẫu |
+| **Trần Minh Đức** | `duc.foodie@gmail.com` | `123456` | **User** | Người dùng thành viên |
+
+---
+
+## 📖 Tài Liệu Đặc Tả API (Swagger UI) & Postman Collections
+
+* **Swagger UI:** Truy cập trực tiếp tại địa chỉ: **[http://localhost:5000/api-docs](http://localhost:5000/api-docs)**
+* **Postman Collections (Thư mục `backend/postman/`):**
+  * `tastebook_auth.postman_collection.json`: Bộ kiểm thử tự động toàn diện cho Phân hệ Xác thực & Phân quyền (Auth UC-02, UC-03, UC-04).
+  * `tastebook_user_profile.postman_collection.json`: Bộ kiểm thử tự động cho Quản lý hồ sơ cá nhân & Đổi mật khẩu (UC-05).
+
+---
+
+## 📋 Quy Chuẩn Định Dạng Phản Hồi API (Response Format)
+
+Tất cả các API trả về từ Backend bắt buộc tuân theo cấu trúc JSON 3 trường thống nhất:
+
+```json
+{
+  "EC": 0,
+  "EM": "Thông điệp phản hồi chi tiết",
+  "DT": {}
+}
+```
+
+* **`EC` (Error Code):** Mã lỗi nghiệp vụ (`0`: Thành công; `1`: Dữ liệu đầu vào không hợp lệ; `2`: Trùng lặp dữ liệu; `3`: Không tìm thấy tài nguyên; `4`: Không có quyền; `5`: Chưa đăng nhập / Hết hạn token; `6`: Sai thông tin đăng nhập; `-1`: Lỗi máy chủ).
+* **`EM` (Error Message):** Chuỗi thông báo thân thiện để hiển thị Toast thông báo phía FrontEnd.
+* **`DT` (Data):** Dữ liệu trả về (Object, Array hoặc `null`).
+
+---
+
+## 📂 Cấu Trúc Thư Mục Dự Án Backend
+
+```text
+backend/
+├── postman/            # Các bộ Postman Collection kiểm thử tự động chuẩn EC
+├── src/
+│   ├── config/         # Cấu hình CSDL, CORS, Cloudinary, Swagger
+│   ├── controllers/    # Tiếp nhận request & điều hướng nghiệp vụ
+│   ├── middleware/     # Middleware xác thực JWT (JWTAction.js) & phân quyền RBAC
+│   ├── migrations/     # 15 file migration tạo bảng CSDL PostgreSQL
+│   ├── models/         # 15 Sequelize Models & quan hệ Associations
+│   ├── routes/         # Định tuyến API (/api/v1/auth, /users, /recipes, /images...)
+│   ├── seeders/        # 7 file nạp dữ liệu mẫu khởi tạo hệ thống
+│   ├── services/       # Xử lý logic nghiệp vụ và truy vấn CSDL
+│   └── server.js       # File khởi chạy chính của ứng dụng
+├── .env.example        # File mẫu cấu hình biến môi trường
+├── package.json        # Thư viện phụ thuộc và các scripts npm
+└── README.md           # Tài liệu hướng dẫn cài đặt & vận hành dự án
+```

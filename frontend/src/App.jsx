@@ -1,5 +1,5 @@
 import { Toaster } from 'sonner'
-import { BrowserRouter, Routes, Route } from 'react-router'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
 // Layouts
 import MainLayout from './components/layouts/MainLayout'
@@ -10,8 +10,20 @@ import HomePage from './pages/HomePage'
 import NotFound from './pages/NotFound'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import DashboardPage from './pages/admin/DashboardPage'
+import AdminApprovalsPage from './pages/admin/AdminApprovalsPage'
+import AdminCategoriesPage from './pages/admin/AdminCategoriesPage'
+import AdminUsersPage from './pages/admin/AdminUsersPage'
+import AdminIngredientsPage from './pages/admin/AdminIngredientsPage'
+import AdminUnitsPage from './pages/admin/AdminUnitsPage'
+import ExplorePage from './pages/ExplorePage'
+import MyRecipesPage from './pages/MyRecipesPage'
+import MenuPage from './pages/MenuPage'
+import FavoritesPage from './pages/FavoritesPage'
+import ShoppingListPage from './pages/ShoppingListPage'
+import RecipeDetailPage from './pages/RecipeDetailPage'
+import RecipeFormPage from './pages/RecipeFormPage'
+import ProfilePage from './pages/ProfilePage'
 
 function App() {
   return (
@@ -25,14 +37,27 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            {/* User routes will be added here later */}
+            {/* User routes */}
+            <Route path="/explore" element={<ExplorePage />} />
+            <Route path="/my-recipes" element={<MyRecipesPage />} />
+            <Route path="/menu" element={<MenuPage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
+            <Route path="/shopping-list" element={<ShoppingListPage />} />
+            <Route path="/recipe/create" element={<RecipeFormPage />} />
+            <Route path="/recipe/:id/edit" element={<RecipeFormPage />} />
+            <Route path="/recipe/:id" element={<RecipeDetailPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile/settings" element={<ProfilePage />} />
           </Route>
 
           {/* Admin Routes with AdminLayout */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<DashboardPage />} />
-            {/* More admin routes will be added here later */}
+            <Route path="approvals" element={<AdminApprovalsPage />} />
+            <Route path="categories" element={<AdminCategoriesPage />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="ingredients" element={<AdminIngredientsPage />} />
+            <Route path="units" element={<AdminUnitsPage />} />
           </Route>
 
           {/* Fallback 404 Route */}
@@ -44,3 +69,4 @@ function App() {
 }
 
 export default App
+

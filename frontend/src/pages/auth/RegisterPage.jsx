@@ -1,19 +1,21 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { toast } from 'sonner';
 import { UtensilsCrossed, UserPlus } from 'lucide-react';
+import { useRegister } from '../../hooks/queries/useAuthQueries';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
-    name: '',
-    emailOrPhone: '',
+    username: '',
+    email: '',
+    phone: '',
     password: '',
     confirmPassword: ''
   });
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { mutate: register, isPending: isLoading } = useRegister();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -21,15 +23,22 @@ export default function RegisterPage() {
 
   const handleRegister = (e) => {
     e.preventDefault();
-    const { name, emailOrPhone, password, confirmPassword } = formData;
+    const { username, email, phone, password, confirmPassword } = formData;
     
-    if (!name || !emailOrPhone || !password || !confirmPassword) {
+    if (!username?.trim() || !email?.trim() || !phone?.trim() || !password || !confirmPassword) {
       toast.error('Vui lòng nhập đầy đủ thông tin');
       return;
     }
 
-    if (password !== confirmPassword) {
-      toast.error('Mật khẩu xác nhận không khớp');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      toast.error('Địa chỉ email không đúng định dạng');
+      return;
+    }
+
+    const phoneRegex = /^(0|\+84)[35789][0-9]{8}$/;
+    if (!phoneRegex.test(phone.trim())) {
+      toast.error('Số điện thoại không hợp lệ (phải là số điện thoại 10 số hợp lệ)');
       return;
     }
     
@@ -38,20 +47,36 @@ export default function RegisterPage() {
       return;
     }
 
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
-      navigate('/login');
-    }, 1200);
+    if (password !== confirmPassword) {
+      toast.error('Mật khẩu xác nhận không khớp');
+      return;
+    }
+
+    register(
+      {
+        username: username.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        password,
+        confirmPassword
+      },
+      {
+        onSuccess: () => {
+          toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
+          navigate('/login');
+        },
+        onError: (error) => {
+          toast.error(error.EM || error.response?.data?.EM || 'Đăng ký thất bại');
+        }
+      }
+    );
   };
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800">
         
-        {/* Left Side - Form */}
+        {/* Bên trái - Form đăng ký */}
         <div className="p-8 sm:p-12 flex flex-col justify-center order-2 md:order-1">
           <div className="mx-auto w-full max-w-sm space-y-6">
             <div className="space-y-2 text-center md:text-left">
@@ -63,28 +88,42 @@ export default function RegisterPage() {
 
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium leading-none" htmlFor="name">
+                <label className="text-sm font-medium leading-none" htmlFor="username">
                   Tên hiển thị
                 </label>
                 <Input 
-                  id="name" 
+                  id="username" 
                   type="text" 
                   placeholder="Nguyễn Văn A" 
-                  value={formData.name}
+                  value={formData.username}
                   onChange={handleChange}
                   className="bg-slate-50 dark:bg-slate-800"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium leading-none" htmlFor="emailOrPhone">
-                  Email hoặc Số điện thoại
+                <label className="text-sm font-medium leading-none" htmlFor="email">
+                  Địa chỉ Email
                 </label>
                 <Input 
-                  id="emailOrPhone" 
-                  type="text" 
+                  id="email" 
+                  type="email" 
                   placeholder="name@example.com" 
-                  value={formData.emailOrPhone}
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="bg-slate-50 dark:bg-slate-800"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none" htmlFor="phone">
+                  Số điện thoại
+                </label>
+                <Input 
+                  id="phone" 
+                  type="tel" 
+                  placeholder="0912345678" 
+                  value={formData.phone}
                   onChange={handleChange}
                   className="bg-slate-50 dark:bg-slate-800"
                 />
@@ -97,6 +136,7 @@ export default function RegisterPage() {
                 <Input 
                   id="password" 
                   type="password" 
+                  placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
                   className="bg-slate-50 dark:bg-slate-800"
@@ -110,13 +150,14 @@ export default function RegisterPage() {
                 <Input 
                   id="confirmPassword" 
                   type="password" 
+                  placeholder="••••••••"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   className="bg-slate-50 dark:bg-slate-800"
                 />
               </div>
 
-              <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white mt-2" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white mt-2 cursor-pointer" disabled={isLoading}>
                 {isLoading ? 'Đang xử lý...' : 'Đăng ký'}
                 {!isLoading && <UserPlus className="w-4 h-4 ml-2" />}
               </Button>
@@ -131,10 +172,10 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* Right Side - Image/Branding */}
+        {/* Bên phải - Ảnh & Thương hiệu */}
         <div className="hidden md:flex flex-col justify-between bg-slate-900 p-8 relative overflow-hidden group order-1 md:order-2">
-          {/* Decorative background image */}
-          <div className="absolute inset-0 bg-[url('https://media.istockphoto.com/id/694177338/photo/bbq-feast.jpg?s=170667a&w=0&k=20&c=ExqHIqWmYIF-tlbPbSv4iLv38Z3xottOxqQyA_Kbr24=')] bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-105" />
+          {/* Ảnh nền trang trí */}
+          <div className="absolute inset-0 bg-[url('/images/auth-register-bg.jpg')] bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-105" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
           
           <div className="relative z-10 flex items-center justify-end gap-2 text-white">

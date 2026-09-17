@@ -4,13 +4,18 @@ services:
     image: postgres:15-alpine
     container_name: postgresql
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: root
-      POSTGRES_DB: TasteBookDB     
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE_NAME}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - app-network
 
@@ -22,16 +27,24 @@ services:
     ports:
       - "5000:5000"
     environment:
-      PORT: 5000
-      REACT_URL: http://localhost:5173
-      DB_HOST: localhost
-      DB_PORT: 5432
-      DB_DATABASE_NAME: taste_book_db
-      DB_USERNAME: postgres
-      DB_PASSWORD: password123
-      DB_DIALECT: postgres
+      PORT: ${PORT:-5000}
+      NODE_ENV: ${NODE_ENV}
+      REACT_URL: ${REACT_URL}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_DATABASE_NAME: ${DB_DATABASE_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DIALECT: ${DB_DIALECT:-postgres}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+    command: sh -c "npm run db:setup && npm start"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - app-network
 

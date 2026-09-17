@@ -20,11 +20,13 @@ const storage = new CloudinaryStorage({
   },
 });
 
-// Bộ lọc kiểm tra chỉ chấp nhận file ảnh
+// Bộ lọc kiểm tra chỉ chấp nhận file ảnh (.jpg, .jpeg, .png, .webp)
 const imageFileFilter = (req, file, cb) => {
-  if (!file.mimetype.startsWith("image/")) {
+  const allowedExtensions = /\.(jpg|jpeg|png|webp)$/i;
+  const isImageMime = file.mimetype.startsWith("image/");
+  if (!isImageMime || !allowedExtensions.test(file.originalname)) {
     return cb(
-      new Error("Định dạng file không hợp lệ! Chỉ chấp nhận file ảnh (jpg, jpeg, png, webp)"),
+      new Error("File không hợp lệ hoặc vượt quá dung lượng tối đa 5MB!"),
       false
     );
   }
@@ -40,13 +42,4 @@ const uploadCloud = multer({
   fileFilter: imageFileFilter,
 });
 
-// 4. Cấu hình riêng cho tải ảnh đại diện Avatar (Giới hạn tối đa 2MB / file)
-const uploadAvatar = multer({
-  storage: storage,
-  limits: {
-    fileSize: 2 * 1024 * 1024, // Giới hạn tối đa 2MB
-  },
-  fileFilter: imageFileFilter,
-});
-
-module.exports = { cloudinary, uploadCloud, uploadAvatar };
+module.exports = { cloudinary, uploadCloud };

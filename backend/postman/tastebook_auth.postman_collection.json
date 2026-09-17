@@ -1,0 +1,270 @@
+{
+  "info": {
+    "_postman_id": "7f8b91a2-3c4d-4e5f-b6a7-8c9d0e1f2a3b",
+    "name": "TasteBook Auth & RBAC API (SP3-TASK-04)",
+    "description": "Bộ 3 API Xác thực (UC-02 Đăng ký, UC-03 Đăng nhập, UC-04 Đăng xuất) và kiểm tra Middleware phân quyền RBAC cho hệ thống TasteBook.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testEmail",
+      "value": "testuser_tastebook@gmail.com",
+      "type": "string"
+    },
+    {
+      "key": "testPhone",
+      "value": "0961234567",
+      "type": "string"
+    },
+    {
+      "key": "testPassword",
+      "value": "password123",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1.1 Đăng ký tài khoản mới (UC-02)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "var ts = Date.now();",
+              "pm.collectionVariables.set('testEmail', 'user_' + ts + '@gmail.com');",
+              "pm.collectionVariables.set('testPhone', '096' + String(ts).slice(-7));",
+              "pm.collectionVariables.set('testPassword', 'password123');"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('1.1 Đăng ký thành công - Status 201 Created', function () {",
+              "    pm.expect(pm.response.code).to.eql(201);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(0);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Người Dùng Test\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"phone\": \"{{testPhone}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "register"
+          ]
+        },
+        "description": "UC-02: Đăng ký tài khoản người dùng mới. Kiểm tra trùng lặp email/SĐT, mật khẩu tối thiểu 6 ký tự, mã hóa bcrypt."
+      },
+      "response": []
+    },
+    {
+      "name": "1.2 Đăng nhập hệ thống (UC-03)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('1.2 Đăng nhập thành công - Status 200 OK', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(0);",
+              "    pm.expect(jsonData.DT).to.have.property('accessToken');",
+              "    pm.collectionVariables.set('accessToken', jsonData.DT.accessToken);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"valueLogin\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "description": "UC-03: Đăng nhập bằng Email hoặc Số điện thoại. Sinh JWT token thời hạn 24h và tự động lưu accessToken vào biến collection."
+      },
+      "response": []
+    },
+    {
+      "name": "1.3 Kiểm tra Middleware Xác thực Token (Profile)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('1.3 Xác thực Token thành công - Status 200 OK', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(0);",
+              "    pm.expect(jsonData.DT).to.have.property('email');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
+        },
+        "description": "Kiểm tra authMiddleware (checkUserJWT) giải mã token, lấy thông tin người dùng đang đăng nhập."
+      },
+      "response": []
+    },
+    {
+      "name": "1.4 Kiểm tra Middleware Phân quyền RBAC (Chặn User vào Admin)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('1.4 Chặn RBAC thành công - Status 403 Forbidden', function () {",
+              "    pm.expect(pm.response.code).to.eql(403);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(4);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/admin/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "users"
+          ]
+        },
+        "description": "Kiểm tra RBAC middleware (checkAdminPermission). Tài khoản User gọi API Admin phải bị chặn HTTP 403 Forbidden (EC: 4)."
+      },
+      "response": []
+    },
+    {
+      "name": "1.5 Đăng xuất tài khoản (UC-04)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('1.5 Đăng xuất thành công - Status 200 OK', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(0);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/auth/logout",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "logout"
+          ]
+        },
+        "description": "UC-04: Đăng xuất tài khoản, xóa Cookie JWT và kết thúc phiên làm việc."
+      },
+      "response": []
+    }
+  ]
+}
