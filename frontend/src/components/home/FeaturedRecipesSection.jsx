@@ -76,14 +76,14 @@ function RecipeCard({ recipe, rank }) {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             onError={(e) => { e.target.src = FALLBACK_IMAGE }}
           />
-          {/* Tags */}
+          {/* Tags (Categories) */}
           <div className="absolute top-4 left-4 flex gap-2">
-            {(recipe.tags || []).slice(0, 2).map((tag) => (
+            {(recipe.categories || recipe.tags || []).slice(0, 2).map((cat) => (
               <Badge
-                key={tag.id || tag.name || tag}
+                key={cat.id || cat._id || cat.name || cat}
                 className="bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm border-none text-xs"
               >
-                {tag.name || tag}
+                {cat.categoryName || cat.name || cat}
               </Badge>
             ))}
           </div>
