@@ -59,7 +59,7 @@ export default function FavoritesPage() {
             Khi bạn nhấn tim một công thức, nó sẽ xuất hiện tại đây để bạn xem lại bất cứ lúc nào.
           </p>
           <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl" asChild>
-            <Link to="/explore">Khám phá ngay</Link>
+            <Link to="/search">Khám phá ngay</Link>
           </Button>
         </div>
       ) : (
