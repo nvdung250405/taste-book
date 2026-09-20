@@ -41,7 +41,7 @@ const ITEMS_PER_PAGE = 12
 export default function RecipeSearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
 
-  // Initialize state from URL params
+  // Initialize state from URL params (lazy init - runs once on mount)
   const [inputValue, setInputValue] = useState(() => searchParams.get('search') || '')
   const debouncedSearch = useDebounce(inputValue, 500)
 
@@ -51,28 +51,36 @@ export default function RecipeSearchPage() {
 
   const [currentPage, setCurrentPage] = useState(1)
 
-  // Sync URL params when filters change
+  // Sync URL params when filters change (updates external system = URL, not React state)
   useEffect(() => {
-    const params = {}
-    if (debouncedSearch) params.search = debouncedSearch
-    if (selectedCategory) params.categoryId = selectedCategory
-    if (selectedDifficulty) params.difficulty = selectedDifficulty
-    if (selectedMaxTime) params.maxTime = selectedMaxTime
-    setSearchParams(params, { replace: true })
-  }, [debouncedSearch, selectedCategory, selectedDifficulty, selectedMaxTime])
+    const urlParams = {}
+    if (debouncedSearch) urlParams.search = debouncedSearch
+    if (selectedCategory) urlParams.categoryId = selectedCategory
+    if (selectedDifficulty) urlParams.difficulty = selectedDifficulty
+    if (selectedMaxTime) urlParams.maxTime = selectedMaxTime
+    setSearchParams(urlParams, { replace: true })
+  }, [debouncedSearch, selectedCategory, selectedDifficulty, selectedMaxTime, setSearchParams])
 
-  // When URL params change externally (e.g. navigating from HeroSection), sync back to state
-  useEffect(() => {
-    const urlSearch = searchParams.get('search') || ''
-    const urlCategory = searchParams.get('categoryId') || ''
-    setInputValue(prev => prev !== urlSearch ? urlSearch : prev)
-    setSelectedCategory(prev => prev !== urlCategory ? urlCategory : prev)
-  }, [])
-
-  // Reset page when any filter changes
-  useEffect(() => {
+  // Wrapper handlers that also reset page to 1 when filter changes
+  const handleCategoryChange = (id) => {
+    setSelectedCategory(id)
     setCurrentPage(1)
-  }, [debouncedSearch, selectedCategory, selectedDifficulty, selectedMaxTime])
+  }
+
+  const handleDifficultyChange = (val) => {
+    setSelectedDifficulty(val)
+    setCurrentPage(1)
+  }
+
+  const handleMaxTimeChange = (val) => {
+    setSelectedMaxTime(val)
+    setCurrentPage(1)
+  }
+
+  const handleSearchChange = (val) => {
+    setInputValue(val)
+    setCurrentPage(1)
+  }
 
   // Build query params for backend
   const params = {
@@ -124,14 +132,14 @@ export default function RecipeSearchPage() {
           <Search className="absolute left-4 w-5 h-5 text-slate-400" />
           <Input
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Nhập tên món ăn hoặc nguyên liệu (VD: Thịt bò, Canh chua)..."
             className="pl-12 pr-10 h-12 rounded-xl bg-white dark:bg-slate-900 text-base shadow-sm"
           />
           {inputValue && (
             <button 
               type="button" 
-              onClick={() => setInputValue('')} 
+              onClick={() => { setInputValue(''); setCurrentPage(1) }}
               className="absolute right-4 text-slate-400 hover:text-slate-600"
             >
               <X className="w-5 h-5" />
@@ -149,7 +157,7 @@ export default function RecipeSearchPage() {
         <div className="flex flex-wrap gap-3">
           <select 
             value={selectedDifficulty} 
-            onChange={e => setSelectedDifficulty(e.target.value)}
+            onChange={e => handleDifficultyChange(e.target.value)}
             className="h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:border-orange-500 min-w-[140px]"
           >
             <option value="">Độ khó (Tất cả)</option>
@@ -160,7 +168,7 @@ export default function RecipeSearchPage() {
 
           <select 
             value={selectedMaxTime} 
-            onChange={e => setSelectedMaxTime(e.target.value)}
+            onChange={e => handleMaxTimeChange(e.target.value)}
             className="h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:border-orange-500 min-w-[140px]"
           >
             <option value="">Thời gian (Tất cả)</option>
@@ -181,7 +189,7 @@ export default function RecipeSearchPage() {
       {/* Category filter pills */}
       <div className="flex gap-2 flex-wrap mb-8">
         <button
-          onClick={() => setSelectedCategory('')}
+          onClick={() => handleCategoryChange('')}
           className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${!selectedCategory ? 'bg-orange-500 text-white border-orange-500 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-300'}`}
         >
           Tất cả danh mục
@@ -192,7 +200,7 @@ export default function RecipeSearchPage() {
           return (
             <button
               key={id}
-              onClick={() => setSelectedCategory(id)}
+              onClick={() => handleCategoryChange(id)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${selectedCategory === id ? 'bg-orange-500 text-white border-orange-500 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-300'}`}
             >
               {name}
