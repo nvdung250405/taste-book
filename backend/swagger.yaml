@@ -536,6 +536,15 @@ paths:
                 EM: Mật khẩu hiện tại không chính xác!
                 DT: null
         "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
   /categories:
     get:
       tags:
