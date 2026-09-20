@@ -41,9 +41,9 @@ export default function Footer({ handleLinkClick }) {
           <div>
             <h3 className="font-semibold text-slate-900 dark:text-slate-50 mb-4">Khám phá</h3>
             <ul className="space-y-3 text-sm text-slate-500 dark:text-slate-400">
-              <li><Link to="/search" className="text-slate-500 dark:text-slate-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">Khám phá công thức</Link></li>
-              <li><Link to="/search" className="hover:text-orange-500 transition-colors">Món ăn nổi bật</Link></li>
-              <li><Link to="/search" className="hover:text-orange-500 transition-colors">Danh mục ẩm thực</Link></li>
+              <li><Link to="/explore" className="hover:text-orange-500 transition-colors">Tìm kiếm công thức</Link></li>
+              <li><Link to="/explore" className="hover:text-orange-500 transition-colors">Món ăn nổi bật</Link></li>
+              <li><Link to="/explore" className="hover:text-orange-500 transition-colors">Danh mục ẩm thực</Link></li>
             </ul>
           </div>
 
