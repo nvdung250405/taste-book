@@ -71,7 +71,7 @@ export default function CategorySection({ categories, loadingCats }) {
         </div>
         <Button
           variant="ghost"
-          onClick={() => navigate('/explore')}
+          onClick={() => navigate('/search')}
           className="hidden sm:flex text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/50"
         >
           Xem tất cả <ArrowRight className="w-4 h-4 ml-2" />
@@ -126,7 +126,7 @@ export default function CategorySection({ categories, loadingCats }) {
               return (
                 <div
                   key={id}
-                  onClick={() => navigate(`/explore?categoryId=${id}`)}
+                  onClick={() => navigate(`/search?categoryId=${id}`)}
                   className="flex-none snap-start w-44 flex flex-col items-center justify-center gap-4 p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-lg hover:border-orange-200 dark:hover:border-orange-800 transition-all duration-300 cursor-pointer group"
                 >
                   <div className={`p-4 rounded-full ${style.color} group-hover:scale-110 transition-transform duration-300`}>
@@ -146,7 +146,7 @@ export default function CategorySection({ categories, loadingCats }) {
       <div className="mt-4 flex justify-center sm:hidden">
         <Button
           variant="ghost"
-          onClick={() => navigate('/explore')}
+          onClick={() => navigate('/search')}
           className="text-orange-500 hover:text-orange-600"
         >
           Xem tất cả danh mục <ArrowRight className="w-4 h-4 ml-2" />
