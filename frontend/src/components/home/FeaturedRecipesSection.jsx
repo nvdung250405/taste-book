@@ -11,6 +11,7 @@ import { Button } from '../ui/button'
 import { Card, CardContent } from '../ui/card'
 import { Badge } from '../ui/badge'
 import { Skeleton } from '../ui/skeleton'
+import { toast } from 'sonner'
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
@@ -92,7 +93,8 @@ function RecipeCard({ recipe, rank }) {
             <Button
               size="icon"
               variant="secondary"
-              className="rounded-full w-8 h-8 bg-white/80 hover:bg-white text-slate-700 backdrop-blur-sm"
+              onClick={(e) => { e.preventDefault(); toast.info('Chức năng yêu thích yêu cầu đăng nhập'); }}
+              className="rounded-full w-8 h-8 bg-white/80 hover:bg-white text-slate-400 hover:text-red-500 transition-colors backdrop-blur-sm"
             >
               <Heart className="w-4 h-4" />
             </Button>
