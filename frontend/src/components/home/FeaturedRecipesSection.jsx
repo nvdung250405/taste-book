@@ -156,7 +156,7 @@ export function LatestRecipesSection({ recipes, isLoading }) {
         </div>
         <Button
           variant="ghost"
-          onClick={() => navigate('/explore')}
+          onClick={() => navigate('/search')}
           className="hidden sm:flex text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/50"
         >
           Xem tất cả <ArrowRight className="w-4 h-4 ml-2" />
@@ -201,7 +201,7 @@ export function TrendingRecipesSection({ recipes, isLoading }) {
         </div>
         <Button
           variant="ghost"
-          onClick={() => navigate('/explore')}
+          onClick={() => navigate('/search')}
           className="hidden sm:flex text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/50"
         >
           Xem tất cả <ArrowRight className="w-4 h-4 ml-2" />

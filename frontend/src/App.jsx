@@ -16,7 +16,7 @@ import AdminCategoriesPage from './pages/admin/AdminCategoriesPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import AdminIngredientsPage from './pages/admin/AdminIngredientsPage'
 import AdminUnitsPage from './pages/admin/AdminUnitsPage'
-import ExplorePage from './pages/ExplorePage'
+import RecipeSearchPage from './pages/RecipeSearchPage'
 import MyRecipesPage from './pages/MyRecipesPage'
 import MenuPage from './pages/MenuPage'
 import FavoritesPage from './pages/FavoritesPage'
@@ -38,7 +38,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             {/* User routes */}
-            <Route path="/explore" element={<ExplorePage />} />
+            <Route path="/search" element={<RecipeSearchPage />} />
             <Route path="/my-recipes" element={<MyRecipesPage />} />
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
