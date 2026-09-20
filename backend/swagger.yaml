@@ -590,6 +590,140 @@ paths:
                 EC: -1
                 EM: Lỗi kết nối máy chủ!
                 DT: null
+  /recipes:
+    get:
+      tags:
+        - Recipes
+      summary: "UC-06: Tìm kiếm và lọc công thức nấu ăn công khai"
+      description: Chỉ lấy các công thức có isPublic = true, approvalStatus =
+        'Approved' và isDeleted = false (tối ưu qua chỉ mục IX_Recipes_Public_Approved).
+        Hỗ trợ tìm kiếm theo tên món, nguyên liệu, danh mục, độ khó, thời gian nấu tối đa,
+        kèm sắp xếp và phân trang chuẩn.
+      parameters:
+        - name: keyword
+          in: query
+          schema:
+            type: string
+          description: Từ khóa tìm kiếm theo tên món hoặc nguyên liệu (không phân biệt dấu/hoa thường)
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+          description: Lọc theo danh mục món ăn
+        - name: ingredientId
+          in: query
+          schema:
+            type: integer
+          description: Lọc theo nguyên liệu
+        - name: difficulty
+          in: query
+          schema:
+            type: string
+            enum:
+              - Easy
+              - Medium
+              - Hard
+          description: Lọc theo độ khó (Easy, Medium, Hard)
+        - name: cookingTime
+          in: query
+          schema:
+            type: integer
+          description: Thời gian nấu tối đa (phút)
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Trang hiện tại (mặc định 1)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Số lượng bản ghi trên một trang (mặc định 10, tối đa 100)
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum:
+              - createdAt
+              - cookTimeMinutes
+              - title
+            default: createdAt
+          description: Tiêu chí sắp xếp (createdAt, cookTimeMinutes, title)
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum:
+              - ASC
+              - DESC
+            default: DESC
+          description: Chiều sắp xếp (ASC, DESC)
+      responses:
+        "200":
+          description: Lấy dữ liệu và phân trang thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Lấy danh sách công thức thành công!
+                DT:
+                  page: 1
+                  limit: 10
+                  total: 25
+                  totalPages: 3
+                  recipes:
+                    - recipeId: 101
+                      title: Bò lúc lắc
+                      thumbnailUrl: https://res.cloudinary.com/.../bo.jpg
+                      cookTimeMinutes: 25
+                      difficulty: Easy
+                      defaultServings: 2
+                      authorName: Nguyễn Văn A
+        "400":
+          description: Tham số tìm kiếm, lọc, phân trang hoặc sắp xếp không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidDifficulty:
+                  summary: Độ khó không hợp lệ
+                  value:
+                    EC: 1
+                    EM: Độ khó không hợp lệ (Chỉ nhận Easy, Medium, Hard)!
+                    DT: null
+                invalidCookingTime:
+                  summary: Thời gian nấu không hợp lệ
+                  value:
+                    EC: 1
+                    EM: Thời gian nấu phải là số nguyên dương lớn hơn 0!
+                    DT: null
+                invalidPagination:
+                  summary: Tham số phân trang không hợp lệ
+                  value:
+                    EC: 1
+                    EM: Tham số phân trang page hoặc limit không hợp lệ!
+                    DT: null
+                invalidSorting:
+                  summary: Tham số sắp xếp không hợp lệ
+                  value:
+                    EC: 1
+                    EM: Tham số sắp xếp không hợp lệ!
+                    DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
   /images:
     post:
       tags:
