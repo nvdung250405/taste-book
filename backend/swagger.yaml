@@ -724,6 +724,139 @@ paths:
                 EC: -1
                 EM: Lỗi kết nối máy chủ!
                 DT: null
+  "/recipes/{recipeId}":
+    get:
+      tags:
+        - Recipes
+      summary: "UC-07: Xem chi tiết toàn bộ công thức món ăn"
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        "200":
+          description: Lấy chi tiết thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Thành công!
+                DT:
+                  recipeId: 101
+                  title: Bò lúc lắc
+                  description: Thịt bò mềm ngấm vị
+                  thumbnailUrl: https://res.cloudinary.com/.../bo.jpg
+                  cookTimeMinutes: 25
+                  difficulty: Easy
+                  defaultServings: 2
+                  authorName: Nguyễn Văn A
+                  categories:
+                    - categoryId: 1
+                      categoryName: Món Xào
+                  ingredients:
+                    - ingredientId: 1
+                      ingredientName: Thịt bò
+                      quantity: 300
+                      unitId: 1
+                      unit: gam
+                  steps:
+                    - stepNumber: 1
+                      instruction: Thái thịt bò quân cờ...
+        "404":
+          description: Công thức không tồn tại hoặc đã bị xóa mềm
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy công thức nấu ăn!
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  "/recipes/{recipeId}/scale":
+    get:
+      tags:
+        - Recipes
+      summary: "UC-07: Tính định lượng theo N người (servings)"
+      description: Tự động tính toán lại định lượng nguyên liệu theo số người ăn mong muốn N dựa trên tỷ lệ khẩu phần gốc
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 5
+        - name: servings
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          example: 4
+          description: Số người ăn mong muốn
+      responses:
+        "200":
+          description: Tính toán định lượng thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Tính toán định lượng thành công!
+                DT:
+                  recipeId: 101
+                  defaultServings: 2
+                  targetServings: 4
+                  scaleFactor: 2
+                  ingredients:
+                    - ingredientName: Thịt bò
+                      scaledQuantity: 600
+                      unit: gam
+        "400":
+          description: Khẩu phần servings không hợp lệ (<= 0)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Số khẩu phần ăn phải lớn hơn 0!
+                DT: null
+        "404":
+          description: Công thức không tồn tại hoặc đã bị xóa mềm
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy công thức nấu ăn!
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
   /images:
     post:
       tags:
