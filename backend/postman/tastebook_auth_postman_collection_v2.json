@@ -1,0 +1,457 @@
+{
+  "info": {
+    "_postman_id": "7f8b91a2-3c4d-4e5f-b6a7-8c9d0e1f2a3b",
+    "name": "TasteBook Auth & RBAC API (SP3-TASK-04) v2",
+    "description": "Bản mở rộng: bổ sung các case ngoại lệ (EC=1,2,5,6) còn thiếu so với bản gốc, để bao phủ đủ các mã HTTP 200/201/400/401/403/404 theo yêu cầu SP3-TASK-18.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "testEmail", "value": "", "type": "string" },
+    { "key": "testPhone", "value": "", "type": "string" },
+    { "key": "testPassword", "value": "password123", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1.0 Ngoại lệ: Đăng ký thiếu trường bắt buộc",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.0 Thiếu username -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"\",\n  \"email\": \"missingfield_{{$timestamp}}@gmail.com\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"password123\",\n  \"phone\": \"0987654321\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "Kiểm tra validate: thiếu username phải trả EC=1, không được tạo user."
+      },
+      "response": []
+    },
+    {
+      "name": "1.1 Đăng ký tài khoản mới (UC-02)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var ts = Date.now();",
+              "pm.collectionVariables.set('testEmail', 'user_' + ts + '@gmail.com');",
+              "pm.collectionVariables.set('testPhone', '096' + String(ts).slice(-7));",
+              "pm.collectionVariables.set('testPassword', 'password123');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.1 Đăng ký thành công - Status 201 Created', function () {",
+              "    pm.expect(pm.response.code).to.eql(201);",
+              "    pm.expect(pm.response.json().EC).to.eql(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Người Dùng Test\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"phone\": \"{{testPhone}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "UC-02: Đăng ký tài khoản người dùng mới."
+      },
+      "response": []
+    },
+    {
+      "name": "1.1b Ngoại lệ: Đăng ký email đã tồn tại",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.1b Email trùng -> 409, EC=2', function () {",
+              "    pm.expect(pm.response.code).to.eql(409);",
+              "    pm.expect(pm.response.json().EC).to.eql(2);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Người Dùng Trùng\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"password123\",\n  \"phone\": \"0987650000\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "Chạy NGAY SAU 1.1 để dùng lại {{testEmail}} vừa đăng ký -> phải bị chặn trùng lặp."
+      },
+      "response": []
+    },
+    {
+      "name": "1.1c Ngoại lệ: Xác nhận mật khẩu không khớp",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.1c confirmPassword không khớp -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Người Dùng Test 2\",\n  \"email\": \"mismatch_{{$timestamp}}@gmail.com\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"khackhau123\",\n  \"phone\": \"0977{{$randomInt}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "1.2 Đăng nhập hệ thống (UC-03)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.2 Đăng nhập thành công - Status 200 OK', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(0);",
+              "    pm.expect(jsonData.DT).to.have.property('accessToken');",
+              "    pm.collectionVariables.set('accessToken', jsonData.DT.accessToken);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"valueLogin\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        },
+        "description": "UC-03: Đăng nhập bằng Email hoặc SĐT."
+      },
+      "response": []
+    },
+    {
+      "name": "1.2b Ngoại lệ: Sai mật khẩu đăng nhập",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.2b Sai mật khẩu -> 401, EC=6', function () {",
+              "    pm.expect(pm.response.code).to.eql(401);",
+              "    pm.expect(pm.response.json().EC).to.eql(6);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"valueLogin\": \"{{testEmail}}\",\n  \"password\": \"sai_mat_khau_123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "1.2c Ngoại lệ: Tài khoản không tồn tại",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.2c Tài khoản không tồn tại -> 401, EC=6 (KHÔNG lộ email tồn tại hay không)', function () {",
+              "    pm.expect(pm.response.code).to.eql(401);",
+              "    pm.expect(pm.response.json().EC).to.eql(6);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"valueLogin\": \"khong_ton_tai_{{$timestamp}}@gmail.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        },
+        "description": "GIẢ ĐỊNH bảo mật chuẩn: không phân biệt 'sai mật khẩu' và 'không tồn tại tài khoản' (đều trả EC=6) để tránh lộ thông tin email nào đã đăng ký. Nếu backend thực tế trả EC=3 (Not Found) thì sửa lại assertion này cho khớp."
+      },
+      "response": []
+    },
+    {
+      "name": "1.3b Ngoại lệ: Gọi API không kèm Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.3b Không có token -> 401, EC=5', function () {",
+              "    pm.expect(pm.response.code).to.eql(401);",
+              "    pm.expect(pm.response.json().EC).to.eql(5);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "", "type": "text" },
+          { "key": "Cookie", "value": "", "type": "text" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
+        },
+        "description": "Đặt TRƯỚC bước Login để đảm bảo không có cookie jwt nào trong Newman session. Middleware checkUserJWT phải chặn (EC=5)."
+      },
+      "response": []
+    },
+    {
+      "name": "1.3 Kiểm tra Middleware Xác thực Token (Profile)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.3 Xác thực Token thành công - Status 200 OK', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(0);",
+              "    pm.expect(jsonData.DT).to.have.property('email');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
+        }
+      },
+      "response": []
+    },
+
+    {
+      "name": "1.3c Ngoại lệ: Token không hợp lệ / hết hạn",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.3c Token sai định dạng/hết hạn -> 401, EC=5', function () {",
+              "    pm.expect(pm.response.code).to.eql(401);",
+              "    pm.expect(pm.response.json().EC).to.eql(5);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "token.gia.khong.hop.le",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "1.4 Kiểm tra Middleware Phân quyền RBAC (Chặn User vào Admin)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.4 Chặn RBAC thành công - Status 403 Forbidden', function () {",
+              "    pm.expect(pm.response.code).to.eql(403);",
+              "    pm.expect(pm.response.json().EC).to.eql(4);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/admin/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["admin", "users"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "1.5 Đăng xuất tài khoản (UC-04)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.5 Đăng xuất thành công - Status 200 OK', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    pm.expect(pm.response.json().EC).to.eql(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/auth/logout",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "logout"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "1.5b Ngoại lệ: Đăng xuất khi không có Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.5b Logout không token -> 401, EC=5', function () {",
+              "    pm.expect(pm.response.code).to.eql(401);",
+              "    pm.expect(pm.response.json().EC).to.eql(5);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/auth/logout",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "logout"]
+        },
+        "description": "Chạy CUỐI CÙNG: sau 1.5 token đã bị vô hiệu/không còn -> gọi lại logout hoặc /users/me không token đều phải bị chặn EC=5."
+      },
+      "response": []
+    }
+  ]
+}

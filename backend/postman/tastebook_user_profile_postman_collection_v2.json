@@ -1,0 +1,500 @@
+{
+  "info": {
+    "_postman_id": "8a9c0d1e-4f5a-6b7c-8d9e-0f1a2b3c4d5e",
+    "name": "TasteBook User Profile & Password API (SP3-TASK-05) v2",
+    "description": "Bản mở rộng: bổ sung case gọi API không token (EC=5), sai định dạng SĐT (EC=1), mật khẩu mới quá ngắn/không khớp xác nhận (EC=1), và bước hoàn trả username gốc.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "currentPassword", "value": "123456", "type": "string" },
+    { "key": "originalUsername", "value": "Bếp Trưởng Quốc Anh", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "0. Đăng nhập chuẩn bị Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('0. Đăng nhập thành công lấy token', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.DT).to.have.property('accessToken');",
+              "    pm.collectionVariables.set('accessToken', jsonData.DT.accessToken);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"valueLogin\": \"chef.quocanh@tastebook.vn\",\n  \"password\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "0b Ngoại lệ: Lấy hồ sơ khi không có Token",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.cookies.jar().clear(pm.collectionVariables.get('baseUrl'), function () {});"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('0b Không token -> 401, EC=5', function () {",
+              "    pm.expect(pm.response.code).to.eql(401);",
+              "    pm.expect(pm.response.json().EC).to.eql(5);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "1. Lấy thông tin hồ sơ cá nhân hiện tại (GET /users/me)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1. Lấy hồ sơ cá nhân thành công - Status 200 OK', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(0);",
+              "    pm.expect(jsonData.DT).to.have.property('userId');",
+              "    pm.expect(jsonData.DT).to.have.property('username');",
+              "    pm.expect(jsonData.DT).to.have.property('email');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. Cập nhật thông tin hồ sơ (PUT /users/me)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('2. Cập nhật hồ sơ thành công - Status 200 OK', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(0);",
+              "    pm.expect(jsonData.DT.username).to.eql('Bếp Trưởng Hoàng (Updated)');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+          ]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Bếp Trưởng Hoàng (Updated)\",\n  \"phone\": \"0912345678\",\n  \"avatarUrl\": \"https://res.cloudinary.com/sf4yjct9/image/upload/v1788611681/tastebook_uploads/f1plgomkateq3nufqchm.png\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. Ngoại lệ: Cập nhật thiếu tên hiển thị (PUT /users/me)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('3. Báo lỗi thiếu username - Status 400 Bad Request', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+          ]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"\",\n  \"phone\": \"0912345678\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3b Ngoại lệ: Cập nhật SĐT sai định dạng (PUT /users/me)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('3b SĐT sai định dạng -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+          ]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Bếp Trưởng Hoàng (Updated)\",\n  \"phone\": \"abc123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
+        },
+        "description": "SĐT không đúng định dạng số điện thoại VN -> phải bị validate chặn."
+      },
+      "response": []
+    },
+    {
+      "name": "4. Ngoại lệ: Đổi mật khẩu sai mật khẩu cũ (PUT /users/me/password)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('4. Báo lỗi sai mật khẩu cũ - Status 401 Unauthorized', function () {",
+              "    pm.expect(pm.response.code).to.eql(401);",
+              "    pm.expect(pm.response.json().EC).to.eql(6);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+          ]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"oldPassword\": \"wrong_password\",\n  \"newPassword\": \"newpassword123\",\n  \"confirmPassword\": \"newpassword123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me/password",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. Ngoại lệ: Mật khẩu mới trùng mật khẩu cũ (PUT /users/me/password)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('5. Báo lỗi mật khẩu mới trùng mật khẩu cũ - Status 400 Bad Request', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+          ]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"oldPassword\": \"123456\",\n  \"newPassword\": \"123456\",\n  \"confirmPassword\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me/password",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5b Ngoại lệ: Mật khẩu mới quá ngắn (PUT /users/me/password)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('5b newPassword < 6 ký tự -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+          ]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"oldPassword\": \"123456\",\n  \"newPassword\": \"123\",\n  \"confirmPassword\": \"123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me/password",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5c Ngoại lệ: confirmPassword không khớp newPassword (PUT /users/me/password)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('5c confirmPassword không khớp -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+          ]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"oldPassword\": \"123456\",\n  \"newPassword\": \"hoang123456\",\n  \"confirmPassword\": \"khac_di123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me/password",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6. Đổi mật khẩu thành công (PUT /users/me/password)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('6. Đổi mật khẩu thành công - Status 200 OK', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    pm.expect(pm.response.json().EC).to.eql(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+          ]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"oldPassword\": \"123456\",\n  \"newPassword\": \"hoang123456\",\n  \"confirmPassword\": \"hoang123456\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me/password",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "7. Hoàn trả mật khẩu gốc (PUT /users/me/password)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('7. Đổi lại mật khẩu gốc thành công - Status 200 OK', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    pm.expect(pm.response.json().EC).to.eql(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+          ]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"oldPassword\": \"hoang123456\",\n  \"newPassword\": \"123456\",\n  \"confirmPassword\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me/password",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "8. Hoàn trả username gốc (PUT /users/me)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('8. Hoàn trả hồ sơ gốc thành công - Status 200 OK', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    pm.expect(pm.response.json().EC).to.eql(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+          ]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{originalUsername}}\",\n  \"phone\": \"0912345678\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
+        },
+        "description": "Bước 2 đã đổi permanent username sang '(Updated)' — cần trả lại tên gốc để dữ liệu seed sạch cho lần chạy sau, tương tự tinh thần của bước 7 với mật khẩu."
+      },
+      "response": []
+    }
+  ]
+}

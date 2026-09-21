@@ -8,6 +8,7 @@
   "main": "src/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:api": "npx newman run postman/tastebook_auth_postman_collection_v2.json -e postman/tastebook_environment.postman_environment.json && npx newman run postman/tastebook_user_profile_postman_collection_v2.json -e postman/tastebook_environment.postman_environment.json",
     "lint": "eslint .",
     "start": "nodemon --exec babel-node src/server.js",
     "db:migrate": "npx sequelize-cli db:migrate",
