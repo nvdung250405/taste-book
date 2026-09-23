@@ -263,7 +263,7 @@ export default function RecipeSearchPage() {
 
                   <button
                     onClick={(e) => { e.preventDefault(); toast.info('Chức năng yêu thích yêu cầu đăng nhập'); }}
-                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white backdrop-blur-md flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors shadow-sm"
+                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white backdrop-blur-md flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors shadow-sm z-10"
                   >
                     <Heart className="w-4 h-4" />
                   </button>
@@ -279,7 +279,9 @@ export default function RecipeSearchPage() {
                 
                 <CardContent className="p-5 flex flex-col flex-1">
                   <h3 className="font-bold text-lg text-slate-900 dark:text-slate-50 line-clamp-2 group-hover:text-orange-500 transition-colors mb-4 flex-1">
-                    <Link to={`/recipe/${recipe.recipeId}`}>{recipe.title}</Link>
+                    <Link to={`/recipe/${recipe.recipeId || recipe.id || recipe._id}`} className="after:absolute after:inset-0">
+                      {recipe.title}
+                    </Link>
                   </h3>
                   
                   <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
