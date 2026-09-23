@@ -31,9 +31,9 @@ export default function RecipeHero({ recipe, tags, isFavorited, handleFavorite, 
 
       {/* Tags overlay */}
       <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-        {tags.slice(0, 3).map(tag => (
-          <Badge key={tag.id || tag.name || tag} className="bg-black/60 text-white border-none backdrop-blur-sm">
-            {tag.name || tag}
+        {tags.slice(0, 3).map((tag, idx) => (
+          <Badge key={tag.categoryId || tag.id || tag._id || idx} className="bg-black/60 text-white border-none backdrop-blur-sm">
+            {tag.categoryName || tag.name || String(tag)}
           </Badge>
         ))}
         {recipe.difficulty && (
