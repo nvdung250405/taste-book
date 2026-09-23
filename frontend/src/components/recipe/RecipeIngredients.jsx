@@ -17,9 +17,9 @@ export default function RecipeIngredients({ ingredients, actualServings, setServ
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {ingredients.map((ing, idx) => {
-            const name = ing.ingredient?.name || ing.customIngredientName || ing.name || `Nguyên liệu ${idx + 1}`
+            const name = ing.ingredientName || ing.ingredient?.ingredientName || ing.ingredient?.name || `Nguyên liệu ${idx + 1}`
             const qty = ing.quantity ? (ing.quantity * ratio).toFixed(ratio !== 1 ? 1 : 0) : ''
-            const unit = ing.unitGroup?.name || ing.customUnit || ing.unit || ing.ingredient?.unit || ''
+            const unit = ing.unit || ing.unitGroup?.unitName || ing.customUnit || ing.ingredient?.unit || ''
             return (
               <div
                 key={ing._id || ing.id || idx}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { Search, Clock, ChefHat, Heart, Loader2, X, Filter, ChevronLeft, ChevronRight, Users } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -40,6 +40,7 @@ const ITEMS_PER_PAGE = 12
 
 export default function RecipeSearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   // Initialize state from URL params (lazy init - runs once on mount)
   const [inputValue, setInputValue] = useState(() => searchParams.get('search') || '')
@@ -239,8 +240,16 @@ export default function RecipeSearchPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-            {currentRecipes.map(recipe => (
-              <Card key={recipe.recipeId} className="overflow-hidden group hover:shadow-xl transition-all duration-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col h-full">
+            {currentRecipes.map(recipe => {
+              const recipeUrl = `/recipe/${recipe.recipeId || recipe.id || recipe._id}`
+              return (
+              <div
+                key={recipe.recipeId}
+                className="relative cursor-pointer group"
+                onClick={() => navigate(recipeUrl)}
+                role="article"
+              >
+                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col h-full">
                 <div className="relative h-52 overflow-hidden shrink-0">
                   <img
                     src={recipe.thumbnailUrl || FALLBACK_IMAGE}
@@ -262,7 +271,7 @@ export default function RecipeSearchPage() {
                   </div>
 
                   <button
-                    onClick={(e) => { e.preventDefault(); toast.info('Chức năng yêu thích yêu cầu đăng nhập'); }}
+                    onClick={(e) => { e.stopPropagation(); toast.info('Chức năng yêu thích yêu cầu đăng nhập'); }}
                     className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white backdrop-blur-md flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors shadow-sm z-10"
                   >
                     <Heart className="w-4 h-4" />
@@ -279,7 +288,11 @@ export default function RecipeSearchPage() {
                 
                 <CardContent className="p-5 flex flex-col flex-1">
                   <h3 className="font-bold text-lg text-slate-900 dark:text-slate-50 line-clamp-2 group-hover:text-orange-500 transition-colors mb-4 flex-1">
-                    <Link to={`/recipe/${recipe.recipeId || recipe.id || recipe._id}`} className="after:absolute after:inset-0">
+                    <Link
+                      to={recipeUrl}
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:underline"
+                    >
                       {recipe.title}
                     </Link>
                   </h3>
@@ -295,12 +308,14 @@ export default function RecipeSearchPage() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <ChefHat className="w-4 h-4" />
-                      <span className="truncate max-w-[80px]">{recipe.authorName || 'Chef'}</span>
+                      <span className="truncate max-w-20">{recipe.authorName || 'Chef'}</span>
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            ))}
+                </Card>
+              </div>
+            )
+          })}
           </div>
 
           {/* Pagination */}
