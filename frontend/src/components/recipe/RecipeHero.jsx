@@ -3,9 +3,15 @@ import { Badge } from '../ui/badge'
 import { toast } from 'sonner'
 
 const DIFFICULTY_STYLES = {
-  'Dễ': 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-  'Trung bình': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
-  'Khó': 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  'Easy': 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+  'Medium': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
+  'Hard': 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+}
+
+const DIFFICULTY_TEXT = {
+  'Easy': 'Dễ',
+  'Medium': 'Trung bình',
+  'Hard': 'Khó',
 }
 
 export default function RecipeHero({ recipe, tags, isFavorited, handleFavorite, disabledBtn }) {
@@ -17,7 +23,7 @@ export default function RecipeHero({ recipe, tags, isFavorited, handleFavorite, 
   return (
     <div className="relative w-full h-72 md:h-96 rounded-2xl overflow-hidden mb-8 shadow-lg">
       <img
-        src={recipe.thumbnail || recipe.image || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1200&auto=format&fit=crop'}
+        src={recipe.thumbnailUrl || recipe.thumbnail || recipe.image || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1200&auto=format&fit=crop'}
         alt={recipe.title}
         className="w-full h-full object-cover"
       />
@@ -32,7 +38,7 @@ export default function RecipeHero({ recipe, tags, isFavorited, handleFavorite, 
         ))}
         {recipe.difficulty && (
           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${DIFFICULTY_STYLES[recipe.difficulty] || 'bg-slate-100 text-slate-600'}`}>
-            {recipe.difficulty}
+            {DIFFICULTY_TEXT[recipe.difficulty] || recipe.difficulty}
           </span>
         )}
       </div>

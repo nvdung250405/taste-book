@@ -6,6 +6,7 @@ import {
   ChefHat,
   Heart,
   Sparkles,
+  Users,
 } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Card, CardContent } from '../ui/card'
@@ -79,12 +80,12 @@ function RecipeCard({ recipe, rank }) {
           />
           {/* Tags (Categories) */}
           <div className="absolute top-4 left-4 flex gap-2">
-            {(recipe.categories || recipe.tags || []).slice(0, 2).map((cat) => (
+            {(recipe.categories || recipe.tags || []).slice(0, 2).map((cat, idx) => (
               <Badge
-                key={cat.id || cat._id || cat.name || cat}
+                key={cat.categoryId || cat.id || cat._id || idx}
                 className="bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm border-none text-xs"
               >
-                {cat.categoryName || cat.name || cat}
+                {cat.categoryName || cat.name || String(cat)}
               </Badge>
             ))}
           </div>
@@ -115,6 +116,10 @@ function RecipeCard({ recipe, rank }) {
                 {recipe.cookTimeMinutes ? `${recipe.cookTimeMinutes}p` : recipe.prepTime || recipe.time || '30p'}
               </div>
               <div className="flex items-center gap-1">
+                <Users className="w-4 h-4" />
+                {recipe.defaultServings || recipe.servings || 2}
+              </div>
+              <div className="flex items-center gap-1">
                 <ChefHat className="w-4 h-4" />
                 {DIFFICULTY_MAP[recipe.difficulty] || recipe.difficulty || 'Dễ'}
               </div>
@@ -123,7 +128,7 @@ function RecipeCard({ recipe, rank }) {
 
           {/* Title */}
           <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-2 line-clamp-1 group-hover:text-orange-500 transition-colors">
-            <Link to={`/recipe/${recipe._id || recipe.id}`}>{recipe.title}</Link>
+            <Link to={`/recipe/${recipe.recipeId || recipe.id || recipe._id}`}>{recipe.title}</Link>
           </h3>
 
           {/* Author */}
@@ -172,7 +177,7 @@ export function LatestRecipesSection({ recipes, isLoading }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {recipes.map((recipe) => (
-            <RecipeCard key={recipe._id || recipe.id} recipe={recipe} />
+            <RecipeCard key={recipe.recipeId || recipe.id || recipe._id} recipe={recipe} />
           ))}
         </div>
       )}
@@ -217,7 +222,7 @@ export function TrendingRecipesSection({ recipes, isLoading }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {recipes.map((recipe, idx) => (
-            <RecipeCard key={recipe._id || recipe.id} recipe={recipe} rank={idx} />
+            <RecipeCard key={recipe.recipeId || recipe.id || recipe._id || idx} recipe={recipe} rank={idx} />
           ))}
         </div>
       )}
