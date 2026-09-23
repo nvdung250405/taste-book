@@ -6,6 +6,7 @@ import {
   ChefHat,
   Heart,
   Sparkles,
+  Users,
 } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Card, CardContent } from '../ui/card'
@@ -79,12 +80,12 @@ function RecipeCard({ recipe, rank }) {
           />
           {/* Tags (Categories) */}
           <div className="absolute top-4 left-4 flex gap-2">
-            {(recipe.categories || recipe.tags || []).slice(0, 2).map((cat) => (
+            {(recipe.categories || recipe.tags || []).slice(0, 2).map((cat, idx) => (
               <Badge
-                key={cat.id || cat._id || cat.name || cat}
+                key={cat.categoryId || cat.id || cat._id || idx}
                 className="bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm border-none text-xs"
               >
-                {cat.categoryName || cat.name || cat}
+                {cat.categoryName || cat.name || String(cat)}
               </Badge>
             ))}
           </div>
@@ -113,6 +114,10 @@ function RecipeCard({ recipe, rank }) {
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
                 {recipe.cookTimeMinutes ? `${recipe.cookTimeMinutes}p` : recipe.prepTime || recipe.time || '30p'}
+              </div>
+              <div className="flex items-center gap-1">
+                <Users className="w-4 h-4" />
+                {recipe.defaultServings || recipe.servings || 2}
               </div>
               <div className="flex items-center gap-1">
                 <ChefHat className="w-4 h-4" />

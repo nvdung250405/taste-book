@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Search, Clock, ChefHat, Heart, Loader2, X, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Clock, ChefHat, Heart, Loader2, X, Filter, ChevronLeft, ChevronRight, Users } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Card, CardContent } from '../components/ui/card'
@@ -249,13 +249,16 @@ export default function RecipeSearchPage() {
                     onError={(e) => { e.target.src = FALLBACK_IMAGE }}
                   />
                   
-                  {/* Difficulty Badge */}
+                  {/* Tags (Categories) */}
                   <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
-                    {recipe.difficulty && (
-                      <Badge className="bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm border-none text-xs px-2 py-0.5">
-                        {DIFFICULTY_LABELS[recipe.difficulty] || recipe.difficulty}
+                    {(recipe.categories || recipe.tags || []).slice(0, 2).map((cat, idx) => (
+                      <Badge 
+                        key={cat.categoryId || cat.id || cat._id || idx}
+                        className="bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm border-none text-xs px-2 py-0.5"
+                      >
+                        {cat.categoryName || cat.name || String(cat)}
                       </Badge>
-                    )}
+                    ))}
                   </div>
 
                   <button
@@ -282,11 +285,15 @@ export default function RecipeSearchPage() {
                   <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-4 h-4" />
-                      <span>{recipe.cookTimeMinutes ? `${recipe.cookTimeMinutes} phút` : 'N/A'}</span>
+                      <span>{recipe.cookTimeMinutes ? `${recipe.cookTimeMinutes}p` : 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Users className="w-4 h-4" />
+                      <span>{recipe.defaultServings || 2}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <ChefHat className="w-4 h-4" />
-                      <span className="truncate max-w-[100px]">{recipe.authorName || 'Chef'}</span>
+                      <span className="truncate max-w-[80px]">{recipe.authorName || 'Chef'}</span>
                     </div>
                   </div>
                 </CardContent>

@@ -36,8 +36,8 @@ export default function RecipeDetailPage() {
     return rid === id
   })
 
-  const actualServings = servings || recipe?.servings || recipe?.portions || 4
-  const originalServings = recipe?.servings || recipe?.portions || 4
+  const actualServings = servings || recipe?.defaultServings || recipe?.servings || 4
+  const originalServings = recipe?.defaultServings || recipe?.servings || 4
   const ratio = actualServings / originalServings
 
   const toggleStep = (idx) => setCheckedSteps(p => ({ ...p, [idx]: !p[idx] }))
@@ -82,8 +82,8 @@ export default function RecipeDetailPage() {
   }
 
   const ingredients = recipe.ingredients || []
-  const steps = recipe.steps || recipe.instructions || []
-  const tags = recipe.tags || []
+  const steps = recipe.cookingSteps || recipe.steps || []
+  const tags = recipe.categories || recipe.tags || []
   const author = recipe.author || recipe.user || {}
 
   return (
