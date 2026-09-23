@@ -7,11 +7,19 @@ import { useAddFavorite, useRemoveFavorite, useFavorites } from '../hooks/querie
 import { useProfile } from '../hooks/queries/useAuthQueries'
 import { toast } from 'sonner'
 
+import { Badge } from '../components/ui/badge'
+
 import RecipeHero from '../components/recipe/RecipeHero'
 import RecipeQuickInfo from '../components/recipe/RecipeQuickInfo'
 import RecipeIngredients from '../components/recipe/RecipeIngredients'
 import RecipeSteps from '../components/recipe/RecipeSteps'
 import RecipeSidebar from '../components/recipe/RecipeSidebar'
+
+const DIFFICULTY_TEXT = {
+  'Easy': 'Dễ',
+  'Medium': 'Trung bình',
+  'Hard': 'Khó',
+}
 
 export default function RecipeDetailPage() {
   const { id } = useParams()
@@ -96,17 +104,35 @@ export default function RecipeDetailPage() {
         <ArrowLeft className="w-4 h-4" /> Quay lại
       </button>
 
-      <RecipeHero 
-        recipe={recipe} 
-        tags={tags} 
-        isFavorited={isFavorited} 
-        handleFavorite={handleFavorite} 
-        disabledBtn={adding || removing} 
-      />
+      {/* Header */}
+      <div className="mb-6 lg:mb-8 mt-2">
+        <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-slate-50 mb-4 tracking-tight leading-tight">
+          {recipe.title}
+        </h1>
+        <div className="flex flex-wrap items-center gap-2">
+          {tags.map((tag, idx) => (
+            <Badge key={tag.categoryId || tag.id || tag._id || idx} variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 border-none px-3 py-1 text-sm font-medium">
+              {tag.categoryName || tag.name || String(tag)}
+            </Badge>
+          ))}
+          {recipe.difficulty && (
+            <Badge variant="outline" className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
+              Độ khó: {DIFFICULTY_TEXT[recipe.difficulty] || recipe.difficulty}
+            </Badge>
+          )}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left: Main Content */}
         <div className="lg:col-span-2 space-y-8">
+          <RecipeHero 
+            recipe={recipe} 
+            isFavorited={isFavorited} 
+            handleFavorite={handleFavorite} 
+            disabledBtn={adding || removing} 
+          />
+
           <RecipeQuickInfo recipe={recipe} actualServings={actualServings} />
 
           {/* Description */}
