@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "8a9c0d1e-4f5a-6b7c-8d9e-0f1a2b3c4d5e",
     "name": "TasteBook User Profile & Password API (SP3-TASK-05) v2",
-    "description": "Bản mở rộng: bổ sung case gọi API không token (EC=5), sai định dạng SĐT (EC=1), mật khẩu mới quá ngắn/không khớp xác nhận (EC=1), và bước hoàn trả username gốc.",
+    "description": "Bản mở rộng: bổ sung case gọi API không token (EC=5), sai định dạng SĐT (EC=1), mật khẩu mới quá ngắn/không khớp xác nhận (EC=1), và bước hoàn trả username gốc.\n\nBản v4: giữ nguyên toàn bộ request/test của v3; bổ sung kiểm tra chung response contract EC/EM/DT, đối chiếu EC với HTTP Status và kiểm tra DT=null đối với response lỗi 4xx/5xx.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -11,9 +11,51 @@
       "value": "http://localhost:5000/api/v1",
       "type": "string"
     },
-    { "key": "accessToken", "value": "", "type": "string" },
-    { "key": "currentPassword", "value": "123456", "type": "string" },
-    { "key": "originalUsername", "value": "Bếp Trưởng Quốc Anh", "type": "string" }
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "currentPassword",
+      "value": "123456",
+      "type": "string"
+    },
+    {
+      "key": "originalUsername",
+      "value": "Bếp Trưởng Quốc Anh",
+      "type": "string"
+    },
+    {
+      "key": "invalidToken",
+      "value": "invalid-token-for-test",
+      "type": "string"
+    },
+    {
+      "key": "userNotFoundToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "duplicatePhone",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "oversizedAvatarUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "originalPhone",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "originalAvatarUrl",
+      "value": "",
+      "type": "string"
+    }
   ],
   "item": [
     {
@@ -36,15 +78,25 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"valueLogin\": \"chef.quocanh@tastebook.vn\",\n  \"password\": \"123456\"\n}"
+          "raw": "{\n  \"valueLogin\": \"chef.hoang@tastebook.vn\",\n  \"password\": \"123456\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/auth/login",
-          "host": ["{{baseUrl}}"],
-          "path": ["auth", "login"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
         }
       },
       "response": []
@@ -79,8 +131,13 @@
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "me"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
         }
       },
       "response": []
@@ -109,17 +166,168 @@
         "auth": {
           "type": "bearer",
           "bearer": [
-            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
           ]
         },
         "method": "GET",
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "me"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
         }
       },
+      "response": []
+    },
+    {
+      "name": "1b. Lưu dữ liệu hồ sơ gốc để cleanup",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1b Lưu username/phone/avatar gốc', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(0);",
+              "    pm.expect(jsonData.DT).to.have.property('phone');",
+              "    pm.expect(jsonData.DT).to.have.property('avatarUrl');",
+              "    pm.collectionVariables.set('originalPhone', jsonData.DT.phone);",
+              "    pm.collectionVariables.set('originalAvatarUrl', jsonData.DT.avatarUrl || '');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
+        }
+      },
+      "description": "Case bổ sung phục vụ cleanup. Không thay đổi dữ liệu; chỉ đọc hồ sơ hiện tại và lưu phone/avatar gốc vào collection variables.",
+      "response": []
+    },
+    {
+      "name": "1c. Ngoại lệ: Token không hợp lệ (GET /users/me)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1c Token không hợp lệ -> 401, EC=5', function () {",
+              "    pm.expect(pm.response.code).to.eql(401);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(5);",
+              "    pm.expect(jsonData).to.have.property('EM');",
+              "    pm.expect(jsonData.DT).to.eql(null);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{invalidToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
+        }
+      },
+      "description": "Đặc tả yêu cầu token không hợp lệ hoặc hết hạn phải trả 401 / EC=5. Collection dùng token giả không hợp lệ để kiểm thử.",
+      "response": []
+    },
+    {
+      "name": "1d. Ngoại lệ: User không tồn tại (GET /users/me)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('userNotFoundToken')) {",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1d User không tồn tại -> 404, EC=3', function () {",
+              "    pm.expect(pm.response.code).to.eql(404);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(3);",
+              "    pm.expect(jsonData).to.have.property('EM');",
+              "    pm.expect(jsonData.DT).to.eql(null);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{userNotFoundToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
+        }
+      },
+      "description": "Cần cấu hình userNotFoundToken là JWT hợp lệ nhưng trỏ tới user đã không còn tồn tại trong CSDL. Bỏ trống biến thì request tự động được skip để tránh false fail.",
       "response": []
     },
     {
@@ -144,19 +352,33 @@
         "auth": {
           "type": "bearer",
           "bearer": [
-            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
           ]
         },
         "method": "PUT",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"username\": \"Bếp Trưởng Hoàng (Updated)\",\n  \"phone\": \"0912345678\",\n  \"avatarUrl\": \"https://res.cloudinary.com/sf4yjct9/image/upload/v1788611681/tastebook_uploads/f1plgomkateq3nufqchm.png\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "me"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
         }
       },
       "response": []
@@ -181,19 +403,33 @@
         "auth": {
           "type": "bearer",
           "bearer": [
-            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
           ]
         },
         "method": "PUT",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"username\": \"\",\n  \"phone\": \"0912345678\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "me"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
         }
       },
       "response": []
@@ -218,22 +454,213 @@
         "auth": {
           "type": "bearer",
           "bearer": [
-            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
           ]
         },
         "method": "PUT",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"username\": \"Bếp Trưởng Hoàng (Updated)\",\n  \"phone\": \"abc123\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "me"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
         },
         "description": "SĐT không đúng định dạng số điện thoại VN -> phải bị validate chặn."
       },
+      "response": []
+    },
+    {
+      "name": "3c Ngoại lệ: Cập nhật hồ sơ khi không có Token (PUT /users/me)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('3c Không token -> 401, EC=5', function () {",
+              "    pm.expect(pm.response.code).to.eql(401);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(5);",
+              "    pm.expect(jsonData).to.have.property('EM');",
+              "    pm.expect(jsonData.DT).to.eql(null);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Bếp Trưởng Hoàng (Updated)\",\n  \"phone\": \"0912345678\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
+        }
+      },
+      "description": "Đặc tả yêu cầu chưa xác thực khi cập nhật hồ sơ phải trả 401 / EC=5.",
+      "response": []
+    },
+    {
+      "name": "3d Ngoại lệ: Cập nhật SĐT đã tồn tại (PUT /users/me)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('duplicatePhone')) {",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('3d SĐT đã tồn tại -> 409, EC=2', function () {",
+              "    pm.expect(pm.response.code).to.eql(409);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(2);",
+              "    pm.expect(jsonData).to.have.property('EM');",
+              "    pm.expect(jsonData.DT).to.eql(null);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Bếp Trưởng Hoàng (Updated)\",\n  \"phone\": \"{{duplicatePhone}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
+        }
+      },
+      "description": "Cần cấu hình duplicatePhone là số điện thoại đang thuộc về một user khác trong CSDL. Không được dùng SĐT hiện tại của chính user test. Bỏ trống biến thì request tự động được skip.",
+      "response": []
+    },
+    {
+      "name": "3e Ngoại lệ: Avatar vượt quá 5MB (PUT /users/me)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('oversizedAvatarUrl')) {",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('3e Avatar > 5MB -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(1);",
+              "    pm.expect(jsonData).to.have.property('EM');",
+              "    pm.expect(jsonData.DT).to.eql(null);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Bếp Trưởng Hoàng (Updated)\",\n  \"phone\": \"0912345678\",\n  \"avatarUrl\": \"{{oversizedAvatarUrl}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
+        }
+      },
+      "description": "Đặc tả yêu cầu ảnh đại diện vượt quá 5MB phải trả 400 / EC=1. Vì contract hiện mô tả avatarUrl là string URL chứ không phải multipart file, collection để biến oversizedAvatarUrl trống và yêu cầu cấu hình một giá trị/URL thực sự kích hoạt giới hạn 5MB. Bỏ trống biến thì request tự động được skip.",
       "response": []
     },
     {
@@ -256,19 +683,34 @@
         "auth": {
           "type": "bearer",
           "bearer": [
-            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
           ]
         },
         "method": "PUT",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"oldPassword\": \"wrong_password\",\n  \"newPassword\": \"newpassword123\",\n  \"confirmPassword\": \"newpassword123\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "me", "password"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me",
+            "password"
+          ]
         }
       },
       "response": []
@@ -293,19 +735,34 @@
         "auth": {
           "type": "bearer",
           "bearer": [
-            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
           ]
         },
         "method": "PUT",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"oldPassword\": \"123456\",\n  \"newPassword\": \"123456\",\n  \"confirmPassword\": \"123456\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "me", "password"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me",
+            "password"
+          ]
         }
       },
       "response": []
@@ -330,19 +787,34 @@
         "auth": {
           "type": "bearer",
           "bearer": [
-            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
           ]
         },
         "method": "PUT",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"oldPassword\": \"123456\",\n  \"newPassword\": \"123\",\n  \"confirmPassword\": \"123\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "me", "password"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me",
+            "password"
+          ]
         }
       },
       "response": []
@@ -367,21 +839,204 @@
         "auth": {
           "type": "bearer",
           "bearer": [
-            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
           ]
         },
         "method": "PUT",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"oldPassword\": \"123456\",\n  \"newPassword\": \"hoang123456\",\n  \"confirmPassword\": \"khac_di123\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "me", "password"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me",
+            "password"
+          ]
         }
       },
+      "response": []
+    },
+    {
+      "name": "5d Ngoại lệ: Thiếu oldPassword (PUT /users/me/password)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('5d Thiếu oldPassword -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(1);",
+              "    pm.expect(jsonData).to.have.property('EM');",
+              "    pm.expect(jsonData.DT).to.eql(null);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"newPassword\": \"hoang123456\",\n  \"confirmPassword\": \"hoang123456\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me/password",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me",
+            "password"
+          ]
+        }
+      },
+      "description": "oldPassword là trường bắt buộc theo đặc tả; thiếu trường phải bị validation 400 / EC=1.",
+      "response": []
+    },
+    {
+      "name": "5e Ngoại lệ: Thiếu newPassword (PUT /users/me/password)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('5e Thiếu newPassword -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(1);",
+              "    pm.expect(jsonData).to.have.property('EM');",
+              "    pm.expect(jsonData.DT).to.eql(null);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"oldPassword\": \"{{currentPassword}}\",\n  \"confirmPassword\": \"hoang123456\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me/password",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me",
+            "password"
+          ]
+        }
+      },
+      "description": "newPassword là trường bắt buộc theo đặc tả; thiếu trường phải bị validation 400 / EC=1.",
+      "response": []
+    },
+    {
+      "name": "5f Ngoại lệ: Thiếu confirmPassword (PUT /users/me/password)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('5f Thiếu confirmPassword -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(1);",
+              "    pm.expect(jsonData).to.have.property('EM');",
+              "    pm.expect(jsonData.DT).to.eql(null);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"oldPassword\": \"{{currentPassword}}\",\n  \"newPassword\": \"hoang123456\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me/password",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me",
+            "password"
+          ]
+        }
+      },
+      "description": "confirmPassword là trường bắt buộc theo đặc tả; thiếu trường phải bị validation 400 / EC=1.",
       "response": []
     },
     {
@@ -404,19 +1059,34 @@
         "auth": {
           "type": "bearer",
           "bearer": [
-            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
           ]
         },
         "method": "PUT",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"oldPassword\": \"123456\",\n  \"newPassword\": \"hoang123456\",\n  \"confirmPassword\": \"hoang123456\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "me", "password"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me",
+            "password"
+          ]
         }
       },
       "response": []
@@ -441,19 +1111,34 @@
         "auth": {
           "type": "bearer",
           "bearer": [
-            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
           ]
         },
         "method": "PUT",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"oldPassword\": \"hoang123456\",\n  \"newPassword\": \"123456\",\n  \"confirmPassword\": \"123456\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "me", "password"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me",
+            "password"
+          ]
         }
       },
       "response": []
@@ -478,23 +1163,147 @@
         "auth": {
           "type": "bearer",
           "bearer": [
-            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
           ]
         },
         "method": "PUT",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"username\": \"{{originalUsername}}\",\n  \"phone\": \"0912345678\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "me"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
         },
         "description": "Bước 2 đã đổi permanent username sang '(Updated)' — cần trả lại tên gốc để dữ liệu seed sạch cho lần chạy sau, tương tự tinh thần của bước 7 với mật khẩu."
       },
       "response": []
+    },
+    {
+      "name": "8b. Hoàn trả profile gốc chính xác (phone + avatarUrl)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('8b Hoàn trả profile gốc thành công - Status 200 OK', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(0);",
+              "    pm.expect(jsonData.DT.username).to.eql(pm.collectionVariables.get('originalUsername'));",
+              "    pm.expect(jsonData.DT.phone).to.eql(pm.collectionVariables.get('originalPhone'));",
+              "    pm.expect(jsonData.DT.avatarUrl).to.eql(pm.collectionVariables.get('originalAvatarUrl'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{originalUsername}}\",\n  \"phone\": \"{{originalPhone}}\",\n  \"avatarUrl\": \"{{originalAvatarUrl}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
+        }
+      },
+      "description": "Bổ sung cleanup cho phone và avatarUrl. Item 8 hiện tại vẫn được giữ nguyên; item này chỉ hoàn tác phần avatarUrl/phone về đúng dữ liệu đọc được trước khi sửa hồ sơ.",
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Response có cấu trúc EC / EM / DT chuẩn', function () {",
+          "    var jsonData;",
+          "    pm.expect(function () { jsonData = pm.response.json(); }).to.not.throw();",
+          "",
+          "    pm.expect(jsonData).to.be.an('object');",
+          "    pm.expect(jsonData).to.have.property('EC');",
+          "    pm.expect(jsonData).to.have.property('EM');",
+          "    pm.expect(jsonData).to.have.property('DT');",
+          "",
+          "    pm.expect(jsonData.EC).to.be.a('number');",
+          "    pm.expect(jsonData.EM).to.be.a('string');",
+          "    pm.expect(jsonData.EM.trim()).to.not.eql('');",
+          "",
+          "    var dtType = jsonData.DT === null",
+          "        ? 'null'",
+          "        : (Array.isArray(jsonData.DT) ? 'array' : typeof jsonData.DT);",
+          "    pm.expect(['null', 'object', 'array']).to.include(dtType);",
+          "});",
+          "",
+          "pm.test('EC phù hợp với HTTP Status theo đặc tả', function () {",
+          "    var jsonData = pm.response.json();",
+          "    var status = pm.response.code;",
+          "    var allowedEC = {",
+          "        200: [0],",
+          "        201: [0],",
+          "        400: [1],",
+          "        401: [5, 6],",
+          "        403: [4],",
+          "        404: [3],",
+          "        409: [2],",
+          "        500: [-1]",
+          "    };",
+          "",
+          "    if (allowedEC[status]) {",
+          "        pm.expect(allowedEC[status]).to.include(jsonData.EC);",
+          "    }",
+          "});",
+          "",
+          "pm.test('DT = null đối với response lỗi 4xx/5xx', function () {",
+          "    var jsonData = pm.response.json();",
+          "    if (pm.response.code >= 400) {",
+          "        pm.expect(jsonData.DT).to.eql(null);",
+          "    }",
+          "});"
+        ]
+      }
     }
   ]
 }

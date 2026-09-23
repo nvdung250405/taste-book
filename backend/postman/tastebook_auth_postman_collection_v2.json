@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "7f8b91a2-3c4d-4e5f-b6a7-8c9d0e1f2a3b",
-    "name": "TasteBook Auth & RBAC API (SP3-TASK-04) v2",
-    "description": "Bản mở rộng: bổ sung các case ngoại lệ (EC=1,2,5,6) còn thiếu so với bản gốc, để bao phủ đủ các mã HTTP 200/201/400/401/403/404 theo yêu cầu SP3-TASK-18.",
+    "name": "TasteBook Auth & RBAC API (SP3-TASK-04) v3",
+    "description": "Giữ nguyên toàn bộ request/test đúng của v2; bổ sung các case còn thiếu theo đặc tả (email sai định dạng, mật khẩu < 6 ký tự, thiếu từng trường đăng nhập/đăng ký, token không hợp lệ khi logout) và kiểm tra thống nhất cấu trúc response EC/EM/DT cho toàn collection.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -11,10 +11,36 @@
       "value": "http://localhost:5000/api/v1",
       "type": "string"
     },
-    { "key": "accessToken", "value": "", "type": "string" },
-    { "key": "testEmail", "value": "", "type": "string" },
-    { "key": "testPhone", "value": "", "type": "string" },
-    { "key": "testPassword", "value": "password123", "type": "string" }
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "oldToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testPhone",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testPassword",
+      "value": "password123",
+      "type": "string"
+    },
+    {
+      "key": "invalidToken",
+      "value": "token.gia.khong.hop.le",
+      "type": "string"
+    }
   ],
   "item": [
     {
@@ -35,7 +61,12 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"username\": \"\",\n  \"email\": \"missingfield_{{$timestamp}}@gmail.com\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"password123\",\n  \"phone\": \"0987654321\"\n}"
@@ -48,6 +79,150 @@
         "description": "Kiểm tra validate: thiếu username phải trả EC=1, không được tạo user."
       },
       "response": []
+    },
+    {
+      "name": "1.0b Ngoại lệ: Đăng ký thiếu email",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Ngoại lệ: Đăng ký thiếu email -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Người Dùng Test\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"password123\",\n  \"phone\": \"0987654321\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "Kiểm tra trường bắt buộc bị thiếu: email."
+      }
+    },
+    {
+      "name": "1.0c Ngoại lệ: Đăng ký thiếu password",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Ngoại lệ: Đăng ký thiếu password -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Người Dùng Test\",\n  \"email\": \"missingpass_{{$timestamp}}@gmail.com\",\n  \"confirmPassword\": \"password123\",\n  \"phone\": \"0987654321\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "Kiểm tra trường bắt buộc bị thiếu: password."
+      }
+    },
+    {
+      "name": "1.0d Ngoại lệ: Đăng ký thiếu confirmPassword",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Ngoại lệ: Đăng ký thiếu confirmPassword -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Người Dùng Test\",\n  \"email\": \"missingconfirm_{{$timestamp}}@gmail.com\",\n  \"password\": \"password123\",\n  \"phone\": \"0987654321\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "Kiểm tra trường bắt buộc bị thiếu: confirmPassword."
+      }
+    },
+    {
+      "name": "1.0e Ngoại lệ: Đăng ký thiếu phone",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Ngoại lệ: Đăng ký thiếu phone -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Người Dùng Test\",\n  \"email\": \"missingphone_{{$timestamp}}@gmail.com\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "Kiểm tra trường bắt buộc bị thiếu: phone."
+      }
     },
     {
       "name": "1.1 Đăng ký tài khoản mới (UC-02)",
@@ -69,7 +244,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('1.1 Đăng ký thành công - Status 201 Created', function () {",
+              "pm.test('1.1 Đăng ký thành công - Status 201 EC= 0', function () {",
               "    pm.expect(pm.response.code).to.eql(201);",
               "    pm.expect(pm.response.json().EC).to.eql(0);",
               "});"
@@ -79,7 +254,12 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"username\": \"Người Dùng Test\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"phone\": \"{{testPhone}}\"\n}"
@@ -111,7 +291,12 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"username\": \"Người Dùng Trùng\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"password123\",\n  \"phone\": \"0987650000\"\n}"
@@ -143,7 +328,12 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"username\": \"Người Dùng Test 2\",\n  \"email\": \"mismatch_{{$timestamp}}@gmail.com\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"khackhau123\",\n  \"phone\": \"0977{{$randomInt}}\"\n}"
@@ -157,19 +347,16 @@
       "response": []
     },
     {
-      "name": "1.2 Đăng nhập hệ thống (UC-03)",
+      "name": "1.1d Ngoại lệ: Đăng ký SĐT đã tồn tại (TC-02-03)",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('1.2 Đăng nhập thành công - Status 200 OK', function () {",
-              "    pm.expect(pm.response.code).to.eql(200);",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.EC).to.eql(0);",
-              "    pm.expect(jsonData.DT).to.have.property('accessToken');",
-              "    pm.collectionVariables.set('accessToken', jsonData.DT.accessToken);",
+              "pm.test('1.1d SĐT trùng -> 409, EC=2', function () {",
+              "    pm.expect(pm.response.code).to.eql(409);",
+              "    pm.expect(pm.response.json().EC).to.eql(2);",
               "});"
             ]
           }
@@ -177,7 +364,126 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Người Dùng SĐT Trùng\",\n  \"email\": \"sdt_trung_{{$timestamp}}@gmail.com\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"password123\",\n  \"phone\": \"{{testPhone}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "Dùng lại {{testPhone}} vừa đăng ký ở 1.1 nhưng email khác -> phải bị chặn trùng SĐT."
+      },
+      "response": []
+    },
+    {
+      "name": "1.1e Ngoại lệ: Đăng ký email sai định dạng",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Email sai định dạng -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Người Dùng Email Sai\",\n  \"email\": \"email-khong-hop-le\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"password123\",\n  \"phone\": \"0987000001\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "Theo đặc tả: email sai định dạng phải trả 400 / EC=1."
+      }
+    },
+    {
+      "name": "1.1f Ngoại lệ: Đăng ký mật khẩu dưới 6 ký tự",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Mật khẩu < 6 ký tự -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"Người Dùng Mat Khau Ngan\",\n  \"email\": \"shortpass_{{$timestamp}}@gmail.com\",\n  \"password\": \"123\",\n  \"confirmPassword\": \"123\",\n  \"phone\": \"0987000002\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "Theo đặc tả: mật khẩu yếu (< 6 ký tự) phải trả 400 / EC=1."
+      }
+    },
+    {
+      "name": "1.2 Đăng nhập hệ thống (UC-03)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.2 Đăng nhập thành công - Status 200 OK EC =0', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(0);",
+              "    pm.expect(jsonData.DT).to.have.property('accessToken');",
+              "    pm.collectionVariables.set('accessToken', jsonData.DT.accessToken);",
+              "    pm.collectionVariables.set('oldToken', jsonData.DT.accessToken);",
+              "    console.log(jsonData);",
+              "  });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"valueLogin\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
@@ -190,6 +496,78 @@
         "description": "UC-03: Đăng nhập bằng Email hoặc SĐT."
       },
       "response": []
+    },
+    {
+      "name": "1.2a Ngoại lệ: Đăng nhập thiếu tài khoản",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Thiếu valueLogin -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        },
+        "description": "Theo đặc tả: thiếu tài khoản hoặc mật khẩu phải trả 400 / EC=1."
+      }
+    },
+    {
+      "name": "1.2d Ngoại lệ: Đăng nhập thiếu mật khẩu",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Thiếu password -> 400, EC=1', function () {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "    pm.expect(pm.response.json().EC).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"valueLogin\": \"missing_password_{{$timestamp}}@gmail.com\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        },
+        "description": "Theo đặc tả: thiếu tài khoản hoặc mật khẩu phải trả 400 / EC=1."
+      }
     },
     {
       "name": "1.2b Ngoại lệ: Sai mật khẩu đăng nhập",
@@ -209,7 +587,12 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"valueLogin\": \"{{testEmail}}\",\n  \"password\": \"sai_mat_khau_123\"\n}"
@@ -240,7 +623,12 @@
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"valueLogin\": \"khong_ton_tai_{{$timestamp}}@gmail.com\",\n  \"password\": \"password123\"\n}"
@@ -255,8 +643,136 @@
       "response": []
     },
     {
+      "name": "1.2e TC-03-02 Đăng nhập vai trò Admin (tài khoản seed thật)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.2e Admin đăng nhập thành công, role=Admin - 200 OK EC =0', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(0);",
+              "    pm.expect(jsonData.DT).to.have.property('accessToken');",
+              "    pm.expect(jsonData.DT.user.role, 'Kỳ vọng role=Admin theo seed data (01-seed-users.js, id=1)').to.eql('Admin');",
+              "    console.log(pm.response.json());",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"valueLogin\": \"admin@gmail.com\",\n  \"password\": \"admin123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        },
+        "description": "Tài khoản Admin THẬT từ 01-seed-users.js (id=1): admin@gmail.com / admin123. ASSUMPTION: response DT có field 'role' - nếu không có, sửa lại assertion theo đúng field thật."
+      },
+      "response": []
+    },
+    {
+      "name": "1.2f TC-03-03 Đăng nhập bằng SĐT (tài khoản seed thật)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.2f Đăng nhập bằng SĐT thành công - 200 OK EC = 0', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(0);",
+              "    pm.expect(jsonData.DT).to.have.property('accessToken');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"valueLogin\": \"0912345678\",\n  \"password\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        },
+        "description": "Tài khoản THẬT từ 01-seed-users.js (id=2, Bếp Trưởng Hoàng): SĐT 0912345678 / mật khẩu 123456, đăng nhập bằng SĐT thay vì Email."
+      },
+      "response": []
+    },
+    {
+      "name": "1.3 Kiểm tra Middleware Xác thực Token (Profile)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1.3 Xác thực Token thành công - Status 200 OK EC =0', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.EC).to.eql(0);",
+              "    pm.expect(jsonData.DT).to.have.property('email');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
+        }
+      },
+      "response": []
+    },
+    {
       "name": "1.3b Ngoại lệ: Gọi API không kèm Token",
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.cookies.jar().clear(pm.collectionVariables.get('baseUrl'), function () {});"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -271,60 +787,29 @@
         }
       ],
       "request": {
-        "auth": { "type": "noauth" },
-        "method": "GET",
-        "header": [
-          { "key": "Authorization", "value": "", "type": "text" },
-          { "key": "Cookie", "value": "", "type": "text" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/users/me",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "me"]
-        },
-        "description": "Đặt TRƯỚC bước Login để đảm bảo không có cookie jwt nào trong Newman session. Middleware checkUserJWT phải chặn (EC=5)."
-      },
-      "response": []
-    },
-    {
-      "name": "1.3 Kiểm tra Middleware Xác thực Token (Profile)",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('1.3 Xác thực Token thành công - Status 200 OK', function () {",
-              "    pm.expect(pm.response.code).to.eql(200);",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.EC).to.eql(0);",
-              "    pm.expect(jsonData.DT).to.have.property('email');",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            { "key": "token", "value": "{{accessToken}}", "type": "string" }
-          ]
-        },
         "method": "GET",
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/users/me",
           "host": ["{{baseUrl}}"],
           "path": ["users", "me"]
-        }
+        },
+        "description": "Không set Authorization header -> middleware checkUserJWT phải chặn (EC=5: chưa đăng nhập)."
       },
       "response": []
     },
-
     {
       "name": "1.3c Ngoại lệ: Token không hợp lệ / hết hạn",
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.cookies.jar().clear(pm.collectionVariables.get('baseUrl'), function () {});"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -379,7 +864,11 @@
         "auth": {
           "type": "bearer",
           "bearer": [
-            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
           ]
         },
         "method": "GET",
@@ -400,7 +889,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('1.5 Đăng xuất thành công - Status 200 OK', function () {",
+              "pm.test('1.5 Đăng xuất thành công - Status 200 OK - EC = 0', function () {",
               "    pm.expect(pm.response.code).to.eql(200);",
               "    pm.expect(pm.response.json().EC).to.eql(0);",
               "});"
@@ -412,7 +901,11 @@
         "auth": {
           "type": "bearer",
           "bearer": [
-            { "key": "token", "value": "{{accessToken}}", "type": "string" }
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
           ]
         },
         "method": "POST",
@@ -428,6 +921,15 @@
     {
       "name": "1.5b Ngoại lệ: Đăng xuất khi không có Token",
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.cookies.jar().clear(pm.collectionVariables.get('baseUrl'), function () {});"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -452,6 +954,112 @@
         "description": "Chạy CUỐI CÙNG: sau 1.5 token đã bị vô hiệu/không còn -> gọi lại logout hoặc /users/me không token đều phải bị chặn EC=5."
       },
       "response": []
+    },
+    {
+      "name": "1.5c Ngoại lệ: Đăng xuất với Token không hợp lệ",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.cookies.jar().clear(pm.collectionVariables.get('baseUrl'), function () {});"
+              ]
+            }
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Logout token không hợp lệ -> 401, EC=5', function () {",
+              "    pm.expect(pm.response.code).to.eql(401);",
+              "    pm.expect(pm.response.json().EC).to.eql(5);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{invalidToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/auth/logout",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "logout"]
+        },
+        "description": "Authorization Bearer có token giả/hỏng; middleware phải chặn với 401 / EC=5."
+      }
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Response là JSON hợp lệ', function () {",
+          "    pm.expect(function () { pm.response.json(); }).to.not.throw();",
+          "});",
+          "",
+          "var jsonData = pm.response.json();",
+          "",
+          "pm.test('Response có đủ cấu trúc EC/EM/DT', function () {",
+          "    pm.expect(jsonData).to.be.an('object');",
+          "    pm.expect(jsonData).to.have.property('EC');",
+          "    pm.expect(jsonData).to.have.property('EM');",
+          "    pm.expect(jsonData).to.have.property('DT');",
+          "});",
+          "",
+          "pm.test('EC đúng kiểu number', function () {",
+          "    pm.expect(jsonData.EC).to.be.a('number');",
+          "});",
+          "",
+          "pm.test('EM đúng kiểu string và không rỗng', function () {",
+          "    pm.expect(jsonData.EM).to.be.a('string');",
+          "    pm.expect(jsonData.EM.trim()).to.not.eql('');",
+          "});",
+          "",
+          "pm.test('DT đúng kiểu null/object/array', function () {",
+          "    pm.expect(jsonData.DT === null || typeof jsonData.DT === 'object').to.eql(true);",
+          "});",
+          "",
+          "pm.test('EC phù hợp với HTTP Status theo đặc tả', function () {",
+          "    var expectedByStatus = {",
+          "        200: [0],",
+          "        201: [0],",
+          "        400: [1],",
+          "        401: [5, 6],",
+          "        403: [4],",
+          "        404: [3],",
+          "        409: [2],",
+          "        500: [-1]",
+          "    };",
+          "    if (Object.prototype.hasOwnProperty.call(expectedByStatus, pm.response.code)) {",
+          "        pm.expect(expectedByStatus[pm.response.code]).to.include(jsonData.EC);",
+          "    }",
+          "});",
+          "",
+          "pm.test('Response lỗi 4xx/5xx phải có DT = null', function () {",
+          "    if (pm.response.code >= 400) {",
+          "        pm.expect(jsonData.DT).to.eql(null);",
+          "    }",
+          "});"
+        ]
+      }
     }
   ]
 }

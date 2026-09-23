@@ -1,0 +1,1379 @@
+{
+  "info": {
+    "_postman_id": "9b0d1e2f-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+    "name": "TasteBook Recipes API - Home/Search/Scale (UC-01/06/07) v4",
+    "description": "v4: Phạm vi sprint chỉ gồm UC-01, UC-06, UC-07. Giữ nguyên các request/test hiện có; bổ sung kiểm tra contract response EC/EM/DT ở collection level và các case hợp lệ còn thiếu cho UC-06, cùng một số kiểm tra cấu trúc response chi tiết cho UC-07.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "recipeIdPho",
+      "value": "3",
+      "type": "string"
+    },
+    {
+      "key": "recipeIdCanhChua",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "categoryIdBunMiPho",
+      "value": "5",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "UC-01 Trang chu",
+      "item": [
+        {
+          "name": "TC-01-01 Lay du lieu trang chu mac dinh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-01-01 Tra ve latestRecipes + trendingRecipes - 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT).to.have.property('latestRecipes');",
+                  "    pm.expect(jsonData.DT).to.have.property('trendingRecipes');",
+                  "    pm.expect(jsonData.DT.latestRecipes.length, 'Mac dinh limit=6 moi muc theo dac ta').to.be.at.most(6);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/home",
+              "host": ["{{baseUrl}}"],
+              "path": ["home"]
+            },
+            "description": "XAC NHAN qua dac ta muc 4.0: UC-01 co API rieng GET /api/v1/home, KHONG dung chung GET /recipes nhu suy doan truoc do."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-01-02 Gioi han so luong bang limit=3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-01-02 limit=3 gioi han dung so luong moi muc - 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT.latestRecipes.length).to.be.at.most(3);",
+                  "    pm.expect(jsonData.DT.trendingRecipes.length).to.be.at.most(3);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/home?limit=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["home"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "3"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-01-03 Kiem tra cau truc response trang chu",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-01-03 Response latest/trending dung cau truc', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT).to.be.an('object');",
+                  "    pm.expect(jsonData.DT.latestRecipes).to.be.an('array');",
+                  "    pm.expect(jsonData.DT.trendingRecipes).to.be.an('array');",
+                  "    [jsonData.DT.latestRecipes, jsonData.DT.trendingRecipes].forEach(function (arr) {",
+                  "        arr.forEach(function (r) {",
+                  "            pm.expect(r).to.have.property('recipeId');",
+                  "            pm.expect(r).to.have.property('title');",
+                  "            pm.expect(r).to.have.property('thumbnailUrl');",
+                  "            pm.expect(r).to.have.property('cookTimeMinutes');",
+                  "            pm.expect(r).to.have.property('difficulty');",
+                  "            pm.expect(r).to.have.property('defaultServings');",
+                  "            pm.expect(r).to.have.property('author');",
+                  "            pm.expect(r.author).to.have.property('userId');",
+                  "            pm.expect(r.author).to.have.property('username');",
+                  "            pm.expect(r).to.have.property('categories');",
+                  "            pm.expect(r.categories).to.be.an('array');",
+                  "            pm.expect(r).to.have.property('createdAt');",
+                  "        });",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/home?limit=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["home"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "3"
+                }
+              ]
+            },
+            "description": "Kiểm tra các field response được mô tả trong mục 4.0 của đặc tả."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "UC-06 Tim kiem / Loc cong thuc",
+      "item": [
+        {
+          "name": "TC-06-01 Tim theo ten mon \"Bo\" (khop Pho bo id=3, Bo luc lac id=5)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-01 Tim thay dung 2 cong thuc co chu Bo - 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    var list = jsonData.DT.recipes || [];",
+                  "    var ids = list.map(function (r) { return r.recipeId; });",
+                  "    pm.expect(ids, 'Ky vong thay recipeId=3 (Pho bo gia truyen Ha Noi)').to.include(3);",
+                  "    pm.expect(ids, 'Ky vong thay recipeId=5 (Bo luc lac)').to.include(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?keyword=Bò",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "keyword",
+                  "value": "Bò"
+                }
+              ]
+            },
+            "description": "XAC NHAN query param 'keyword' qua dac ta muc 4.1. Response nam trong DT.recipes (object phan trang), khong phai mang phang."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-02 Loc theo categoryId=5 \"Bun - Mi - Pho\" (khop Pho bo id=3)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-02 Loc categoryId=5 tra ve id=3 - 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    var list = jsonData.DT.recipes || [];",
+                  "    var ids = list.map(function (r) { return r.recipeId; });",
+                  "    pm.expect(ids, 'recipeId=3 la cong thuc DUY NHAT thuoc categoryId=5 theo seed data that').to.include(3);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?categoryId={{categoryIdBunMiPho}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryIdBunMiPho}}"
+                }
+              ]
+            },
+            "description": "SUA so voi ban truoc: dac ta muc 4.1 xac nhan param la categoryId DANG SO (khong phai category dang ten chuoi). categoryId=5 = 'Bun - Mi - Pho' theo 02-seed-categories.js."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-03 Tim kiem khong co ket qua",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-03 Khong loi he thong, tra danh sach rong - 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect((jsonData.DT.recipes || []).length).to.eql(0);",
+                  "    pm.expect(jsonData.DT.total).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?keyword=xyzabc123khongcothat",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "keyword",
+                  "value": "xyzabc123khongcothat"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-04a Tu khoa rong -> tra toan bo danh sach mac dinh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-04a keyword rong khong loi 500, co phan trang mac dinh', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT.page).to.eql(1);",
+                  "    pm.expect(jsonData.DT.limit).to.eql(10);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?keyword=",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "keyword",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Xac nhan page mac dinh=1, limit mac dinh=10 theo dac ta muc 4.1."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-04b Tu khoa chi co khoang trang",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-04b Khong loi 500 khi keyword toan khoang trang', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?keyword=%20%20%20",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "keyword",
+                  "value": "%20%20%20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-05a SQL Injection co ban",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-05a Khong loi 500, xu ly an toan', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?keyword=' OR '1'='1",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "keyword",
+                  "value": "' OR '1'='1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-05b XSS script tag",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-05b Khong loi 500, khong phan chieu script nguyen van', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "    pm.expect(pm.response.text()).to.not.include('<script>alert(1)</script>');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?keyword=<script>alert(1)</script>",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "keyword",
+                  "value": "<script>alert(1)</script>"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-06 Ngoai le: difficulty khong hop le (bo sung, xac nhan qua dac ta)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-06 difficulty sai -> 400, EC=1', function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?difficulty=SieuKho",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "difficulty",
+                  "value": "SieuKho"
+                }
+              ]
+            },
+            "description": "difficulty chi nhan Easy/Medium/Hard theo dac ta muc 4.1 - gia tri khac phai bi chan."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-07 Ngoai le: cookingTime khong hop le (bo sung)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-07 cookingTime am -> 400, EC=1', function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?cookingTime=-5",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "cookingTime",
+                  "value": "-5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-08 Ngoai le: page/limit khong hop le (bo sung)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-08 page=0 -> 400, EC=1', function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?page=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-09 Ngoai le: sortBy/sortOrder khong hop le (bo sung)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-09 sortBy la -> 400, EC=1', function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?sortBy=khongtontai",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "khongtontai"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-10 Loc theo ingredientId=1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-10 ingredientId=1 -> 200 OK, response phan trang hop le', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT).to.have.property('page');",
+                  "    pm.expect(jsonData.DT).to.have.property('limit');",
+                  "    pm.expect(jsonData.DT).to.have.property('total');",
+                  "    pm.expect(jsonData.DT).to.have.property('totalPages');",
+                  "    pm.expect(jsonData.DT).to.have.property('recipes');",
+                  "    pm.expect(jsonData.DT.recipes).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?ingredientId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "ingredientId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Lọc theo ingredientId dạng number. ID=1 được dùng trong ví dụ nguyên liệu của đặc tả."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-11 Difficulty hợp lệ = Easy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-11 difficulty=Easy -> 200 OK, tat ca ket qua co difficulty=Easy', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT.recipes).to.be.an('array');",
+                  "    jsonData.DT.recipes.forEach(function (r) {",
+                  "        pm.expect(r.difficulty).to.eql('Easy');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?difficulty=Easy",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "difficulty",
+                  "value": "Easy"
+                }
+              ]
+            },
+            "description": "difficulty chỉ nhận Easy/Medium/Hard theo đặc tả."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-12 cookingTime hợp lệ = 30",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-12 cookingTime=30 -> 200 OK, khong loi validate', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT.recipes).to.be.an('array');",
+                  "    jsonData.DT.recipes.forEach(function (r) {",
+                  "        pm.expect(r.cookTimeMinutes).to.be.at.most(30);",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?cookingTime=30",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "cookingTime",
+                  "value": "30"
+                }
+              ]
+            },
+            "description": "cookingTime là thời gian nấu tối đa tính bằng phút."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-13 Phân trang hợp lệ page=1 limit=2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-13 page=1 limit=2 -> 200 OK, phan trang dung', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT.page).to.eql(1);",
+                  "    pm.expect(jsonData.DT.limit).to.eql(2);",
+                  "    pm.expect(jsonData.DT.recipes).to.be.an('array');",
+                  "    pm.expect(jsonData.DT.recipes.length).to.be.at.most(2);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?page=1&limit=2",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "2"
+                }
+              ]
+            },
+            "description": "Xác nhận page/limit hợp lệ và object phân trang nằm trong DT."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-14 Sắp xếp hợp lệ createdAt DESC",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-14 sortBy=createdAt sortOrder=DESC -> 200 OK', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT.recipes).to.be.an('array');",
+                  "    pm.expect(jsonData.DT).to.have.property('totalPages');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?sortBy=createdAt&sortOrder=DESC",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "DESC"
+                }
+              ]
+            },
+            "description": "Giá trị hợp lệ theo đặc tả: sortBy=createdAt/cookTimeMinutes/title; sortOrder=ASC/DESC."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-06-15 Kết hợp nhiều tiêu chí lọc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-06-15 Multi-filter -> 200 OK, DT.recipes la array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT.recipes).to.be.an('array');",
+                  "    pm.expect(jsonData.DT.page).to.eql(1);",
+                  "    pm.expect(jsonData.DT.limit).to.eql(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes?keyword=Bò&categoryId={{categoryIdBunMiPho}}&difficulty=Easy&cookingTime=60&page=1&limit=5&sortBy=title&sortOrder=ASC",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "query": [
+                {
+                  "key": "keyword",
+                  "value": "Bò"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryIdBunMiPho}}"
+                },
+                {
+                  "key": "difficulty",
+                  "value": "Easy"
+                },
+                {
+                  "key": "cookingTime",
+                  "value": "60"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "title"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "ASC"
+                }
+              ]
+            },
+            "description": "Kiểm tra request chấp nhận đồng thời các tham số được đặc tả."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "UC-07 Xem chi tiet & Doi dinh luong N nguoi",
+      "item": [
+        {
+          "name": "TC-07-01 Xem chi tiet \"Pho bo\" (id=3) theo khau phan goc N=4",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-01 Chi tiet dung so lieu goc - 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT.defaultServings).to.eql(4);",
+                  "    var qtys = (jsonData.DT.ingredients || []).map(function (i) { return parseFloat(i.quantity); });",
+                  "    pm.expect(qtys, 'Field chi tiet dung \"quantity\" (khac voi \"scaledQuantity\" o API scale) - ky vong 1kg,400g,500g,10g').to.include.members([1, 400, 500, 10]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeIdPho}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{recipeIdPho}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-07-02 Scale N=8 (tang gap doi, 4->8)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-02 Dinh luong nhan doi dung - 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT.scaleFactor).to.eql(2);",
+                  "    pm.expect(jsonData.DT.targetServings).to.eql(8);",
+                  "    var qtys = (jsonData.DT.ingredients || []).map(function (i) { return parseFloat(i.scaledQuantity); });",
+                  "    pm.expect(qtys, 'Field API scale la \"scaledQuantity\" (KHAC \"quantity\" o API chi tiet) - ky vong 2kg,800g,1000g,20g').to.include.members([2, 800, 1000, 20]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeIdPho}}/scale?servings=8",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{recipeIdPho}}", "scale"],
+              "query": [
+                {
+                  "key": "servings",
+                  "value": "8"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-07-03 Scale N=2 (giam nua, 4->2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-03 Dinh luong giam nua dung - 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT.scaleFactor).to.eql(0.5);",
+                  "    var qtys = (jsonData.DT.ingredients || []).map(function (i) { return parseFloat(i.scaledQuantity); });",
+                  "    pm.expect(qtys, 'Ky vong: 0.5kg, 200g, 250g, 5g (= goc /2)').to.include.members([0.5, 200, 250, 5]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeIdPho}}/scale?servings=2",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{recipeIdPho}}", "scale"],
+              "query": [
+                {
+                  "key": "servings",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-07-04 Nguyen lieu dinh tinh \"vua du\" (N/A - khong ton tai trong he thong nay)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-04 KHONG THE verify - concept khong ton tai trong dac ta lan seed data', function () {",
+                  "    console.warn('TC-07-04 nen duoc dong/loai bo khoi RTM: (1) migration DB khong co cot isQualitative; (2) dac ta API muc 4.2/4.3 - response ingredient CHI co {ingredientId, ingredientName, quantity/scaledQuantity, unitId, unit}, khong co field phan biet dinh tinh; (3) ca 31 dong seed KHONG dung unit vua du/tuy khau vi du Units da co san 2 gia tri nay. Ket luan: he thong hien tai scale TUYEN TINH moi nguyen lieu, khong co ngoai le nao - can hoi Product xem tinh nang nay co that su nam trong pham vi hay chi la gia dinh sai tu dau.');",
+                  "    pm.expect(true).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeIdPho}}/scale?servings=8",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{recipeIdPho}}", "scale"],
+              "query": [
+                {
+                  "key": "servings",
+                  "value": "8"
+                }
+              ]
+            },
+            "description": "N/A - xem canh bao trong test script. De xuat chuyen TC-07-04 sang trang thai 'Not Applicable' trong RTM thay vi Pending."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-07-05 N=4 (bang khau phan goc, ti le=1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-05 Dinh luong khong doi khi N=4 - 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT.scaleFactor).to.eql(1);",
+                  "    var qtys = (jsonData.DT.ingredients || []).map(function (i) { return parseFloat(i.scaledQuantity); });",
+                  "    pm.expect(qtys).to.include.members([1, 400, 500, 10]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeIdPho}}/scale?servings=4",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{recipeIdPho}}", "scale"],
+              "query": [
+                {
+                  "key": "servings",
+                  "value": "4"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-07-06 N=1 (bien duoi hop le)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-06 N=1 tinh dung 1/4 dinh luong goc - 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    var qtys = (jsonData.DT.ingredients || []).map(function (i) { return parseFloat(i.scaledQuantity); });",
+                  "    pm.expect(qtys, 'Ky vong: 0.25kg, 100g, 125g, 2.5g (= goc /4)').to.include.members([0.25, 100, 125, 2.5]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeIdPho}}/scale?servings=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{recipeIdPho}}", "scale"],
+              "query": [
+                {
+                  "key": "servings",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-07-07 N=0 (phai bi chan)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-07 N=0 bi tu choi - 400, EC=1', function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "    pm.expect(pm.response.json().EM).to.eql('Số khẩu phần ăn phải lớn hơn 0!');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeIdPho}}/scale?servings=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{recipeIdPho}}", "scale"],
+              "query": [
+                {
+                  "key": "servings",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "EM chinh xac lay tu dac ta muc 4.3."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-07-08 N am (phai bi chan)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-08 N am bi tu choi - 400, EC=1', function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeIdPho}}/scale?servings=-2",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{recipeIdPho}}", "scale"],
+              "query": [
+                {
+                  "key": "servings",
+                  "value": "-2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-07-09 N thap phan (dac ta khong neu ro hanh vi)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-09 N thap phan xu ly nhat quan (200 lam tron HOAC 400 tu choi)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+                  "    var jsonData = pm.response.json();",
+                  "    if (pm.response.code === 200) { pm.expect(jsonData.EC).to.eql(0); }",
+                  "    else { pm.expect(jsonData.EC).to.eql(1); }",
+                  "    console.log('Dac ta muc 4.3 chi neu rang buoc servings<=0 -> EC=1, KHONG noi ro hanh vi voi so thap phan - can PM/Dev chot.');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeIdPho}}/scale?servings=3.5",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{recipeIdPho}}", "scale"],
+              "query": [
+                {
+                  "key": "servings",
+                  "value": "3.5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-07-10 (BO test bien N=50/51 - dac ta khong co gioi han toi da)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-10 N lon (N=200) van duoc chap nhan theo dac ta - 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "    console.warn('SUA so voi ban truoc: dac ta muc 4.3 chi rang buoc servings>0, KHONG co gioi han toi da nao duoc ghi nhan. Test bien N=50/51 truoc do dua tren gia dinh sai (ReadMe muc 3) - da doi thanh test N rat lon de xac nhan he thong KHONG chan, neu BE thuc te co chan thi day la cho can doi chieu lai voi PM.');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeIdPho}}/scale?servings=200",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{recipeIdPho}}", "scale"],
+              "query": [
+                {
+                  "key": "servings",
+                  "value": "200"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-07-11 Lam tron 2 chu so (\"Canh chua ca loc\" id=1, Dua 0.5 qua -> N=3 -> 0.375)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-11 0.375 lam tron thanh 0.38 (2 chu so thap phan) - 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    var ingredients = jsonData.DT.ingredients || [];",
+                  "    var found = ingredients.find(function (i) { return Math.abs(parseFloat(i.scaledQuantity) - 0.38) < 0.005; });",
+                  "    pm.expect(found, 'Ky vong Dua (thom) = 0.5 x (3/4) = 0.375 lam tron hien thi 0.38').to.not.be.undefined;",
+                  "    ingredients.forEach(function (ing) {",
+                  "        if (typeof ing.scaledQuantity === 'number') {",
+                  "            var decimals = (ing.scaledQuantity.toString().split('.')[1] || '').length;",
+                  "            pm.expect(decimals, 'Khong vuot qua 2 chu so thap phan (DECIMAL(10,2), xac nhan qua migration)').to.be.at.most(2);",
+                  "        }",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeIdCanhChua}}/scale?servings=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{recipeIdCanhChua}}", "scale"],
+              "query": [
+                {
+                  "key": "servings",
+                  "value": "3"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-07-12 Xem cong thuc khong ton tai",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-12 recipeId khong ton tai -> 404, EC=3', function () {",
+                  "    pm.expect(pm.response.code).to.eql(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "    pm.expect(pm.response.json().EM).to.eql('Không tìm thấy công thức nấu ăn!');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/999999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "999999999"]
+            },
+            "description": "EM chinh xac lay tu dac ta muc 4.2."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-07-13 Scale cong thuc khong ton tai (bo sung - cung loi 404 ap dung cho ca 2 API)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-13 scale recipeId khong ton tai -> 404, EC=3', function () {",
+                  "    pm.expect(pm.response.code).to.eql(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/999999999/scale?servings=4",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "999999999", "scale"],
+              "query": [
+                {
+                  "key": "servings",
+                  "value": "4"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-07-14 Kiem tra cau truc response chi tiet cong thuc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-14 Chi tiet recipe co du field theo dac ta', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT).to.be.an('object');",
+                  "    ['recipeId','title','description','thumbnailUrl','cookTimeMinutes','difficulty','defaultServings','authorName','categories','ingredients','steps'].forEach(function (key) {",
+                  "        pm.expect(jsonData.DT).to.have.property(key);",
+                  "    });",
+                  "    pm.expect(jsonData.DT.categories).to.be.an('array');",
+                  "    pm.expect(jsonData.DT.ingredients).to.be.an('array');",
+                  "    pm.expect(jsonData.DT.steps).to.be.an('array');",
+                  "    jsonData.DT.ingredients.forEach(function (i) {",
+                  "        pm.expect(i).to.have.property('quantity');",
+                  "        pm.expect(i).to.have.property('unitId');",
+                  "        pm.expect(i).to.have.property('unit');",
+                  "    });",
+                  "    jsonData.DT.steps.forEach(function (s) {",
+                  "        pm.expect(s).to.have.property('stepNumber');",
+                  "        pm.expect(s).to.have.property('instruction');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeIdPho}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{recipeIdPho}}"]
+            },
+            "description": "GET chi tiết dùng field quantity theo đặc tả, không dùng scaledQuantity."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-07-15 Kiem tra cau truc response scale",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-07-15 Scale response co du field va dung scaledQuantity', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    pm.expect(jsonData.EC).to.eql(0);",
+                  "    pm.expect(jsonData.DT).to.be.an('object');",
+                  "    ['recipeId','defaultServings','targetServings','scaleFactor','ingredients'].forEach(function (key) {",
+                  "        pm.expect(jsonData.DT).to.have.property(key);",
+                  "    });",
+                  "    pm.expect(jsonData.DT.ingredients).to.be.an('array');",
+                  "    jsonData.DT.ingredients.forEach(function (i) {",
+                  "        pm.expect(i).to.have.property('ingredientName');",
+                  "        pm.expect(i).to.have.property('scaledQuantity');",
+                  "        pm.expect(i).to.have.property('unit');",
+                  "        pm.expect(i).to.not.have.property('quantity');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{recipeIdPho}}/scale?servings=8",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{recipeIdPho}}", "scale"],
+              "query": [
+                {
+                  "key": "servings",
+                  "value": "8"
+                }
+              ]
+            },
+            "description": "GET scale dùng scaledQuantity theo đặc tả."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Response contract: JSON có đủ EC/EM/DT', function () {",
+          "    var jsonData = pm.response.json();",
+          "    pm.expect(jsonData).to.have.property('EC');",
+          "    pm.expect(jsonData).to.have.property('EM');",
+          "    pm.expect(jsonData).to.have.property('DT');",
+          "    pm.expect(jsonData.EC).to.be.a('number');",
+          "    pm.expect(jsonData.EM).to.be.a('string');",
+          "    pm.expect(jsonData.EM.trim()).to.not.eql('');",
+          "    pm.expect(jsonData.DT === null || Array.isArray(jsonData.DT) || typeof jsonData.DT === 'object')",
+          "        .to.eql(true);",
+          "});",
+          "",
+          "pm.test('Response contract: HTTP Status khớp EC theo đặc tả', function () {",
+          "    var jsonData = pm.response.json();",
+          "    var expectedEcByStatus = {",
+          "        200: 0,",
+          "        201: 0,",
+          "        400: 1,",
+          "        401: 5,",
+          "        403: 4,",
+          "        404: 3,",
+          "        409: 2,",
+          "        500: -1",
+          "    };",
+          "    var status = pm.response.code;",
+          "    if (Object.prototype.hasOwnProperty.call(expectedEcByStatus, status)) {",
+          "        pm.expect(jsonData.EC, 'EC không khớp HTTP Status').to.eql(expectedEcByStatus[status]);",
+          "    }",
+          "});",
+          "",
+          "pm.test('Response contract: response lỗi phải có DT = null', function () {",
+          "    if (pm.response.code >= 400) {",
+          "        var jsonData = pm.response.json();",
+          "        pm.expect(jsonData.DT).to.eql(null);",
+          "    }",
+          "});"
+        ]
+      }
+    }
+  ]
+}

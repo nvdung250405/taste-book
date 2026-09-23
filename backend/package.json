@@ -8,8 +8,11 @@
   "main": "src/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test:api": "npx newman run postman/tastebook_auth_postman_collection_v2.json -e postman/tastebook_environment.postman_environment.json && npx newman run postman/tastebook_user_profile_postman_collection_v2.json -e postman/tastebook_environment.postman_environment.json",
     "lint": "eslint .",
+    "test:auth": "npx newman run postman/tastebook_auth_postman_collection_v2.json -e postman/tastebook_environment.postman_environment.json --reporters cli,htmlextra --reporter-htmlextra-export reports/auth-report.html",
+    "test:user": "npx newman run postman/tastebook_user_profile_postman_collection_v2.json -e postman/tastebook_environment.postman_environment.json --reporters cli,htmlextra --reporter-htmlextra-export reports/user-report.html",
+    "test:recipes": "npx newman run postman/tastebook_recipes_postman_collection.json -e postman/tastebook_environment.postman_environment.json --reporters cli,htmlextra --reporter-htmlextra-export reports/recipes-report.html",
+    "test:api": "npm run test:auth && npm run test:user && npm run test:recipes",
     "start": "nodemon --exec babel-node src/server.js",
     "db:migrate": "npx sequelize-cli db:migrate",
     "db:migrate:undo": "npx sequelize-cli db:migrate:undo",
@@ -43,6 +46,7 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.10.0",
     "globals": "^17.12.0",
+    "newman-reporter-htmlextra": "^1.23.1",
     "nodemon": "^3.1.0",
     "sequelize-cli": "^6.6.2"
   }
