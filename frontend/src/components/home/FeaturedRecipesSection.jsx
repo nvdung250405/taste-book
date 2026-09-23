@@ -90,12 +90,12 @@ function RecipeCard({ recipe, rank }) {
             ))}
           </div>
           {/* Favorite */}
-          <div className="absolute top-4 right-4">
+          <div className="absolute top-4 right-4 z-10">
             <Button
               size="icon"
               variant="secondary"
               onClick={(e) => { e.preventDefault(); toast.info('Chức năng yêu thích yêu cầu đăng nhập'); }}
-              className="rounded-full w-8 h-8 bg-white/80 hover:bg-white text-slate-400 hover:text-red-500 transition-colors backdrop-blur-sm"
+              className="rounded-full w-8 h-8 bg-white/80 hover:bg-white text-slate-400 hover:text-red-500 transition-colors backdrop-blur-sm relative"
             >
               <Heart className="w-4 h-4" />
             </Button>
@@ -128,7 +128,7 @@ function RecipeCard({ recipe, rank }) {
 
           {/* Title */}
           <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-2 line-clamp-1 group-hover:text-orange-500 transition-colors">
-            <Link to={`/recipe/${recipe.recipeId || recipe.id || recipe._id}`}>{recipe.title}</Link>
+            <Link to={`/recipe/${recipe.recipeId || recipe.id || recipe._id}`} className="after:absolute after:inset-0">{recipe.title}</Link>
           </h3>
 
           {/* Author */}
