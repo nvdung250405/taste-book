@@ -70,9 +70,9 @@ export default function RecipeSidebar({ author, recipe, tags, isFavorited, handl
           <CardContent className="p-4">
             <h3 className="font-semibold text-slate-900 dark:text-slate-50 mb-3 text-sm uppercase tracking-wide">Thẻ</h3>
             <div className="flex flex-wrap gap-2">
-              {tags.map(tag => (
-                <Badge key={tag.id || tag.name || tag} variant="secondary" className="rounded-full">
-                  {tag.name || tag}
+              {tags.map((tag, idx) => (
+                <Badge key={tag.categoryId || tag.id || tag._id || idx} variant="secondary" className="rounded-full">
+                  {tag.categoryName || tag.name || String(tag)}
                 </Badge>
               ))}
             </div>

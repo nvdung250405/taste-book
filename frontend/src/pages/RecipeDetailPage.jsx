@@ -90,9 +90,13 @@ export default function RecipeDetailPage() {
   }
 
   const ingredients = recipe.ingredients || []
-  const steps = recipe.cookingSteps || recipe.steps || []
+  const steps = recipe.steps || recipe.cookingSteps || []
   const tags = recipe.categories || recipe.tags || []
-  const author = recipe.author || recipe.user || {}
+  // Backend trả về authorName (string), không phải object author
+  const author = {
+    name: recipe.authorName || recipe.author?.username || recipe.author?.name || 'TasteBook Chef',
+    email: recipe.author?.email || ''
+  }
 
   return (
     <div className="max-w-5xl mx-auto">
