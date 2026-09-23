@@ -1,5 +1,24 @@
+import { useEffect } from 'react'
 import { Toaster } from 'sonner'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+
+function AppBehaviorHandler() {
+  const { pathname } = useLocation()
+
+  // Scroll to top when pathname changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [pathname])
+
+  // Reload page when user uses browser Back/Forward (popstate)
+  useEffect(() => {
+    const handlePopState = () => window.location.reload()
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  return null
+}
 
 // Layouts
 import MainLayout from './components/layouts/MainLayout'
@@ -31,6 +50,7 @@ function App() {
       <Toaster position="top-right" richColors />
 
       <BrowserRouter>
+        <AppBehaviorHandler />
         <Routes>
           {/* Public & User Routes with MainLayout */}
           <Route element={<MainLayout />}>
