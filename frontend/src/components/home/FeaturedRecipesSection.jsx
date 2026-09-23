@@ -128,7 +128,7 @@ function RecipeCard({ recipe, rank }) {
 
           {/* Title */}
           <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-2 line-clamp-1 group-hover:text-orange-500 transition-colors">
-            <Link to={`/recipe/${recipe._id || recipe.id}`}>{recipe.title}</Link>
+            <Link to={`/recipe/${recipe.recipeId || recipe.id || recipe._id}`}>{recipe.title}</Link>
           </h3>
 
           {/* Author */}
@@ -177,7 +177,7 @@ export function LatestRecipesSection({ recipes, isLoading }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {recipes.map((recipe) => (
-            <RecipeCard key={recipe._id || recipe.id} recipe={recipe} />
+            <RecipeCard key={recipe.recipeId || recipe.id || recipe._id} recipe={recipe} />
           ))}
         </div>
       )}
@@ -222,7 +222,7 @@ export function TrendingRecipesSection({ recipes, isLoading }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {recipes.map((recipe, idx) => (
-            <RecipeCard key={recipe._id || recipe.id} recipe={recipe} rank={idx} />
+            <RecipeCard key={recipe.recipeId || recipe.id || recipe._id || idx} recipe={recipe} rank={idx} />
           ))}
         </div>
       )}
