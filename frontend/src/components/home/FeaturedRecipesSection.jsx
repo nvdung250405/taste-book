@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
   Star,
@@ -156,8 +156,12 @@ export function LatestRecipesSection({ recipes, isLoading }) {
     <section className="container mx-auto px-4 mt-4">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Công thức nổi bật</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Những công thức được yêu thích nhất hôm nay</p>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
+            Công thức mới nhất
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
+            Những công thức vừa được chia sẻ từ cộng đồng
+          </p>
         </div>
         <Button
           variant="ghost"
@@ -226,4 +230,10 @@ export function TrendingRecipesSection({ recipes, isLoading }) {
       )}
     </section>
   )
+}
+
+// ─── Legacy default export (backward compat) ─────────────────────────────────
+
+export default function FeaturedRecipesSection({ recipes, loadingRecipes }) {
+  return <LatestRecipesSection recipes={recipes} isLoading={loadingRecipes} />
 }
