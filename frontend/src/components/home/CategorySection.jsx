@@ -1,73 +1,31 @@
-import { useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
-  ChevronLeft,
-  ChevronRight,
-  Soup,
   Flame,
-  Fish,
-  UtensilsCrossed,
-  Salad,
-  CakeSlice,
   Leaf,
-  Coffee,
-  Users,
+  Beef,
+  CakeSlice,
+  Salad,
+  Pizza,
+  Loader2
 } from 'lucide-react'
 import { Button } from '../ui/button'
-import { Skeleton } from '../ui/skeleton'
 
-// Map đúng với 9 danh mục trong seed (theo id và categoryName)
-const CATEGORY_STYLES = {
-  1: { icon: <UtensilsCrossed className="w-6 h-6" />, color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' },        // Món chính
-  2: { icon: <Soup className="w-6 h-6" />,            color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' },       // Món canh
-  3: { icon: <Flame className="w-6 h-6" />,           color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' }, // Món kho
-  4: { icon: <Fish className="w-6 h-6" />,            color: 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400' }, // Món xào
-  5: { icon: <Salad className="w-6 h-6" />,           color: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' },    // Bún - Mì - Phở
-  6: { icon: <CakeSlice className="w-6 h-6" />,       color: 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400' },       // Khai vị & Ăn vặt
-  7: { icon: <Leaf className="w-6 h-6" />,            color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' }, // Món chay
-  8: { icon: <Coffee className="w-6 h-6" />,          color: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' },   // Tráng miệng & Đồ uống
-  9: { icon: <Users className="w-6 h-6" />,           color: 'bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400' }, // Đóng góp cộng đồng
-}
-
-const FALLBACK_STYLE = { icon: <UtensilsCrossed className="w-6 h-6" />, color: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' }
-
-function CategorySkeletons() {
-  return (
-    <div className="flex gap-6 overflow-hidden">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div
-          key={i}
-          className="flex-none w-44 flex flex-col items-center gap-4 p-8 rounded-2xl border border-slate-200 dark:border-slate-800"
-        >
-          <Skeleton className="w-16 h-16 rounded-full" />
-          <Skeleton className="h-4 w-24" />
-        </div>
-      ))}
-    </div>
-  )
-}
+const CATEGORY_STYLES = [
+  { icon: <Salad className="w-6 h-6" />, color: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' },
+  { icon: <Pizza className="w-6 h-6" />, color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' },
+  { icon: <Leaf className="w-6 h-6" />, color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' },
+  { icon: <Beef className="w-6 h-6" />, color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' },
+  { icon: <CakeSlice className="w-6 h-6" />, color: 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400' },
+  { icon: <Flame className="w-6 h-6" />, color: 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400' },
+]
 
 export default function CategorySection({ categories, loadingCats }) {
-  const scrollRef = useRef(null)
-  const navigate = useNavigate()
-
-  const scroll = (dir) => {
-    if (!scrollRef.current) return
-    scrollRef.current.scrollBy({ left: dir === 'left' ? -300 : 300, behavior: 'smooth' })
-  }
-
   return (
     <section className="container mx-auto px-4 mt-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
-            Khám phá danh mục
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Lựa chọn món ăn theo sở thích của bạn
-          </p>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Khám phá danh mục</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Lựa chọn món ăn theo sở thích của bạn</p>
         </div>
         <Button
           variant="ghost"
@@ -78,9 +36,10 @@ export default function CategorySection({ categories, loadingCats }) {
         </Button>
       </div>
 
-      {/* Content */}
       {loadingCats ? (
-        <CategorySkeletons />
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        </div>
       ) : (
         <div className="relative group/carousel">
           {/* Left arrow — overlay căn giữa với card */}
@@ -136,9 +95,10 @@ export default function CategorySection({ categories, loadingCats }) {
                     {name}
                   </span>
                 </div>
-              )
-            })}
-          </div>
+                <span className="font-semibold text-slate-700 dark:text-slate-200 text-center line-clamp-1">{category.name || category.title}</span>
+              </div>
+            )
+          })}
         </div>
       )}
 

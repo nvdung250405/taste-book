@@ -30,7 +30,7 @@ module.exports = {
   production: {
     username: process.env.DB_USERNAME || process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME_PROD || "taste_book_db",
+    database: process.env.DB_NAME_PROD || "tastebook_db",
     host: process.env.DB_HOST,
     port: process.env.DB_PORT || 5432,
     dialect: "postgres",

@@ -106,8 +106,7 @@ export default function ProfilePage() {
         setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' })
       },
       onError: (err) => {
-        // axiosClient interceptor rejects with error.response.data directly ({ EC, EM, DT })
-        const msg = err?.EM || err?.message || 'Lỗi khi đổi mật khẩu'
+        const msg = err?.response?.data?.EM || err?.response?.data?.message || 'Lỗi khi đổi mật khẩu'
         toast.error(msg)
       },
     })
