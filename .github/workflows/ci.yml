@@ -45,6 +45,13 @@ jobs:
       - name: Lint backend
         run: npm run lint
 
+      - name: Run backend tests
+        run: npm test
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test_jwt_secret_key_123456
+          JWT_EXPIRES_IN: 24h
+
   # FRONTEND CI
   frontend:
     name: Frontend CI
