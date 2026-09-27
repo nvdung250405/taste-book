@@ -16,7 +16,6 @@ module.exports = {
             "isPublic": true,
             "approvalStatus": "Approved",
             "rejectionReason": null,
-            "pendingUpdateData": null,
             "isDeleted": false,
             "createdAt": now,
             "updatedAt": now
@@ -33,7 +32,6 @@ module.exports = {
             "isPublic": true,
             "approvalStatus": "Approved",
             "rejectionReason": null,
-            "pendingUpdateData": null,
             "isDeleted": false,
             "createdAt": now,
             "updatedAt": now
@@ -50,7 +48,6 @@ module.exports = {
             "isPublic": true,
             "approvalStatus": "Approved",
             "rejectionReason": null,
-            "pendingUpdateData": null,
             "isDeleted": false,
             "createdAt": now,
             "updatedAt": now
@@ -67,7 +64,6 @@ module.exports = {
             "isPublic": true,
             "approvalStatus": "Approved",
             "rejectionReason": null,
-            "pendingUpdateData": null,
             "isDeleted": false,
             "createdAt": now,
             "updatedAt": now
@@ -84,7 +80,6 @@ module.exports = {
             "isPublic": true,
             "approvalStatus": "Approved",
             "rejectionReason": null,
-            "pendingUpdateData": null,
             "isDeleted": false,
             "createdAt": now,
             "updatedAt": now
