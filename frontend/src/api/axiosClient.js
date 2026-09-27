@@ -41,9 +41,8 @@ axiosClient.interceptors.response.use(
       const currentPath = window.location.pathname;
       // Không chuyển hướng nếu đang ở trang login hoặc register (để tránh loop khi đăng nhập sai pass)
       if (currentPath !== '/login' && currentPath !== '/register') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user'); // Xóa thông tin user nếu có
-        window.location.href = '/login';
+        // Thay vì reload bằng window.location.href, ta phát một sự kiện để React Router xử lý chuyển trang mượt mà
+        window.dispatchEvent(new Event('unauthorized'));
         return Promise.reject(error.response.data || error);
       }
     }
