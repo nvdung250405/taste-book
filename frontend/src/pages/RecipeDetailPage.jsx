@@ -67,9 +67,34 @@ export default function RecipeDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 className="w-12 h-12 animate-spin text-orange-500" />
-        <p className="text-slate-500">Đang tải công thức...</p>
+      <div className="max-w-5xl mx-auto animate-pulse">
+        <div className="w-24 h-5 bg-slate-200 dark:bg-slate-800 rounded mb-6"></div>
+        <div className="mb-6 lg:mb-8 mt-2">
+          <div className="w-3/4 md:w-1/2 h-10 md:h-12 bg-slate-200 dark:bg-slate-800 rounded mb-4"></div>
+          <div className="flex gap-2">
+            <div className="w-20 h-6 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+            <div className="w-24 h-6 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            {/* Hero skeleton */}
+            <div className="w-full aspect-[16/9] sm:aspect-[21/9] lg:aspect-video rounded-3xl bg-slate-200 dark:bg-slate-800"></div>
+            {/* Quick info skeleton */}
+            <div className="h-24 rounded-2xl bg-slate-200 dark:bg-slate-800"></div>
+            {/* Ingredients skeleton */}
+            <div className="space-y-4">
+              <div className="h-8 w-1/3 bg-slate-200 dark:bg-slate-800 rounded"></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {[1,2,3,4].map(i => <div key={i} className="h-12 rounded-xl bg-slate-200 dark:bg-slate-800"></div>)}
+              </div>
+            </div>
+          </div>
+          <div className="space-y-5">
+            <div className="h-32 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+            <div className="h-40 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+          </div>
+        </div>
       </div>
     )
   }

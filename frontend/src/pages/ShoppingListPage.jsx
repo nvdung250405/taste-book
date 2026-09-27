@@ -63,9 +63,10 @@ export default function ShoppingListPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-          <p className="text-slate-500">Đang tải danh sách...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="h-32 rounded-xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+          ))}
         </div>
       ) : lists.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">

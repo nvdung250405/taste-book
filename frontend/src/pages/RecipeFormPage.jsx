@@ -151,9 +151,13 @@ export default function RecipeFormPage() {
 
   if (isEdit && loadingRecipe) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3">
-        <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-        <p className="text-slate-500">Đang tải dữ liệu...</p>
+      <div className="max-w-4xl mx-auto px-4 py-8 animate-pulse">
+        <div className="h-10 w-48 bg-slate-200 dark:bg-slate-800 rounded mb-8"></div>
+        <div className="space-y-6">
+          <div className="h-20 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+          <div className="h-40 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+          <div className="h-64 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+        </div>
       </div>
     )
   }
