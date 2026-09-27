@@ -37,8 +37,8 @@ export default function FavoritesPage() {
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Yêu thích</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Yêu thích</h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">
           Những công thức bạn đã lưu · <span className="font-medium text-orange-500">{favorites.length} món</span>
         </p>
       </div>

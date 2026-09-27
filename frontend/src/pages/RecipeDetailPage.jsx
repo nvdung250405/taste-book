@@ -110,7 +110,7 @@ export default function RecipeDetailPage() {
 
       {/* Header */}
       <div className="mb-6 lg:mb-8 mt-2">
-        <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-slate-50 mb-4 tracking-tight leading-tight">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-slate-50 mb-4 tracking-tight leading-tight">
           {recipe.title}
         </h1>
         <div className="flex flex-wrap items-center gap-2">

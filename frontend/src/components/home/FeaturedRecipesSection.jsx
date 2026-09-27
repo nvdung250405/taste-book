@@ -96,6 +96,7 @@ function RecipeCard({ recipe, rank }) {
               variant="secondary"
               onClick={(e) => { e.preventDefault(); toast.info('Chức năng yêu thích yêu cầu đăng nhập'); }}
               className="rounded-full w-8 h-8 bg-white/80 hover:bg-white text-slate-400 hover:text-red-500 transition-colors backdrop-blur-sm relative z-10"
+              aria-label="Thêm vào yêu thích"
             >
               <Heart className="w-4 h-4" />
             </Button>
