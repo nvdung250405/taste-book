@@ -36,10 +36,16 @@ axiosClient.interceptors.response.use(
     return response.data;
   },
   (error) => {
-    // NOTE: Do NOT automatically clear token here on 401.
-    // A 401 might come from a public endpoint (e.g., wrong login credentials)
-    // and should NOT cause the current user session to be cleared.
-    // Token clearing / logout should be handled explicitly by individual hooks or pages.
+    // Tự động chuyển hướng về trang login khi có lỗi 401 Unauthorized (Hết token)
+    if (error.response && error.response.status === 401) {
+      const currentPath = window.location.pathname;
+      // Không chuyển hướng nếu đang ở trang login hoặc register (để tránh loop khi đăng nhập sai pass)
+      if (currentPath !== '/login' && currentPath !== '/register') {
+        // Thay vì reload bằng window.location.href, ta phát một sự kiện để React Router xử lý chuyển trang mượt mà
+        window.dispatchEvent(new Event('unauthorized'));
+        return Promise.reject(error.response.data || error);
+      }
+    }
 
     // Return the response data if available so we can read the Error Code (EC) and Message (EM)
     if (error.response?.data) {

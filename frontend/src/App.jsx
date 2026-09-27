@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
-import { Toaster } from 'sonner'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { Toaster, toast } from 'sonner'
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 
 function AppBehaviorHandler() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
 
   // Scroll to top when pathname changes
   useEffect(() => {
@@ -16,6 +17,45 @@ function AppBehaviorHandler() {
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
+
+  // Auto-check token expiration every 10 seconds
+  useEffect(() => {
+    const checkToken = () => {
+      const token = localStorage.getItem('token')
+      if (token) {
+        try {
+          // Decode JWT payload (middle part)
+          const payload = JSON.parse(atob(token.split('.')[1]))
+          // Check if expired (payload.exp is in seconds)
+          if (payload.exp * 1000 <= Date.now()) {
+            window.dispatchEvent(new Event('unauthorized'))
+          }
+        } catch {
+          // Ignore parse error
+        }
+      }
+    }
+
+    // Check immediately on mount, then every 10 seconds
+    checkToken()
+    const interval = setInterval(checkToken, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Handle unauthorized events globally without hard reload (SPA style)
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      if (pathname !== '/login' && pathname !== '/register') {
+        toast.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại')
+        navigate('/login')
+      }
+    }
+    
+    window.addEventListener('unauthorized', handleUnauthorized)
+    return () => window.removeEventListener('unauthorized', handleUnauthorized)
+  }, [navigate, pathname])
 
   return null
 }
