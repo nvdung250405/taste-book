@@ -70,7 +70,7 @@ export default function Header({ isAuthenticated, user, profileLoading, handleLo
           <div className="md:hidden flex items-center">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-slate-500">
+                <Button variant="ghost" size="icon" className="text-slate-500" aria-label="Mở menu điều hướng">
                   <Menu className="w-6 h-6" />
                 </Button>
               </SheetTrigger>

@@ -159,10 +159,10 @@ export default function RecipeSearchPage() {
     <div className="container mx-auto px-4 py-8">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
           Tìm kiếm công thức
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">
+        <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">
           Khám phá hàng nghìn công thức nấu ăn ngon được chia sẻ từ cộng đồng
         </p>
       </div>
@@ -185,6 +185,7 @@ export default function RecipeSearchPage() {
                 setCurrentPage(1)
               }}
               className="absolute right-4 text-slate-400 hover:text-slate-600"
+              aria-label="Xóa từ khóa tìm kiếm"
             >
               <X className="w-5 h-5" />
             </button>
@@ -335,6 +336,7 @@ export default function RecipeSearchPage() {
                           toast.info('Chức năng yêu thích yêu cầu đăng nhập')
                         }}
                         className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white backdrop-blur-md flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors shadow-sm z-10"
+                        aria-label="Thêm vào yêu thích"
                       >
                         <Heart className="w-4 h-4" />
                       </button>

@@ -29,12 +29,12 @@ export default function HeroSection() {
   }
 
   return (
-    <section className="relative w-[100vw] ml-[calc(-50vw+50%)] h-[500px] flex items-center justify-center overflow-hidden">
+    <section className="relative w-[100vw] ml-[calc(-50vw+50%)] h-[340px] sm:h-[420px] md:h-[500px] flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <img
           src="/images/hero-bg.jpg"
-          alt="Hero Background"
+          alt="Nền trang chủ TasteBook - Ẩm thực Việt Nam"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
@@ -45,29 +45,29 @@ export default function HeroSection() {
         <Badge className="bg-orange-500/20 text-orange-300 hover:bg-orange-500/30 border-orange-500/30 backdrop-blur-md px-4 py-1.5 text-sm">
           Khám phá 10,000+ công thức nấu ăn
         </Badge>
-        <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight drop-shadow-lg">
+        <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold text-white tracking-tight drop-shadow-lg">
           Hôm nay bạn muốn <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">nấu món gì?</span>
         </h1>
-        <p className="text-lg md:text-xl text-slate-300 max-w-2xl drop-shadow-md">
+        <p className="text-sm sm:text-lg md:text-xl text-slate-300 max-w-2xl drop-shadow-md">
           Tìm kiếm nguồn cảm hứng bất tận cho bữa ăn của bạn. Từ những món ăn gia đình đơn giản đến các món Âu sang trọng.
         </p>
         
         {/* Search Bar */}
-        <div className="w-full max-w-2xl mt-4 relative flex items-center group">
-          <Search className="absolute left-4 w-6 h-6 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
+        <div className="w-full max-w-2xl mt-2 sm:mt-4 relative flex items-center group">
+          <Search className="absolute left-3 sm:left-4 w-5 sm:w-6 h-5 sm:h-6 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
           <Input 
             id="hero-search-input"
             type="text"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Nhập tên món, nguyên liệu, ví dụ: Thịt bò, Salad..."
-            className="w-full h-14 pl-14 pr-32 rounded-full bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus-visible:ring-orange-500 text-lg backdrop-blur-md"
+            placeholder="Nhập tên món, nguyên liệu..."
+            className="w-full h-12 sm:h-14 pl-11 sm:pl-14 pr-24 sm:pr-32 rounded-full bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus-visible:ring-orange-500 text-sm sm:text-lg backdrop-blur-md"
           />
           <Button
             id="hero-search-btn"
             onClick={handleSearch}
-            className="absolute right-2 rounded-full h-10 px-6 bg-orange-500 hover:bg-orange-600 text-white font-medium"
+            className="absolute right-1.5 sm:right-2 rounded-full h-8 sm:h-10 px-3 sm:px-6 text-sm sm:text-base bg-orange-500 hover:bg-orange-600 text-white font-medium"
           >
             Tìm kiếm
           </Button>

@@ -46,12 +46,12 @@ export default function MenuPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Thực đơn của tôi</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">Lên kế hoạch bữa ăn và quản lý thực đơn hàng tuần</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Thực đơn của tôi</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">Lên kế hoạch bữa ăn và quản lý thực đơn hàng tuần</p>
         </div>
-        <Button onClick={() => setOpenCreate(true)} className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl">
+        <Button onClick={() => setOpenCreate(true)} className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" /> Tạo thực đơn mới
         </Button>
       </div>

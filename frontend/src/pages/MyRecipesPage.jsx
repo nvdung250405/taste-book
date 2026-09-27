@@ -38,10 +38,10 @@ export default function MyRecipesPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Công thức của tôi</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">Quản lý tất cả công thức bạn đã tạo</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Công thức của tôi</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">Quản lý tất cả công thức bạn đã tạo</p>
         </div>
         <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl" asChild>
           <Link to="/recipe/create">

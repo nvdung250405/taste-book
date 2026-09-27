@@ -26,12 +26,14 @@ export default function RecipeHero({ recipe, isFavorited, handleFavorite, disabl
               ? 'bg-red-500 text-white'
               : 'bg-white/90 hover:bg-white text-slate-600 hover:text-red-500'
           }`}
+          aria-label={isFavorited ? 'Bỏ yêu thích' : 'Thêm yêu thích'}
         >
           <Heart className={`w-5 h-5 ${isFavorited ? 'fill-white' : ''}`} />
         </button>
         <button
           onClick={handleShare}
           className="w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-600 hover:text-orange-500 flex items-center justify-center backdrop-blur-md shadow transition-all"
+          aria-label="Chia sẻ công thức"
         >
           <Share2 className="w-5 h-5" />
         </button>
