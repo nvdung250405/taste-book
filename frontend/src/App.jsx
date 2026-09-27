@@ -30,7 +30,7 @@ function AppBehaviorHandler() {
           if (payload.exp * 1000 <= Date.now()) {
             window.dispatchEvent(new Event('unauthorized'))
           }
-        } catch (e) {
+        } catch {
           // Ignore parse error
         }
       }
