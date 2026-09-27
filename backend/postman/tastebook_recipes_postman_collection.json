@@ -171,6 +171,20 @@
                   "    var ids = list.map(function (r) { return r.recipeId; });",
                   "    pm.expect(ids, 'Ky vong thay recipeId=3 (Pho bo gia truyen Ha Noi)').to.include(3);",
                   "    pm.expect(ids, 'Ky vong thay recipeId=5 (Bo luc lac)').to.include(5);",
+                  "});",
+                  "",
+                  "pm.test('TC-06-01 Moi recipe trong ket qua phai co mang categories hop le', function () {",
+                  "    var list = (pm.response.json().DT.recipes || []);",
+                  "    list.forEach(function (r) {",
+                  "        pm.expect(r, 'recipe phai co field categories').to.have.property('categories');",
+                  "        pm.expect(r.categories, 'categories phai la mang').to.be.an('array');",
+                  "        r.categories.forEach(function (cat) {",
+                  "            pm.expect(cat).to.have.property('categoryId');",
+                  "            pm.expect(cat).to.have.property('categoryName');",
+                  "            pm.expect(cat.categoryId).to.be.a('number');",
+                  "            pm.expect(cat.categoryName).to.be.a('string');",
+                  "        });",
+                  "    });",
                   "});"
                 ]
               }
@@ -208,6 +222,17 @@
                   "    var list = jsonData.DT.recipes || [];",
                   "    var ids = list.map(function (r) { return r.recipeId; });",
                   "    pm.expect(ids, 'recipeId=3 la cong thuc DUY NHAT thuoc categoryId=5 theo seed data that').to.include(3);",
+                  "});",
+                  "",
+                  "pm.test('TC-06-02 Tat ca ket qua phai thuoc categoryId=5 trong mang categories', function () {",
+                  "    var list = (pm.response.json().DT.recipes || []);",
+                  "    var targetCategoryId = parseInt(pm.collectionVariables.get('categoryIdBunMiPho') || '5');",
+                  "    list.forEach(function (r) {",
+                  "        pm.expect(r, 'recipe phai co field categories').to.have.property('categories');",
+                  "        pm.expect(r.categories).to.be.an('array');",
+                  "        var catIds = r.categories.map(function (c) { return c.categoryId; });",
+                  "        pm.expect(catIds, 'Recipe ' + r.recipeId + ' phai co categoryId=' + targetCategoryId + ' trong categories').to.include(targetCategoryId);",
+                  "    });",
                   "});"
                 ]
               }
@@ -279,6 +304,14 @@
                   "    pm.expect(jsonData.EC).to.eql(0);",
                   "    pm.expect(jsonData.DT.page).to.eql(1);",
                   "    pm.expect(jsonData.DT.limit).to.eql(10);",
+                  "});",
+                  "",
+                  "pm.test('TC-06-04a Moi recipe trong danh sach phai co truong categories la array', function () {",
+                  "    var list = (pm.response.json().DT.recipes || []);",
+                  "    list.forEach(function (r) {",
+                  "        pm.expect(r).to.have.property('categories');",
+                  "        pm.expect(r.categories).to.be.an('array');",
+                  "    });",
                   "});"
                 ]
               }
@@ -659,6 +692,18 @@
                   "    pm.expect(jsonData.DT.limit).to.eql(2);",
                   "    pm.expect(jsonData.DT.recipes).to.be.an('array');",
                   "    pm.expect(jsonData.DT.recipes.length).to.be.at.most(2);",
+                  "});",
+                  "",
+                  "pm.test('TC-06-13 Moi recipe trong trang phai co cau truc categories day du', function () {",
+                  "    var list = (pm.response.json().DT.recipes || []);",
+                  "    list.forEach(function (r) {",
+                  "        pm.expect(r).to.have.property('categories');",
+                  "        pm.expect(r.categories).to.be.an('array');",
+                  "        r.categories.forEach(function (cat) {",
+                  "            pm.expect(cat).to.have.property('categoryId');",
+                  "            pm.expect(cat).to.have.property('categoryName');",
+                  "        });",
+                  "    });",
                   "});"
                 ]
               }
@@ -1257,6 +1302,12 @@
                   "    pm.expect(jsonData.DT.categories).to.be.an('array');",
                   "    pm.expect(jsonData.DT.ingredients).to.be.an('array');",
                   "    pm.expect(jsonData.DT.steps).to.be.an('array');",
+                  "    jsonData.DT.categories.forEach(function (cat) {",
+                  "        pm.expect(cat, 'Moi phan tu categories phai co categoryId').to.have.property('categoryId');",
+                  "        pm.expect(cat, 'Moi phan tu categories phai co categoryName').to.have.property('categoryName');",
+                  "        pm.expect(cat.categoryId).to.be.a('number');",
+                  "        pm.expect(cat.categoryName).to.be.a('string').and.not.eql('');",
+                  "    });",
                   "    jsonData.DT.ingredients.forEach(function (i) {",
                   "        pm.expect(i).to.have.property('quantity');",
                   "        pm.expect(i).to.have.property('unitId');",
