@@ -68,6 +68,7 @@ import AdminLayout from './components/layouts/AdminLayout'
 
 // Pages (Lazy loaded for better performance, except HomePage)
 import HomePage from './pages/HomePage'
+import RecipeDetailPage from './pages/RecipeDetailPage'
 const NotFound = lazy(() => import('./pages/NotFound'))
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
@@ -82,7 +83,6 @@ const MyRecipesPage = lazy(() => import('./pages/MyRecipesPage'))
 const MenuPage = lazy(() => import('./pages/MenuPage'))
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage'))
 const ShoppingListPage = lazy(() => import('./pages/ShoppingListPage'))
-const RecipeDetailPage = lazy(() => import('./pages/RecipeDetailPage'))
 const RecipeFormPage = lazy(() => import('./pages/RecipeFormPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 
