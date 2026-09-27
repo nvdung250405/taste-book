@@ -18,6 +18,30 @@ function AppBehaviorHandler() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
+  // Auto-check token expiration every 10 seconds
+  useEffect(() => {
+    const checkToken = () => {
+      const token = localStorage.getItem('token')
+      if (token) {
+        try {
+          // Decode JWT payload (middle part)
+          const payload = JSON.parse(atob(token.split('.')[1]))
+          // Check if expired (payload.exp is in seconds)
+          if (payload.exp * 1000 <= Date.now()) {
+            window.dispatchEvent(new Event('unauthorized'))
+          }
+        } catch (e) {
+          // Ignore parse error
+        }
+      }
+    }
+
+    // Check immediately on mount, then every 10 seconds
+    checkToken()
+    const interval = setInterval(checkToken, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
   // Handle unauthorized events globally without hard reload (SPA style)
   useEffect(() => {
     const handleUnauthorized = () => {
