@@ -93,3 +93,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Hide native browser password reveal eye icon (especially for Edge) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
