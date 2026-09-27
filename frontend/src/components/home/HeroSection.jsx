@@ -36,6 +36,8 @@ export default function HeroSection() {
           src="/images/hero-bg.jpg"
           alt="Nền trang chủ TasteBook - Ẩm thực Việt Nam"
           className="w-full h-full object-cover"
+          fetchPriority="high"
+          loading="eager"
         />
         <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
       </div>
