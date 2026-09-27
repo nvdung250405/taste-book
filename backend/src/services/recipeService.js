@@ -238,6 +238,12 @@ const getRecipes = async (query = {}) => {
           as: "author",
           attributes: ["id", "username"],
         },
+        {
+          model: db.Category,
+          as: "categories",
+          attributes: ["id", "categoryName"],
+          through: { attributes: [] },
+        },
       ],
       order: [[orderCol, orderDir]],
       limit: limitNumber,
@@ -253,6 +259,10 @@ const getRecipes = async (query = {}) => {
       difficulty: recipe.difficulty,
       defaultServings: recipe.defaultServings,
       authorName: recipe.author ? recipe.author.username : "",
+      categories: (recipe.categories || []).map((cat) => ({
+        categoryId: cat.id,
+        categoryName: cat.categoryName,
+      })),
     }));
 
     return {
