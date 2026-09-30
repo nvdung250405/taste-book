@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ChefHat, Loader2 } from 'lucide-react'
+import { ArrowLeft, ChefHat } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { useRecipeDetail } from '../hooks/queries/useRecipeQueries'
 import { useAddFavorite, useRemoveFavorite, useFavorites } from '../hooks/queries/useFavoriteQueries'
