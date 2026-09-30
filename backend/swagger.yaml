@@ -1027,7 +1027,7 @@ paths:
       tags:
         - Recipes
       summary: "UC-07: Tính định lượng theo N người (servings)"
-      description: Tự động tính toán lại định lượng nguyên liệu theo số người ăn mong muốn N dựa trên tỷ lệ khẩu phần gốc
+      description: Tự động tính toán lại định lượng nguyên liệu theo số người ăn mong muốn N dựa trên tỷ lệ khẩu phần gốc. Đơn vị định tính giữ nguyên scaledQuantity (thường là 0) và unit; FE hiển thị tên đơn vị, không hiển thị số 0.
       parameters:
         - name: recipeId
           in: path
@@ -1062,6 +1062,9 @@ paths:
                     - ingredientName: Thịt bò
                       scaledQuantity: 600
                       unit: gam
+                    - ingredientName: Muối
+                      scaledQuantity: 0
+                      unit: vừa đủ
         "400":
           description: Khẩu phần servings không hợp lệ (<= 0)
           content:
