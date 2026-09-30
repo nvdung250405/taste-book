@@ -590,6 +590,241 @@ paths:
                 EC: -1
                 EM: Lỗi kết nối máy chủ!
                 DT: null
+    post:
+      tags:
+        - Categories
+      summary: "UC-25: Tạo danh mục món ăn cá nhân (User)"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - categoryName
+              properties:
+                categoryName:
+                  type: string
+                  example: Món ăn giảm cân
+      responses:
+        "201":
+          description: Tạo danh mục cá nhân thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Tạo danh mục cá nhân thành công!
+                DT:
+                  categoryId: 15
+                  categoryName: Món Ăn Kiêng
+                  createdBy: 10
+        "400":
+          description: Tên danh mục rỗng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Tên danh mục không được để trống!
+                DT: null
+        "401":
+          description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "409":
+          description: Tên danh mục đã tồn tại trong kho cá nhân
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Danh mục này đã tồn tại trong danh sách của bạn!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  "/categories/{categoryId}":
+    put:
+      tags:
+        - Categories
+      summary: "UC-25: Chỉnh sửa danh mục món ăn cá nhân"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 9
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - categoryName
+              properties:
+                categoryName:
+                  type: string
+                  example: Món Healthy & EatClean
+      responses:
+        "200":
+          description: Cập nhật danh mục thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Cập nhật danh mục thành công!
+                DT:
+                  categoryId: 15
+                  categoryName: Món Eat Clean
+        "400":
+          description: Tên danh mục rỗng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Tên danh mục không được để trống!
+                DT: null
+        "401":
+          description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Sửa danh mục không do mình tạo ra
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền chỉnh sửa danh mục này!
+                DT: null
+        "404":
+          description: Không tìm thấy danh mục
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy danh mục cần cập nhật!
+                DT: null
+        "409":
+          description: Tên trùng với danh mục cá nhân khác của mình
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Danh mục này đã tồn tại trong danh sách của bạn!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+    delete:
+      tags:
+        - Categories
+      summary: "UC-25: Xóa danh mục món ăn cá nhân"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 9
+      responses:
+        "200":
+          description: Xóa thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Đã xóa danh mục cá nhân thành công!
+                DT: null
+        "401":
+          description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không có quyền xóa danh mục của người khác/hệ thống
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền xóa danh mục này!
+                DT: null
+        "404":
+          description: Không tìm thấy danh mục
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy danh mục cần xóa!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
   /recipes:
     get:
       tags:
