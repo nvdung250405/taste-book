@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { UserCircle, Loader2 } from 'lucide-react'
+import { UserCircle } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { useProfile, useUpdateProfile, useChangePassword } from '../hooks/queries/useAuthQueries'
 import { toast } from 'sonner'

@@ -5,7 +5,6 @@ import {
   Clock,
   ChefHat,
   Heart,
-  Loader2,
   X,
   Filter,
   ChevronLeft,
