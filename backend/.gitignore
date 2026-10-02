@@ -2,7 +2,6 @@
 .env
 .env.*
 !.env.example
-reports/
 
 # Tài liệu dự án & Quy chuẩn
 01. SRS - Đặc tả yêu cầu - Nhóm-09.pdf

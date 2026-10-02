@@ -41,7 +41,11 @@ const checkUserJWT = async (req, res, next) => {
   try {
     if (nonSecurePaths.some((path) => req.path.endsWith(path))) return next();
 
-    let token = extractToken(req);
+    let tokenFromHeader = extractToken(req);
+    let cookies = req.cookies;
+
+    // Ưu tiên Authorization Header trước, nếu không có mới lấy từ Cookie
+    let token = tokenFromHeader || (cookies && cookies.jwt ? cookies.jwt : null);
 
     if (token) {
       let decoded = verifyToken(token);
@@ -97,7 +101,9 @@ const checkAdminPermission = (req, res, next) => {
 
 const checkUserJWTOptional = async (req, res, next) => {
   try {
-    let token = extractToken(req);
+    let tokenFromHeader = extractToken(req);
+    let cookies = req.cookies;
+    let token = tokenFromHeader || (cookies && cookies.jwt ? cookies.jwt : null);
 
     if (token) {
       let decoded = verifyToken(token);

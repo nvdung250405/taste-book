@@ -344,17 +344,6 @@ module.exports = {
             "customUnit": null,
             "createdAt": now,
             "updatedAt": now
-      },
-      {
-            "id": 32,
-            "recipeId": 6,
-            "ingredientId": null,
-            "customIngredientName": "Hành lá",
-            "quantity": 1.0,
-            "unitId": null,
-            "customUnit": "vừa đủ",
-            "createdAt": now,
-            "updatedAt": now
       }
 ];
     const cookingStepsData = [
@@ -571,14 +560,6 @@ module.exports = {
             "recipeId": 5,
             "stepNumber": 4,
             "instruction": "Cho tiếp hành tây, cà chua vào đảo nhanh tay 1 phút rồi tắt bếp, rắc tiêu đen lên đĩa và thưởng thức.",
-            "createdAt": now,
-            "updatedAt": now
-      },
-      {
-            "id": 28,
-            "recipeId": 6,
-            "stepNumber": 1,
-            "instruction": "Rắc hành lá lên trên",
             "createdAt": now,
             "updatedAt": now
       }

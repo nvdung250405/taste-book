@@ -13,7 +13,6 @@ export default [
       sourceType: "module", // Hỗ trợ cú pháp import/export của Babel
       globals: {
         ...globals.node,    // Hỗ trợ process, console, require, module...
-        ...globals.jest,    // Hỗ trợ describe, test, expect, jest, beforeEach...
       },
     },
     rules: {
