@@ -3,7 +3,9 @@ import { Op, Sequelize } from "sequelize";
 
 // Hàm kiểm tra chuỗi có chứa dấu tiếng Việt hay không
 const hasVietnameseAccents = (str) => {
-  return /[\u0300-\u036fàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(str);
+  return /[\u0300-\u036fàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(
+    str,
+  );
 };
 
 // 4.1 GET /api/v1/recipes - Tìm kiếm / Lọc công thức (UC-06)
@@ -60,8 +62,10 @@ const getRecipes = async (query = {}) => {
     // 2. Sắp xếp: sortBy & sortOrder
     let orderCol = "createdAt";
     if (sortBy) {
-      let cleanSortBy = typeof sortBy === "string" ? sortBy.trim() : `${sortBy}`.trim();
-      if (cleanSortBy === "cookingTime" || cleanSortBy === "cookTime") cleanSortBy = "cookTimeMinutes";
+      let cleanSortBy =
+        typeof sortBy === "string" ? sortBy.trim() : `${sortBy}`.trim();
+      if (cleanSortBy === "cookingTime" || cleanSortBy === "cookTime")
+        cleanSortBy = "cookTimeMinutes";
       const allowedSortBy = ["createdAt", "cookTimeMinutes", "title"];
       if (!allowedSortBy.includes(cleanSortBy)) {
         return {
@@ -75,7 +79,9 @@ const getRecipes = async (query = {}) => {
 
     let orderDir = "DESC";
     if (sortOrder) {
-      let cleanSortOrder = (typeof sortOrder === "string" ? sortOrder.trim() : `${sortOrder}`.trim()).toUpperCase();
+      let cleanSortOrder = (
+        typeof sortOrder === "string" ? sortOrder.trim() : `${sortOrder}`.trim()
+      ).toUpperCase();
       if (!["ASC", "DESC"].includes(cleanSortOrder)) {
         return {
           EC: 1,
@@ -90,7 +96,7 @@ const getRecipes = async (query = {}) => {
     if (difficulty !== undefined && difficulty !== null && difficulty !== "") {
       const validDifficulties = ["Easy", "Medium", "Hard"];
       let matchedDifficulty = validDifficulties.find(
-        (d) => d.toLowerCase() === difficulty.trim().toLowerCase()
+        (d) => d.toLowerCase() === difficulty.trim().toLowerCase(),
       );
       if (!matchedDifficulty) {
         return {
@@ -103,7 +109,14 @@ const getRecipes = async (query = {}) => {
     }
 
     // 4. Lọc theo thời gian nấu tối đa (phút)
-    let rawTime = cookingTime !== undefined ? cookingTime : (cookTime !== undefined ? cookTime : (maxCookTime !== undefined ? maxCookTime : maxTime));
+    let rawTime =
+      cookingTime !== undefined
+        ? cookingTime
+        : cookTime !== undefined
+          ? cookTime
+          : maxCookTime !== undefined
+            ? maxCookTime
+            : maxTime;
     if (rawTime !== undefined && rawTime !== null && rawTime !== "") {
       let parsedTime = Number(rawTime);
       if (!Number.isInteger(parsedTime) || parsedTime <= 0) {
@@ -124,7 +137,7 @@ const getRecipes = async (query = {}) => {
         ? { title: { [Op.iLike]: `%${kw}%` } }
         : Sequelize.where(
             Sequelize.fn("unaccent", Sequelize.col("Recipe.title")),
-            { [Op.iLike]: Sequelize.fn("unaccent", `%${kw}%`) }
+            { [Op.iLike]: Sequelize.fn("unaccent", `%${kw}%`) },
           );
 
       // Tìm các công thức có nguyên liệu chứa từ khóa
@@ -143,14 +156,20 @@ const getRecipes = async (query = {}) => {
             isAccented
               ? { customIngredientName: { [Op.iLike]: `%${kw}%` } }
               : Sequelize.where(
-                  Sequelize.fn("unaccent", Sequelize.col("RecipeIngredient.customIngredientName")),
-                  { [Op.iLike]: Sequelize.fn("unaccent", `%${kw}%`) }
+                  Sequelize.fn(
+                    "unaccent",
+                    Sequelize.col("RecipeIngredient.customIngredientName"),
+                  ),
+                  { [Op.iLike]: Sequelize.fn("unaccent", `%${kw}%`) },
                 ),
             isAccented
               ? { "$ingredient.ingredientName$": { [Op.iLike]: `%${kw}%` } }
               : Sequelize.where(
-                  Sequelize.fn("unaccent", Sequelize.col("ingredient.ingredientName")),
-                  { [Op.iLike]: Sequelize.fn("unaccent", `%${kw}%`) }
+                  Sequelize.fn(
+                    "unaccent",
+                    Sequelize.col("ingredient.ingredientName"),
+                  ),
+                  { [Op.iLike]: Sequelize.fn("unaccent", `%${kw}%`) },
                 ),
           ],
         },
@@ -161,10 +180,7 @@ const getRecipes = async (query = {}) => {
 
       whereClause[Op.and] = whereClause[Op.and] || [];
       whereClause[Op.and].push({
-        [Op.or]: [
-          titleCondition,
-          { id: { [Op.in]: ingRecipeIds } },
-        ],
+        [Op.or]: [titleCondition, { id: { [Op.in]: ingRecipeIds } }],
       });
     }
 
@@ -189,7 +205,11 @@ const getRecipes = async (query = {}) => {
     }
 
     // 7. Lọc theo nguyên liệu (ingredientId)
-    if (ingredientId !== undefined && ingredientId !== null && ingredientId !== "") {
+    if (
+      ingredientId !== undefined &&
+      ingredientId !== null &&
+      ingredientId !== ""
+    ) {
       let ingId = Number(ingredientId);
       if (isNaN(ingId) || !Number.isInteger(ingId) || ingId <= 0) {
         return {
@@ -358,13 +378,14 @@ const getRecipeById = async (id, viewerId = null, viewerRole = null) => {
       }));
 
     let formattedIngredients = (recipe.ingredients || []).map((item) => ({
-      ingredientId: item.ingredientId || (item.ingredient ? item.ingredient.id : null),
+      ingredientId:
+        item.ingredientId || (item.ingredient ? item.ingredient.id : null),
       ingredientName: item.ingredient
         ? item.ingredient.ingredientName
-        : (item.customIngredientName || ""),
+        : item.customIngredientName || "",
       quantity: Number(item.quantity),
       unitId: item.unitId || (item.unitGroup ? item.unitGroup.id : null),
-      unit: item.unitGroup ? item.unitGroup.unitName : (item.customUnit || ""),
+      unit: item.unitGroup ? item.unitGroup.unitName : item.customUnit || "",
     }));
 
     let formattedSteps = (recipe.cookingSteps || []).map((step) => ({
@@ -401,9 +422,15 @@ const getRecipeById = async (id, viewerId = null, viewerRole = null) => {
   }
 };
 
-const scaleRecipeIngredients = async (id, query = {}, viewerId = null, viewerRole = null) => {
+const scaleRecipeIngredients = async (
+  id,
+  query = {},
+  viewerId = null,
+  viewerRole = null,
+) => {
   try {
-    const rawServings = query.servings !== undefined ? query.servings : query.targetServings;
+    const rawServings =
+      query.servings !== undefined ? query.servings : query.targetServings;
     const numServings = Number(rawServings);
     if (
       rawServings === undefined ||
@@ -452,9 +479,7 @@ const scaleRecipeIngredients = async (id, query = {}, viewerId = null, viewerRol
           ],
         },
       ],
-      order: [
-        [{ model: db.RecipeIngredient, as: "ingredients" }, "id", "ASC"],
-      ],
+      order: [[{ model: db.RecipeIngredient, as: "ingredients" }, "id", "ASC"]],
     });
 
     if (!recipe) {
@@ -479,7 +504,8 @@ const scaleRecipeIngredients = async (id, query = {}, viewerId = null, viewerRol
     }
 
     let targetServings = numServings;
-    let baseServings = Number(recipe.defaultServings) > 0 ? Number(recipe.defaultServings) : 1;
+    let baseServings =
+      Number(recipe.defaultServings) > 0 ? Number(recipe.defaultServings) : 1;
     let scaleFactor = Math.round((targetServings / baseServings) * 100) / 100;
 
     // Đơn vị định tính theo chuẩn hệ thống (UC-07 - Luồng 2a): Giữ nguyên định lượng gốc, không nhân hệ số N
@@ -487,16 +513,21 @@ const scaleRecipeIngredients = async (id, query = {}, viewerId = null, viewerRol
 
     let ingredients = (recipe.ingredients || []).map((item) => {
       let baseQuantity = Number(item.quantity);
-      let unitName = item.unitGroup ? item.unitGroup.unitName : (item.customUnit || "");
+      let unitName = item.unitGroup
+        ? item.unitGroup.unitName
+        : item.customUnit || "";
       let ingName = item.ingredient
         ? item.ingredient.ingredientName
-        : (item.customIngredientName || "");
+        : item.customIngredientName || "";
 
-      const isQualitative = qualitativeUnits.includes(unitName.toLowerCase().trim());
+      const isQualitative = qualitativeUnits.includes(
+        unitName.toLowerCase().trim(),
+      );
 
       let scaledQuantity = isQualitative
         ? baseQuantity
-        : Math.round(baseQuantity * (targetServings / baseServings) * 100) / 100;
+        : Math.round(baseQuantity * (targetServings / baseServings) * 100) /
+          100;
 
       return {
         ingredientName: ingName,
@@ -608,7 +639,11 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
 
     const validDifficulties = ["Easy", "Medium", "Hard"];
     let matchedDifficulty = validDifficulties.find(
-      (d) => d.toLowerCase() === String(difficulty || "").trim().toLowerCase()
+      (d) =>
+        d.toLowerCase() ===
+        String(difficulty || "")
+          .trim()
+          .toLowerCase(),
     );
     if (!matchedDifficulty) {
       return {
@@ -644,10 +679,7 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
     const validCategories = await db.Category.findAll({
       where: {
         id: { [Op.in]: catList },
-        [Op.or]: [
-          { createdBy: null },
-          { createdBy: authorId },
-        ],
+        [Op.or]: [{ createdBy: null }, { createdBy: authorId }],
       },
       attributes: ["id", "categoryName", "createdBy"],
     });
@@ -706,7 +738,10 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
         });
       }
       // TH 2: Người dùng tự gõ tay nguyên liệu ngoài hệ thống (customIngredientName)
-      else if (ing.customIngredientName && String(ing.customIngredientName).trim()) {
+      else if (
+        ing.customIngredientName &&
+        String(ing.customIngredientName).trim()
+      ) {
         let customIngName = String(ing.customIngredientName).trim();
         let unitId = null;
         let customUnit = null;
@@ -763,8 +798,14 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
     }
 
     // Xác định trạng thái duyệt dựa trên isPublic (hoặc isAdminCreate)
-    const isPub = isAdminCreate ? true : (isPublic === true || isPublic === "true");
-    const approvalStatus = isAdminCreate ? "Approved" : (isPub ? "Pending" : "Approved");
+    const isPub = isAdminCreate
+      ? true
+      : isPublic === true || isPublic === "true";
+    const approvalStatus = isAdminCreate
+      ? "Approved"
+      : isPub
+        ? "Pending"
+        : "Approved";
 
     // 3. Thực hiện lưu vào CSDL với transaction
     const t = await db.sequelize.transaction();
@@ -782,7 +823,7 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
           approvalStatus: approvalStatus,
           isDeleted: false,
         },
-        { transaction: t }
+        { transaction: t },
       );
 
       // Thêm danh mục RecipeCategories
@@ -790,7 +831,9 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
         recipeId: newRecipe.id,
         categoryId: Number(catId),
       }));
-      await db.RecipeCategory.bulkCreate(recipeCategoriesData, { transaction: t });
+      await db.RecipeCategory.bulkCreate(recipeCategoriesData, {
+        transaction: t,
+      });
 
       // Thêm nguyên liệu RecipeIngredients đã được chuẩn hóa
       const recipeIngredientsData = processedIngredients.map((ing) => ({
@@ -801,7 +844,9 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
         unitId: ing.unitId,
         customUnit: ing.customUnit,
       }));
-      await db.RecipeIngredient.bulkCreate(recipeIngredientsData, { transaction: t });
+      await db.RecipeIngredient.bulkCreate(recipeIngredientsData, {
+        transaction: t,
+      });
 
       // Thêm các bước làm CookingSteps
       const cookingStepsData = stepsList.map((st, index) => ({
@@ -828,8 +873,8 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
         EM: isAdminCreate
           ? "Tạo công thức chuẩn hệ thống thành công!"
           : isPub
-          ? "Tạo công thức thành công! Đang chờ phê duyệt."
-          : "Tạo công thức riêng tư thành công!",
+            ? "Tạo công thức thành công! Đang chờ phê duyệt."
+            : "Tạo công thức riêng tư thành công!",
         DT: {
           recipeId: newRecipe.id,
           approvalStatus: newRecipe.approvalStatus,
@@ -881,7 +926,7 @@ const ensureCommunityCategory = async (recipeId, transaction = null) => {
     if (!communityCat) {
       communityCat = await db.Category.create(
         { categoryName: "Đóng góp của cộng đồng", createdBy: null },
-        { transaction }
+        { transaction },
       );
     }
     if (communityCat) {
@@ -1087,7 +1132,11 @@ const updateRecipe = async (recipeId, user, data) => {
 
     const validDifficulties = ["Easy", "Medium", "Hard"];
     let matchedDifficulty = validDifficulties.find(
-      (d) => d.toLowerCase() === String(difficulty || "").trim().toLowerCase()
+      (d) =>
+        d.toLowerCase() ===
+        String(difficulty || "")
+          .trim()
+          .toLowerCase(),
     );
     if (!matchedDifficulty) {
       return {
@@ -1123,10 +1172,7 @@ const updateRecipe = async (recipeId, user, data) => {
     const validCategories = await db.Category.findAll({
       where: {
         id: { [Op.in]: catList },
-        [Op.or]: [
-          { createdBy: null },
-          { createdBy: userId },
-        ],
+        [Op.or]: [{ createdBy: null }, { createdBy: userId }],
       },
       attributes: ["id", "categoryName", "createdBy"],
     });
@@ -1158,9 +1204,18 @@ const updateRecipe = async (recipeId, user, data) => {
 
       // TH 1: Người dùng chọn nguyên liệu của hệ thống (có ingredientId)
       if (ing.ingredientId) {
-        const foundIng = await db.Ingredient.findByPk(Number(ing.ingredientId), {
-          include: [{ model: db.Unit, as: "defaultUnit", attributes: ["id", "unitName"] }],
-        });
+        const foundIng = await db.Ingredient.findByPk(
+          Number(ing.ingredientId),
+          {
+            include: [
+              {
+                model: db.Unit,
+                as: "defaultUnit",
+                attributes: ["id", "unitName"],
+              },
+            ],
+          },
+        );
         if (!foundIng) {
           return {
             EC: 1,
@@ -1189,7 +1244,10 @@ const updateRecipe = async (recipeId, user, data) => {
         });
       }
       // TH 2: Người dùng tự gõ tay nguyên liệu ngoài hệ thống (customIngredientName)
-      else if (ing.customIngredientName && String(ing.customIngredientName).trim()) {
+      else if (
+        ing.customIngredientName &&
+        String(ing.customIngredientName).trim()
+      ) {
         let customIngName = String(ing.customIngredientName).trim();
         let unitId = null;
         let unitName = "";
@@ -1274,7 +1332,7 @@ const updateRecipe = async (recipeId, user, data) => {
           approvalStatus: approvalStatus,
           rejectionReason: null,
         },
-        { transaction: t }
+        { transaction: t },
       );
 
       // Cập nhật danh mục: Xóa liên kết cũ và thêm mới
@@ -1287,7 +1345,9 @@ const updateRecipe = async (recipeId, user, data) => {
         recipeId: rId,
         categoryId: Number(catId),
       }));
-      await db.RecipeCategory.bulkCreate(recipeCategoriesData, { transaction: t });
+      await db.RecipeCategory.bulkCreate(recipeCategoriesData, {
+        transaction: t,
+      });
 
       // Cập nhật nguyên liệu: Xóa nguyên liệu cũ và thêm mới
       await db.RecipeIngredient.destroy({
@@ -1303,7 +1363,9 @@ const updateRecipe = async (recipeId, user, data) => {
         unitId: ing.unitId,
         customUnit: ing.customUnit,
       }));
-      await db.RecipeIngredient.bulkCreate(recipeIngredientsData, { transaction: t });
+      await db.RecipeIngredient.bulkCreate(recipeIngredientsData, {
+        transaction: t,
+      });
 
       // Cập nhật các bước làm: Xóa bước làm cũ và thêm mới
       await db.CookingStep.destroy({
@@ -1458,7 +1520,7 @@ const adminGetRecipes = async (query = {}) => {
         ? { title: { [Op.iLike]: `%${kw}%` } }
         : Sequelize.where(
             Sequelize.fn("unaccent", Sequelize.col("Recipe.title")),
-            { [Op.iLike]: Sequelize.fn("unaccent", `%${kw}%`) }
+            { [Op.iLike]: Sequelize.fn("unaccent", `%${kw}%`) },
           );
       whereClause[Op.and] = whereClause[Op.and] || [];
       whereClause[Op.and].push(titleCondition);
@@ -1632,7 +1694,11 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
 
     const validDifficulties = ["Easy", "Medium", "Hard"];
     let matchedDifficulty = validDifficulties.find(
-      (d) => d.toLowerCase() === String(difficulty || "").trim().toLowerCase()
+      (d) =>
+        d.toLowerCase() ===
+        String(difficulty || "")
+          .trim()
+          .toLowerCase(),
     );
     if (!matchedDifficulty) {
       return {
@@ -1725,7 +1791,10 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
         });
       }
       // TH 2: Tự gõ tay nguyên liệu ngoài hệ thống (customIngredientName)
-      else if (ing.customIngredientName && String(ing.customIngredientName).trim()) {
+      else if (
+        ing.customIngredientName &&
+        String(ing.customIngredientName).trim()
+      ) {
         let customIngName = String(ing.customIngredientName).trim();
         let unitId = null;
         let customUnit = null;
@@ -1793,7 +1862,7 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
           approvalStatus: "Approved",
           rejectionReason: null,
         },
-        { transaction: t }
+        { transaction: t },
       );
 
       // Cập nhật danh mục
@@ -1806,7 +1875,9 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
         recipeId: rId,
         categoryId: Number(catId),
       }));
-      await db.RecipeCategory.bulkCreate(recipeCategoriesData, { transaction: t });
+      await db.RecipeCategory.bulkCreate(recipeCategoriesData, {
+        transaction: t,
+      });
 
       // Cập nhật nguyên liệu
       await db.RecipeIngredient.destroy({
@@ -1822,7 +1893,9 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
         unitId: ing.unitId,
         customUnit: ing.customUnit,
       }));
-      await db.RecipeIngredient.bulkCreate(recipeIngredientsData, { transaction: t });
+      await db.RecipeIngredient.bulkCreate(recipeIngredientsData, {
+        transaction: t,
+      });
 
       // Cập nhật các bước làm
       await db.CookingStep.destroy({
@@ -1995,13 +2068,14 @@ const adminGetPendingRecipes = async () => {
       }));
 
       let formattedIngredients = (recipe.ingredients || []).map((item) => ({
-        ingredientId: item.ingredientId || (item.ingredient ? item.ingredient.id : null),
+        ingredientId:
+          item.ingredientId || (item.ingredient ? item.ingredient.id : null),
         ingredientName: item.ingredient
           ? item.ingredient.ingredientName
-          : (item.customIngredientName || ""),
+          : item.customIngredientName || "",
         quantity: Number(item.quantity),
         unitId: item.unitId || (item.unitGroup ? item.unitGroup.id : null),
-        unit: item.unitGroup ? item.unitGroup.unitName : (item.customUnit || ""),
+        unit: item.unitGroup ? item.unitGroup.unitName : item.customUnit || "",
       }));
 
       let formattedSteps = (recipe.cookingSteps || []).map((step) => ({
