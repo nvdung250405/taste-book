@@ -12,12 +12,14 @@ export default function RecipeQuickInfo({ recipe, actualServings }) {
         </div>
         <div className="flex flex-col items-center gap-1 text-center">
           <Clock className="w-5 h-5 text-blue-500" />
-          <span className="text-lg font-bold text-slate-900 dark:text-slate-50">{recipe.prepTime || recipe.time || '—'}</span>
-          <span className="text-xs text-slate-500">Thời gian</span>
+          <span className="text-lg font-bold text-slate-900 dark:text-slate-50">{recipe.cookTimeMinutes || recipe.prepTime || recipe.time || '—'}</span>
+          <span className="text-xs text-slate-500">Thời gian (phút)</span>
         </div>
         <div className="flex flex-col items-center gap-1 text-center">
           <ChefHat className="w-5 h-5 text-purple-500" />
-          <span className="text-lg font-bold text-slate-900 dark:text-slate-50">{recipe.difficulty || '—'}</span>
+          <span className="text-lg font-bold text-slate-900 dark:text-slate-50">
+            {recipe.difficulty === 'Easy' ? 'Dễ' : recipe.difficulty === 'Medium' ? 'Trung bình' : recipe.difficulty === 'Hard' ? 'Khó' : recipe.difficulty || '—'}
+          </span>
           <span className="text-xs text-slate-500">Độ khó</span>
         </div>
         <div className="flex flex-col items-center gap-1 text-center">

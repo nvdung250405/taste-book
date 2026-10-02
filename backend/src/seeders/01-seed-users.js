@@ -26,7 +26,7 @@ module.exports = {
       },
       {
         id: 2,
-        username: "Bếp Trưởng Hoàng",
+        username: "Bếp Trưởng Hoang",
         email: "chef.hoang@tastebook.vn",
         password: defaultUserPassword,
         phone: "0912345678",

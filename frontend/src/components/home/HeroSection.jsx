@@ -1,9 +1,33 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { Badge } from '../ui/badge'
 import { Input } from '../ui/input'
 import { Button } from '../ui/button'
 
+const POPULAR_TAGS = ['Thịt kho tàu', 'Canh chua', 'Bánh mì', 'Salad']
+
 export default function HeroSection() {
+  const [searchValue, setSearchValue] = useState('')
+  const navigate = useNavigate()
+
+  const handleSearch = () => {
+    const trimmed = searchValue.trim()
+    if (trimmed) {
+      navigate(`/search?search=${encodeURIComponent(trimmed)}`)
+    } else {
+      navigate('/search')
+    }
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSearch()
+  }
+
+  const handleTagClick = (tag) => {
+    navigate(`/search?search=${encodeURIComponent(tag)}`)
+  }
+
   return (
     <section className="relative w-[100vw] ml-[calc(-50vw+50%)] h-[500px] flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
@@ -32,11 +56,19 @@ export default function HeroSection() {
         <div className="w-full max-w-2xl mt-4 relative flex items-center group">
           <Search className="absolute left-4 w-6 h-6 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
           <Input 
-            type="text" 
+            id="hero-search-input"
+            type="text"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Nhập tên món, nguyên liệu, ví dụ: Thịt bò, Salad..."
             className="w-full h-14 pl-14 pr-32 rounded-full bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus-visible:ring-orange-500 text-lg backdrop-blur-md"
           />
-          <Button className="absolute right-2 rounded-full h-10 px-6 bg-orange-500 hover:bg-orange-600 text-white font-medium">
+          <Button
+            id="hero-search-btn"
+            onClick={handleSearch}
+            className="absolute right-2 rounded-full h-10 px-6 bg-orange-500 hover:bg-orange-600 text-white font-medium"
+          >
             Tìm kiếm
           </Button>
         </div>
@@ -44,8 +76,13 @@ export default function HeroSection() {
         {/* Popular tags */}
         <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
           <span className="text-sm text-slate-300 mr-2">Phổ biến:</span>
-          {['Thịt kho tàu', 'Canh chua', 'Bánh mì', 'Salad'].map((tag) => (
-            <Badge key={tag} variant="outline" className="text-slate-300 border-white/20 hover:bg-white/10 cursor-pointer backdrop-blur-sm">
+          {POPULAR_TAGS.map((tag) => (
+            <Badge
+              key={tag}
+              onClick={() => handleTagClick(tag)}
+              variant="outline"
+              className="text-slate-300 border-white/20 hover:bg-white/10 cursor-pointer backdrop-blur-sm transition-colors"
+            >
               {tag}
             </Badge>
           ))}
