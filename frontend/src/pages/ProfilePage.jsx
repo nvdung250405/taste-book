@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { UserCircle, Loader2 } from 'lucide-react'
+import { UserCircle } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { useProfile, useUpdateProfile, useChangePassword } from '../hooks/queries/useAuthQueries'
 import { toast } from 'sonner'
@@ -48,9 +48,14 @@ export default function ProfilePage() {
 
   if (loadingProfile) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-        <p className="text-slate-500">Đang tải hồ sơ...</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-8 animate-pulse">
+          <div className="w-full md:w-64 h-80 bg-slate-200 dark:bg-slate-800 rounded-xl shrink-0" />
+          <div className="flex-1 space-y-6">
+            <div className="h-24 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+            <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+          </div>
+        </div>
       </div>
     )
   }

@@ -51,21 +51,22 @@ export default function ShoppingListPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Danh sách đi chợ</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">Quản lý nguyên liệu cần mua cho các bữa ăn</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Danh sách đi chợ</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">Quản lý nguyên liệu cần mua cho các bữa ăn</p>
         </div>
-        <Button onClick={() => setOpenCreate(true)} className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl">
+        <Button onClick={() => setOpenCreate(true)} className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" /> Tạo danh sách mới
         </Button>
       </div>
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-          <p className="text-slate-500">Đang tải danh sách...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="h-32 rounded-xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+          ))}
         </div>
       ) : lists.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">

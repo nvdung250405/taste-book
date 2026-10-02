@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Star, Clock, ChefHat, Heart, Loader2, X } from 'lucide-react'
+import { Search, Star, Clock, ChefHat, Heart, X } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Card, CardContent } from '../components/ui/card'
 import { useRecipes } from '../hooks/queries/useRecipeQueries'
 import { useCategories } from '../hooks/queries/useCategoryQueries'
 import { toast } from 'sonner'
+import RecipeCardSkeleton from '../components/recipe/RecipeCardSkeleton'
 
 const DIFFICULTY_COLORS = {
   'Dễ': 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400',
@@ -86,9 +87,10 @@ export default function ExplorePage() {
 
       {/* Results */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-          <p className="text-slate-500">Đang tải công thức...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <RecipeCardSkeleton key={idx} />
+          ))}
         </div>
       ) : recipes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4">

@@ -48,7 +48,20 @@ function RecipeSkeletonGrid({ count = 6 }) {
 // ─── Recipe Card ──────────────────────────────────────────────────────────────
 
 const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800&auto=format&fit=crop'
+  'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=400&auto=format&fit=crop'
+
+function getOptimizedImageUrl(url) {
+  if (!url) return FALLBACK_IMAGE;
+  if (url.includes('res.cloudinary.com')) {
+    if (url.includes('/upload/') && !url.includes('/upload/c_')) {
+      return url.replace('/upload/', '/upload/c_fill,w_400,q_auto,f_auto/');
+    }
+  } else if (url.includes('images.unsplash.com') && !url.includes('w=')) {
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}q=80&w=400&auto=format&fit=crop`;
+  }
+  return url;
+}
 
 const DIFFICULTY_MAP = {
   Easy: 'Dễ',
@@ -73,8 +86,9 @@ function RecipeCard({ recipe, rank }) {
         {/* Image */}
         <div className="relative h-56 overflow-hidden">
           <img
-            src={recipe.thumbnailUrl || recipe.thumbnail || recipe.image || FALLBACK_IMAGE}
+            src={getOptimizedImageUrl(recipe.thumbnailUrl || recipe.thumbnail || recipe.image)}
             alt={recipe.title}
+            loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             onError={(e) => { e.target.src = FALLBACK_IMAGE }}
           />
@@ -96,6 +110,7 @@ function RecipeCard({ recipe, rank }) {
               variant="secondary"
               onClick={(e) => { e.preventDefault(); toast.info('Chức năng yêu thích yêu cầu đăng nhập'); }}
               className="rounded-full w-8 h-8 bg-white/80 hover:bg-white text-slate-400 hover:text-red-500 transition-colors backdrop-blur-sm relative z-10"
+              aria-label="Thêm vào yêu thích"
             >
               <Heart className="w-4 h-4" />
             </Button>

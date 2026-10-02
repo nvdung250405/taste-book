@@ -12,6 +12,7 @@ import {
 } from '../components/ui/dialog'
 import { useMyRecipes, useDeleteRecipe } from '../hooks/queries/useRecipeQueries'
 import { toast } from 'sonner'
+import RecipeCardSkeleton from '../components/recipe/RecipeCardSkeleton'
 
 const STATUS_STYLES = {
   approved: { label: 'Đã duyệt', cls: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' },
@@ -38,10 +39,10 @@ export default function MyRecipesPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Công thức của tôi</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">Quản lý tất cả công thức bạn đã tạo</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Công thức của tôi</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">Quản lý tất cả công thức bạn đã tạo</p>
         </div>
         <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl" asChild>
           <Link to="/recipe/create">
@@ -52,9 +53,10 @@ export default function MyRecipesPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-          <p className="text-slate-500">Đang tải công thức của bạn...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <RecipeCardSkeleton key={idx} />
+          ))}
         </div>
       ) : recipes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">

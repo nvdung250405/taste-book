@@ -1,5 +1,18 @@
 import { CheckCircle2 } from 'lucide-react'
 
+function getOptimizedImageUrl(url) {
+  if (!url) return '';
+  if (url.includes('res.cloudinary.com')) {
+    if (url.includes('/upload/') && !url.includes('/upload/c_')) {
+      return url.replace('/upload/', '/upload/c_fill,w_400,q_auto,f_auto/');
+    }
+  } else if (url.includes('images.unsplash.com') && !url.includes('w=')) {
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}q=80&w=400&auto=format&fit=crop`;
+  }
+  return url;
+}
+
 export default function RecipeSteps({ steps, checkedSteps, toggleStep }) {
   return (
     <div>
@@ -36,7 +49,12 @@ export default function RecipeSteps({ steps, checkedSteps, toggleStep }) {
                     {step.description || step.content || step.instruction || step}
                   </p>
                   {step.image && (
-                    <img src={step.image} alt={`Bước ${idx + 1}`} className="mt-3 rounded-xl w-full max-h-48 object-cover" />
+                    <img 
+                      src={getOptimizedImageUrl(step.image)} 
+                      alt={`Bước ${idx + 1}`} 
+                      loading="lazy"
+                      className="mt-3 rounded-xl w-full max-h-48 object-cover" 
+                    />
                   )}
                 </div>
               </div>

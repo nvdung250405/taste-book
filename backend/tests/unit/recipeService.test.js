@@ -132,7 +132,6 @@ describe("RecipeService Unit Tests", () => {
         isPublic: true,
         approvalStatus: "Approved",
         authorId: 10,
-        pendingUpdateData: null,
         author: { username: "NguyenVanA" },
         categories: [{ id: 1, categoryName: "Món xào", createdBy: null }],
         ingredients: [

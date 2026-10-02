@@ -407,12 +407,6 @@ const getRecipeById = async (id, viewerId = null, viewerRole = null) => {
         authorName: recipe.author ? recipe.author.username : "",
         isPublic: recipe.isPublic,
         approvalStatus: recipe.approvalStatus,
-        hasPendingUpdate: recipe.pendingUpdateData !== null,
-        pendingUpdateData:
-          (viewerId && Number(viewerId) === Number(recipe.authorId)) ||
-          viewerRole === "Admin"
-            ? recipe.pendingUpdateData
-            : undefined,
         categories: formattedCategories,
         ingredients: formattedIngredients,
         steps: formattedSteps,
@@ -980,7 +974,6 @@ const getMyRecipes = async (user) => {
         "isPublic",
         "approvalStatus",
         "rejectionReason",
-        "pendingUpdateData",
         "createdAt",
       ],
       order: [["createdAt", "DESC"]],
@@ -996,8 +989,6 @@ const getMyRecipes = async (user) => {
       isPublic: r.isPublic,
       approvalStatus: r.approvalStatus,
       rejectionReason: r.rejectionReason,
-      hasPendingUpdate: r.pendingUpdateData !== null,
-      pendingUpdateData: r.pendingUpdateData,
       createdAt: r.createdAt,
     }));
 
@@ -1062,14 +1053,11 @@ const updateRecipe = async (recipeId, user, data) => {
       };
     }
 
-    // Quy tắc nghiệp vụ: Công thức đã công khai (isPublic = true) thì không cho phép chuyển về chế độ riêng tư
-    if (
-      recipe.isPublic &&
-      (data.isPublic === false || data.isPublic === "false")
-    ) {
+    // Chốt chặn bảo vệ: Nếu công thức đã ở chế độ công khai và đã được Quản trị viên phê duyệt (isPublic = true VÀ approvalStatus = 'Approved')
+    if (recipe.isPublic && recipe.approvalStatus === "Approved") {
       return {
-        EC: 1,
-        EM: "Công thức đã công khai không thể chuyển về chế độ riêng tư để đảm bảo dữ liệu cho người dùng khác!",
+        EC: 4,
+        EM: "Công thức này đã được duyệt công khai lên hệ thống, bạn không có quyền chỉnh sửa!",
         DT: null,
       };
     }
@@ -1320,55 +1308,14 @@ const updateRecipe = async (recipeId, user, data) => {
       }
     }
 
-    // TH 1: Công thức HIỆN TẠI ĐÃ CÔNG KHAI (recipe.isPublic = true)
-    // -> Giữ nguyên dữ liệu gốc cho cộng đồng đang dùng, lưu bản sửa đổi mới vào pendingUpdateData để chờ Admin duyệt lại
-    if (recipe.isPublic) {
-      const formattedCategories = validCategories.map((c) => ({
-        categoryId: c.id,
-        categoryName: c.categoryName,
-      }));
-
-      const pendingData = {
-        title: String(title).trim(),
-        description: String(description).trim(),
-        thumbnailUrl: thumb,
-        cookTimeMinutes: Number(cookTimeMinutes),
-        difficulty: matchedDifficulty,
-        defaultServings: Number(defaultServings),
-        categoryIds: catList.map(Number),
-        categories: formattedCategories,
-        ingredients: processedIngredients,
-        steps: stepsList.map((st, index) => ({
-          stepNumber:
-            st.stepNumber !== undefined && !isNaN(Number(st.stepNumber))
-              ? Number(st.stepNumber)
-              : index + 1,
-          instruction: String(st.instruction).trim(),
-        })),
-        submittedAt: new Date().toISOString(),
-      };
-
-      await recipe.update({
-        pendingUpdateData: pendingData,
-        rejectionReason: null, // Reset lý do từ chối nếu lần sửa trước bị từ chối
-      });
-
-      return {
-        EC: 0,
-        EM: "Yêu cầu chỉnh sửa công thức đã được lưu và đang chờ Quản trị viên duyệt lại!",
-        DT: {
-          recipeId: recipe.id,
-          hasPendingUpdate: true,
-        },
-      };
-    }
-
-    // TH 2: Công thức HIỆN TẠI ĐANG LÀ RIÊNG TƯ (recipe.isPublic = false)
-    // -> Được phép cập nhật trực tiếp vào cơ sở dữ liệu
-    // - Nếu chọn công khai (isPublic = true), bài chuyển trạng thái 'Pending' chờ Admin duyệt lần đầu.
-    // - Nếu tiếp tục để riêng tư (isPublic = false), trạng thái là 'Approved' (cá nhân).
+    // Xác định trạng thái duyệt dựa trên isPublic
+    // - Nếu chọn công khai (isPublic = true), bài chuyển/giữ trạng thái 'Pending' để Quản trị viên duyệt.
+    // - Nếu để riêng tư (isPublic = false), bài ở trạng thái 'Approved' (cá nhân).
     const isPub = isPublic === true || isPublic === "true";
     const approvalStatus = isPub ? "Pending" : "Approved";
+    const successMessage = isPub
+      ? "Cập nhật công thức và gửi yêu cầu phê duyệt thành công!"
+      : "Cập nhật công thức riêng tư thành công!";
 
     // Thực hiện cập nhật vào CSDL với transaction
     const t = await db.sequelize.transaction();
@@ -1383,7 +1330,6 @@ const updateRecipe = async (recipeId, user, data) => {
           defaultServings: Number(defaultServings),
           isPublic: isPub,
           approvalStatus: approvalStatus,
-          pendingUpdateData: null,
           rejectionReason: null,
         },
         { transaction: t },
@@ -1441,12 +1387,10 @@ const updateRecipe = async (recipeId, user, data) => {
 
       return {
         EC: 0,
-        EM: isPub
-          ? "Cập nhật và gửi yêu cầu phê duyệt công khai thành công!"
-          : "Cập nhật công thức riêng tư thành công!",
+        EM: successMessage,
         DT: {
           recipeId: recipe.id,
-          approvalStatus: recipe.approvalStatus,
+          approvalStatus: approvalStatus,
         },
       };
     } catch (dbError) {
@@ -1512,12 +1456,22 @@ const deleteRecipe = async (recipeId, user) => {
       };
     }
 
+    // Ràng buộc nghiệp vụ: Chỉ cho phép xóa đối với công thức riêng tư (isPublic = false).
+    // Nếu công thức đã ở chế độ công khai (isPublic = true), từ chối xóa vì đã thuộc về hệ thống.
+    if (recipe.isPublic) {
+      return {
+        EC: 4,
+        EM: "Công thức đã công khai thuộc hệ thống, bạn không có quyền xóa!",
+        DT: null,
+      };
+    }
+
     // Thực hiện xóa mềm: Đặt isDeleted = true
     await recipe.update({ isDeleted: true });
 
     return {
       EC: 0,
-      EM: "Đã xóa công thức an toàn!",
+      EM: "Đã xóa công thức thành công!",
       DT: null,
     };
   } catch (e) {
@@ -1594,7 +1548,6 @@ const adminGetRecipes = async (query = {}) => {
       authorName: r.author ? r.author.username : "",
       isPublic: r.isPublic,
       approvalStatus: r.approvalStatus,
-      hasPendingUpdate: r.pendingUpdateData !== null,
     }));
 
     return {
@@ -1907,7 +1860,6 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
           defaultServings: Number(defaultServings),
           isPublic: true,
           approvalStatus: "Approved",
-          pendingUpdateData: null,
           rejectionReason: null,
         },
         { transaction: t },
@@ -2031,11 +1983,12 @@ const adminDeleteRecipe = async (recipeId, user) => {
       };
     }
 
-    // 2. Kiểm tra quyền: Chỉ cho phép Admin xóa công thức chuẩn do Admin tạo
-    if (!recipe.author || recipe.author.role !== "Admin") {
+    // 2. Xử lý xóa theo loại công thức:
+    // Nếu công thức của người dùng đang ở chế độ riêng tư -> Admin không can thiệp
+    if (!recipe.isPublic && (!recipe.author || recipe.author.role !== "Admin")) {
       return {
         EC: 4,
-        EM: "Bạn chỉ có thể xóa công thức chuẩn do Admin tạo!",
+        EM: "Công thức này đang ở chế độ riêng tư của người dùng, Admin không thể thao tác!",
         DT: null,
       };
     }
@@ -2045,7 +1998,7 @@ const adminDeleteRecipe = async (recipeId, user) => {
 
     return {
       EC: 0,
-      EM: "Đã xóa mềm công thức chuẩn!",
+      EM: "Đã xóa mềm công thức thành công!",
       DT: null,
     };
   } catch (e) {
@@ -2065,10 +2018,7 @@ const adminGetPendingRecipes = async () => {
       where: {
         isDeleted: false,
         isPublic: true,
-        [Op.or]: [
-          { approvalStatus: "Pending" },
-          { pendingUpdateData: { [Op.ne]: null } },
-        ],
+        approvalStatus: "Pending",
       },
       include: [
         {
@@ -2112,14 +2062,6 @@ const adminGetPendingRecipes = async () => {
     });
 
     const formatted = pendingRecipes.map((recipe) => {
-      const isUpdate = recipe.pendingUpdateData !== null;
-      let title = recipe.title;
-      let description = recipe.description || "";
-      let thumbnailUrl = recipe.thumbnailUrl;
-      let cookTimeMinutes = recipe.cookTimeMinutes;
-      let difficulty = recipe.difficulty;
-      let defaultServings = recipe.defaultServings;
-
       let formattedCategories = (recipe.categories || []).map((cat) => ({
         categoryId: cat.id,
         categoryName: cat.categoryName,
@@ -2141,70 +2083,14 @@ const adminGetPendingRecipes = async () => {
         instruction: step.instruction,
       }));
 
-      // Nếu là yêu cầu chỉnh sửa, lưu lại toàn bộ bản hiện tại (V1) để Frontend đối chiếu so sánh Trước & Sau (Diff View)
-      const currentData = isUpdate
-        ? {
-            title: title,
-            description: description,
-            thumbnailUrl: thumbnailUrl,
-            cookTimeMinutes: cookTimeMinutes,
-            difficulty: difficulty,
-            defaultServings: defaultServings,
-            categories: formattedCategories,
-            ingredients: formattedIngredients,
-            cookingSteps: formattedSteps,
-          }
-        : null;
-
-      // Nếu là yêu cầu chỉnh sửa, nạp dữ liệu từ pendingUpdateData để Admin xem đúng nội dung mới nhất
-      if (isUpdate) {
-        const pData =
-          typeof recipe.pendingUpdateData === "string"
-            ? JSON.parse(recipe.pendingUpdateData)
-            : recipe.pendingUpdateData;
-
-        if (pData) {
-          title = pData.title || title;
-          description =
-            pData.description !== undefined ? pData.description : description;
-          thumbnailUrl =
-            pData.thumbnailUrl !== undefined
-              ? pData.thumbnailUrl
-              : thumbnailUrl;
-          cookTimeMinutes = pData.cookTimeMinutes || cookTimeMinutes;
-          difficulty = pData.difficulty || difficulty;
-          defaultServings = pData.defaultServings || defaultServings;
-          if (pData.categories && Array.isArray(pData.categories)) {
-            formattedCategories = pData.categories;
-          }
-          if (pData.ingredients && Array.isArray(pData.ingredients)) {
-            formattedIngredients = pData.ingredients.map((ing) => ({
-              ingredientId: ing.ingredientId,
-              ingredientName:
-                ing.ingredientName || ing.customIngredientName || "",
-              quantity: Number(ing.quantity),
-              unitId: ing.unitId,
-              unit: ing.unit || ing.customUnit || "",
-            }));
-          }
-          if (pData.steps && Array.isArray(pData.steps)) {
-            formattedSteps = pData.steps.map((st) => ({
-              stepNumber: st.stepNumber,
-              instruction: st.instruction,
-            }));
-          }
-        }
-      }
-
       return {
         recipeId: recipe.id,
-        requestType: isUpdate ? "UPDATE" : "NEW",
-        title: title,
-        description: description,
-        thumbnailUrl: thumbnailUrl,
-        cookTimeMinutes: cookTimeMinutes,
-        difficulty: difficulty,
-        defaultServings: defaultServings,
+        title: recipe.title,
+        description: recipe.description || "",
+        thumbnailUrl: recipe.thumbnailUrl,
+        cookTimeMinutes: recipe.cookTimeMinutes,
+        difficulty: recipe.difficulty,
+        defaultServings: recipe.defaultServings,
         isPublic: recipe.isPublic,
         approvalStatus: recipe.approvalStatus,
         authorId: recipe.authorId,
@@ -2213,7 +2099,6 @@ const adminGetPendingRecipes = async () => {
         categories: formattedCategories,
         ingredients: formattedIngredients,
         cookingSteps: formattedSteps,
-        currentData: currentData,
         createdAt: recipe.createdAt,
       };
     });
@@ -2260,28 +2145,19 @@ const moderateRecipe = async (recipeId, data = {}) => {
       };
     }
 
-    const isUpdate = recipe.pendingUpdateData !== null;
-    const isNewPending = recipe.approvalStatus === "Pending";
-
-    // Chỉ kiểm duyệt công thức đang chờ duyệt (Bài mới Pending HOẶC Bài có pendingUpdateData)
-    if (!recipe.isPublic || (!isNewPending && !isUpdate)) {
-      if (recipe.approvalStatus === "Approved" && !isUpdate) {
-        return {
-          EC: 1,
-          EM: "Công thức này đã được phê duyệt và không có yêu cầu cập nhật nào đang chờ!",
-          DT: null,
-        };
-      }
-      if (recipe.approvalStatus === "Rejected" && !isUpdate) {
-        return {
-          EC: 1,
-          EM: "Công thức này đã bị từ chối trước đó!",
-          DT: null,
-        };
-      }
+    // Chỉ kiểm duyệt công thức đang ở chế độ công khai
+    if (!recipe.isPublic) {
       return {
         EC: 1,
-        EM: "Công thức không ở trạng thái chờ kiểm duyệt!",
+        EM: "Công thức không ở trạng thái công khai để kiểm duyệt!",
+        DT: null,
+      };
+    }
+
+    if (recipe.approvalStatus === "Rejected") {
+      return {
+        EC: 1,
+        EM: "Công thức này đã bị từ chối trước đó!",
         DT: null,
       };
     }
@@ -2312,131 +2188,14 @@ const moderateRecipe = async (recipeId, data = {}) => {
     const finalStatus =
       normalizedStatus.toLowerCase() === "approved" ? "Approved" : "Rejected";
 
-    // TRƯỜNG HỢP 1: DUYỆT BẢN CẬP NHẬT CỦA CÔNG THỨC ĐÃ CÔNG KHAI (isUpdate === true)
-    if (isUpdate) {
-      if (finalStatus === "Rejected") {
-        const reason = data.rejectionReason;
-        if (!reason || !String(reason).trim()) {
-          return {
-            EC: 1,
-            EM: "Vui lòng nhập lý do từ chối bản cập nhật!",
-            DT: null,
-          };
-        }
-
-        // Từ chối bản cập nhật: Xóa pendingUpdateData, lưu lý do phản hồi, bản gốc V1 vẫn giữ nguyên hiển thị
-        await recipe.update({
-          pendingUpdateData: null,
-          rejectionReason: String(reason).trim(),
-        });
-
-        return {
-          EC: 0,
-          EM: "Đã từ chối bản cập nhật thành công! Phiên bản hiện tại vẫn được giữ nguyên trên hệ thống.",
-          DT: {
-            recipeId: recipe.id,
-            requestType: "UPDATE",
-            approvalStatus: recipe.approvalStatus,
-            rejectionReason: recipe.rejectionReason,
-          },
-        };
-      } else {
-        // Phê duyệt bản cập nhật: Ghi đè dữ liệu từ pendingUpdateData vào các bảng chính thức
-        const pData =
-          typeof recipe.pendingUpdateData === "string"
-            ? JSON.parse(recipe.pendingUpdateData)
-            : recipe.pendingUpdateData;
-
-        const t = await db.sequelize.transaction();
-        try {
-          await recipe.update(
-            {
-              title: pData.title,
-              description: pData.description,
-              thumbnailUrl: pData.thumbnailUrl,
-              cookTimeMinutes: pData.cookTimeMinutes,
-              difficulty: pData.difficulty,
-              defaultServings: pData.defaultServings,
-              pendingUpdateData: null,
-              rejectionReason: null,
-              approvalStatus: "Approved",
-              isPublic: true,
-            },
-            { transaction: t },
-          );
-
-          if (pData.categoryIds && Array.isArray(pData.categoryIds)) {
-            await db.RecipeCategory.destroy({
-              where: { recipeId: rId },
-              transaction: t,
-            });
-            const recipeCategoriesData = pData.categoryIds.map((catId) => ({
-              recipeId: rId,
-              categoryId: Number(catId),
-            }));
-            await db.RecipeCategory.bulkCreate(recipeCategoriesData, {
-              transaction: t,
-            });
-          }
-
-          if (pData.ingredients && Array.isArray(pData.ingredients)) {
-            await db.RecipeIngredient.destroy({
-              where: { recipeId: rId },
-              transaction: t,
-            });
-            const recipeIngredientsData = pData.ingredients.map((ing) => ({
-              recipeId: rId,
-              ingredientId: ing.ingredientId,
-              customIngredientName: ing.customIngredientName,
-              quantity: ing.quantity,
-              unitId: ing.unitId,
-              customUnit: ing.customUnit,
-            }));
-            await db.RecipeIngredient.bulkCreate(recipeIngredientsData, {
-              transaction: t,
-            });
-          }
-
-          if (pData.steps && Array.isArray(pData.steps)) {
-            await db.CookingStep.destroy({
-              where: { recipeId: rId },
-              transaction: t,
-            });
-            const cookingStepsData = pData.steps.map((st, index) => ({
-              recipeId: rId,
-              stepNumber: st.stepNumber || index + 1,
-              instruction: String(st.instruction).trim(),
-            }));
-            await db.CookingStep.bulkCreate(cookingStepsData, {
-              transaction: t,
-            });
-          }
-
-          await t.commit();
-
-          return {
-            EC: 0,
-            EM: "Phê duyệt bản cập nhật công thức thành công!",
-            DT: {
-              recipeId: recipe.id,
-              requestType: "UPDATE",
-              approvalStatus: "Approved",
-              rejectionReason: null,
-            },
-          };
-        } catch (errTx) {
-          await t.rollback();
-          console.log("moderateRecipe update transaction error:", errTx);
-          return {
-            EC: -1,
-            EM: "Lỗi kết nối máy chủ khi cập nhật công thức!",
-            DT: null,
-          };
-        }
-      }
+    if (finalStatus === "Approved" && recipe.approvalStatus === "Approved") {
+      return {
+        EC: 1,
+        EM: "Công thức này đã được phê duyệt trước đó!",
+        DT: null,
+      };
     }
 
-    // TRƯỜNG HỢP 2: DUYỆT CÔNG THỨC MỚI TẠO (isNewPending === true)
     if (finalStatus === "Rejected") {
       const reason = data.rejectionReason;
       if (!reason || !String(reason).trim()) {
@@ -2458,7 +2217,6 @@ const moderateRecipe = async (recipeId, data = {}) => {
         EM: "Đã từ chối công thức bài viết thành công!",
         DT: {
           recipeId: recipe.id,
-          requestType: "NEW",
           approvalStatus: "Rejected",
           rejectionReason: recipe.rejectionReason,
         },
@@ -2478,7 +2236,6 @@ const moderateRecipe = async (recipeId, data = {}) => {
         EM: "Phê duyệt công thức thành công!",
         DT: {
           recipeId: recipe.id,
-          requestType: "NEW",
           approvalStatus: "Approved",
           rejectionReason: null,
         },

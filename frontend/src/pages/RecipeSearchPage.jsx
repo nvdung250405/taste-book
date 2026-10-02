@@ -5,7 +5,6 @@ import {
   Clock,
   ChefHat,
   Heart,
-  Loader2,
   X,
   Filter,
   ChevronLeft,
@@ -19,6 +18,7 @@ import { Badge } from '../components/ui/badge'
 import { useRecipes } from '../hooks/queries/useRecipeQueries'
 import { useCategories } from '../hooks/queries/useCategoryQueries'
 import { toast } from 'sonner'
+import RecipeCardSkeleton from '../components/recipe/RecipeCardSkeleton'
 
 // Custom hook for debouncing input
 function useDebounce(value, delay) {
@@ -48,8 +48,21 @@ const DIFFICULTY_LABELS = {
 }
 
 const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=600&auto=format&fit=crop'
+  'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=400&auto=format&fit=crop'
 const ITEMS_PER_PAGE = 12
+
+function getOptimizedImageUrl(url) {
+  if (!url) return FALLBACK_IMAGE;
+  if (url.includes('res.cloudinary.com')) {
+    if (url.includes('/upload/') && !url.includes('/upload/c_')) {
+      return url.replace('/upload/', '/upload/c_fill,w_400,q_auto,f_auto/');
+    }
+  } else if (url.includes('images.unsplash.com') && !url.includes('w=')) {
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}q=80&w=400&auto=format&fit=crop`;
+  }
+  return url;
+}
 
 export default function RecipeSearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -159,10 +172,10 @@ export default function RecipeSearchPage() {
     <div className="container mx-auto px-4 py-8">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
           Tìm kiếm công thức
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">
+        <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">
           Khám phá hàng nghìn công thức nấu ăn ngon được chia sẻ từ cộng đồng
         </p>
       </div>
@@ -185,6 +198,7 @@ export default function RecipeSearchPage() {
                 setCurrentPage(1)
               }}
               className="absolute right-4 text-slate-400 hover:text-slate-600"
+              aria-label="Xóa từ khóa tìm kiếm"
             >
               <X className="w-5 h-5" />
             </button>
@@ -259,11 +273,10 @@ export default function RecipeSearchPage() {
 
       {/* Results */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-          <p className="text-slate-500 font-medium">
-            Đang tìm kiếm công thức...
-          </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <RecipeCardSkeleton key={idx} />
+          ))}
         </div>
       ) : allRecipes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
@@ -307,8 +320,9 @@ export default function RecipeSearchPage() {
                   <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col h-full">
                     <div className="relative h-52 overflow-hidden shrink-0">
                       <img
-                        src={recipe.thumbnailUrl || FALLBACK_IMAGE}
+                        src={getOptimizedImageUrl(recipe.thumbnailUrl || recipe.thumbnail || recipe.image)}
                         alt={recipe.title}
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => {
                           e.target.src = FALLBACK_IMAGE
@@ -335,6 +349,7 @@ export default function RecipeSearchPage() {
                           toast.info('Chức năng yêu thích yêu cầu đăng nhập')
                         }}
                         className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white backdrop-blur-md flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors shadow-sm z-10"
+                        aria-label="Thêm vào yêu thích"
                       >
                         <Heart className="w-4 h-4" />
                       </button>
