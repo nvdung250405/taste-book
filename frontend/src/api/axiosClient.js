@@ -36,11 +36,14 @@ axiosClient.interceptors.response.use(
     return response.data;
   },
   (error) => {
-    // NOTE: Do NOT automatically clear token here on 401.
-    // A 401 might come from a public endpoint (e.g., wrong login credentials)
-    // and should NOT cause the current user session to be cleared.
-    // Token clearing / logout should be handled explicitly by individual hooks or pages.
-
+    // Handle 401 Unauthorized globally (e.g., clear token and redirect to login)
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      // window.location.href = '/login'; 
+      // It's better to handle redirection in a React component/hook using navigate,
+      // but clearing token here is safe.
+    }
+    
     // Return the response data if available so we can read the Error Code (EC) and Message (EM)
     if (error.response?.data) {
        return Promise.reject(error.response.data);

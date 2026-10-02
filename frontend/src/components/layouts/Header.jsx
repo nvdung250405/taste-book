@@ -16,7 +16,7 @@ import UserDropdown from './UserDropdown'
 
 const NAV_LINKS = [
   { to: '/', label: 'Trang chủ', icon: Home },
-  { to: '/search', label: 'Khám phá', icon: Compass },
+  { to: '/explore', label: 'Khám phá', icon: Compass },
   { to: '/my-recipes', label: 'Công thức của tôi', icon: UtensilsCrossed, authRequired: true },
   { to: '/menu', label: 'Thực đơn', icon: ListTodo, authRequired: true },
   { to: '/favorites', label: 'Yêu thích', icon: Heart, authRequired: true },

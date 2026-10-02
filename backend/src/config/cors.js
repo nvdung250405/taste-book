@@ -1,13 +1,7 @@
 import cors from "cors";
 
 const configCors = (app) => {
-  const port = process.env.PORT || 5000;
-  const defaultOrigins = [
-    `http://localhost:${port}`,
-    `http://127.0.0.1:${port}`,
-  ];
-
-  const envOrigins = (
+  const allowedOrigins = (
     process.env.ALLOWED_ORIGINS ||
     process.env.REACT_URL ||
     ""
@@ -15,8 +9,6 @@ const configCors = (app) => {
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
-
-  const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
 
   app.use(
     cors({

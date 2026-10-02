@@ -3,6 +3,7 @@ import configViewEngine from "./config/viewEngine";
 import initApiRoutes from "./routes/api";
 import configCors from "./config/cors";
 require("dotenv").config();
+import cookieParser from "cookie-parser";
 import connection from "./config/connectDB";
 import configSwagger from "./config/swagger";
 import logger from "./config/logger";
@@ -24,11 +25,11 @@ configViewEngine(app);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+//config cookie parser
+app.use(cookieParser());
 
 //test connection db
-if (process.env.NODE_ENV !== "test") {
-  connection();
-}
+connection();
 
 // Khởi chạy Swagger UI
 configSwagger(app);
@@ -48,10 +49,6 @@ app.use((req, res) => {
 //config error handler
 app.use(errorHandler);
 
-if (process.env.NODE_ENV !== "test") {
-  app.listen(PORT, () => {
-    logger.info(`tastebook backend is running on the port = ${PORT}`);
-  });
-}
-
-export default app;
+app.listen(PORT, () => {
+  console.log("tastebook backend is running on the port = ", PORT);
+});

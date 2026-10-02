@@ -21,7 +21,7 @@ const initApiRoutes = (app) => {
   router.use("/users", userRoutes);
   router.use("/admin", adminRoutes);
   router.use("/categories", categoryRoutes);
-  router.use("/recipes", recipeRoutes);
+  router.use("/recipe", recipeRoutes);
 
   return app.use("/api/v1/", router);
 };

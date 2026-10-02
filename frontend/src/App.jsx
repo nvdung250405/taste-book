@@ -1,24 +1,5 @@
-import { useEffect } from 'react'
 import { Toaster } from 'sonner'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
-
-function AppBehaviorHandler() {
-  const { pathname } = useLocation()
-
-  // Scroll to top when pathname changes
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'auto' })
-  }, [pathname])
-
-  // Reload page when user uses browser Back/Forward (popstate)
-  useEffect(() => {
-    const handlePopState = () => window.location.reload()
-    window.addEventListener('popstate', handlePopState)
-    return () => window.removeEventListener('popstate', handlePopState)
-  }, [])
-
-  return null
-}
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
 // Layouts
 import MainLayout from './components/layouts/MainLayout'
@@ -35,7 +16,7 @@ import AdminCategoriesPage from './pages/admin/AdminCategoriesPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import AdminIngredientsPage from './pages/admin/AdminIngredientsPage'
 import AdminUnitsPage from './pages/admin/AdminUnitsPage'
-import RecipeSearchPage from './pages/RecipeSearchPage'
+import ExplorePage from './pages/ExplorePage'
 import MyRecipesPage from './pages/MyRecipesPage'
 import MenuPage from './pages/MenuPage'
 import FavoritesPage from './pages/FavoritesPage'
@@ -50,7 +31,6 @@ function App() {
       <Toaster position="top-right" richColors />
 
       <BrowserRouter>
-        <AppBehaviorHandler />
         <Routes>
           {/* Public & User Routes with MainLayout */}
           <Route element={<MainLayout />}>
@@ -58,7 +38,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             {/* User routes */}
-            <Route path="/search" element={<RecipeSearchPage />} />
+            <Route path="/explore" element={<ExplorePage />} />
             <Route path="/my-recipes" element={<MyRecipesPage />} />
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
