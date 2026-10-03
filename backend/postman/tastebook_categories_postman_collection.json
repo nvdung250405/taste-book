@@ -1,0 +1,2016 @@
+{
+  "info": {
+    "_postman_id": "5d2c9e1a-7b3f-4c60-8a14-9f0e6b2d3c41",
+    "name": "TasteBook UC-25 Quản lý danh mục cá nhân API v1.0",
+    "description": "UC-25 (Sprint 4): GET/POST/PUT/DELETE /categories. Đặc tả API mục 2.1 - 2.4.\n\n- File độc lập: tự đăng nhập (00_Setup), tự dọn dữ liệu (99_Teardown). Chạy riêng bằng: npm run test:uc25\n- baseUrl KHÔNG khai báo trong collection: lấy từ environment (tastebook_environment.local / .staging).\n- Contract chung (JSON Envelope EC/EM/DT, HTTP status khớp EC, thời gian phản hồi) kiểm tra ở collection-level test.\n- Mã test case TC-25-xx khớp file UC-25_test_cases.csv (Google Sheets). Dữ liệu test đặt tên TB-AUTO-{{runId}}-... để chạy lặp không trùng.\n- Thứ tự request trong folder 01_Category là thứ tự chạy, không đảo vị trí.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "runId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenA",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenB",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userAId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "stdCategoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "stdCategoryId2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catIdA",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catIdA2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catIdB",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catIdWild",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// ===== CONTRACT CHUNG: JSON Envelope {EC, EM, DT} + HTTP status + hiệu năng =====",
+          "// Bảng quy chuẩn theo Đặc tả API: EC 5 và EC 6 đều trả HTTP 401 (EC 6 = sai tài khoản/mật khẩu).",
+          "var STATUS_TO_EC = { 200: [0], 201: [0], 400: [1], 401: [5, 6], 403: [4], 404: [3], 409: [2], 500: [-1] };",
+          "var contentType = pm.response.headers.get('Content-Type') || '';",
+          "var jsonData = null;",
+          "try { jsonData = pm.response.json(); } catch (e) { jsonData = null; }",
+          "",
+          "pm.test('Envelope: Content-Type là application/json', function () {",
+          "    pm.expect(contentType, 'HTTP ' + pm.response.code).to.include('application/json');",
+          "});",
+          "",
+          "pm.test('Envelope: body là JSON object', function () {",
+          "    pm.expect(jsonData, 'Body không phải JSON (route chưa mount / Render đang ngủ / trang lỗi HTML) - HTTP ' + pm.response.code).to.be.an('object');",
+          "});",
+          "",
+          "if (jsonData && typeof jsonData === 'object') {",
+          "    pm.test('Envelope: có đủ EC (number), EM (string không rỗng), DT', function () {",
+          "        pm.expect(jsonData).to.have.property('EC');",
+          "        pm.expect(jsonData).to.have.property('EM');",
+          "        pm.expect(jsonData).to.have.property('DT');",
+          "        pm.expect(jsonData.EC).to.be.a('number');",
+          "        pm.expect(jsonData.EM).to.be.a('string');",
+          "        pm.expect(jsonData.EM.trim()).to.not.eql('');",
+          "        pm.expect(jsonData.DT === null || typeof jsonData.DT === 'object', 'DT phải là null / object / array').to.eql(true);",
+          "    });",
+          "",
+          "    pm.test('Envelope: HTTP status khớp EC theo bảng quy chuẩn', function () {",
+          "        var allowed = STATUS_TO_EC[pm.response.code];",
+          "        pm.expect(allowed, 'HTTP ' + pm.response.code + ' không thuộc bảng quy chuẩn (200/201/400/401/403/404/409/500)').to.be.an('array');",
+          "        pm.expect(allowed, 'EC=' + jsonData.EC + ' không khớp HTTP ' + pm.response.code).to.include(jsonData.EC);",
+          "    });",
+          "",
+          "    if (pm.response.code >= 400) {",
+          "        pm.test('Envelope: response lỗi có DT = null', function () {",
+          "            pm.expect(jsonData.DT).to.eql(null);",
+          "        });",
+          "    }",
+          "}",
+          "",
+          "// Ngưỡng lấy từ environment (local 3000ms, staging 10000ms). Request đặc biệt có thể ghi đè bằng pm.variables.set('maxResponseMs', ...) ở pre-request.",
+          "var maxMs = Number(pm.variables.get('maxResponseMs')) || 5000;",
+          "pm.test('Hiệu năng: phản hồi < ' + maxMs + ' ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(maxMs);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00_Setup",
+      "description": "Chuẩn bị chung: warm-up backend, đăng nhập User A và User B, lấy danh mục chuẩn. Nếu một bước thất bại, lượt chạy dừng (setNextRequest(null)).",
+      "item": [
+        {
+          "name": "TC-SETUP-01 Warm-up backend và khởi tạo runId",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// runId dùng đặt tên dữ liệu test duy nhất: TB-AUTO-{{runId}}-...",
+                  "pm.collectionVariables.set('runId', String(Date.now()));",
+                  "// Request đầu tiên có thể gặp cold-start Render (RSK-04) nên nới ngưỡng thời gian riêng cho request này.",
+                  "pm.variables.set('maxResponseMs', 60000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-SETUP-01 Backend sẵn sàng (GET /home) - 200 OK, EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-SETUP-01 runId đã được tạo', function () {",
+                  "    pm.expect(pm.collectionVariables.get('runId')).to.match(/^\\d{10,}$/);",
+                  "});",
+                  "if (pm.response.code !== 200) {",
+                  "    postman.setNextRequest(null); // Backend không sống thì dừng cả lượt chạy",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/home",
+              "host": ["{{baseUrl}}"],
+              "path": ["home"]
+            },
+            "description": "Đánh thức backend (Render free ngủ sau 15 phút) và tạo biến runId cho cả lượt chạy."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SETUP-02 Đăng nhập User A (chủ sở hữu) lấy token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var res = null;",
+                  "try { res = pm.response.json(); } catch (e) { res = null; }",
+                  "pm.test('TC-SETUP-02 Đăng nhập User A (chủ sở hữu) - 200 OK, EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(res.EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-SETUP-02 DT.accessToken là JWT, user.role = User, email khớp', function () {",
+                  "    pm.expect(res.DT.accessToken).to.be.a('string');",
+                  "    pm.expect(res.DT.accessToken).to.match(/^[\\w-]+\\.[\\w-]+\\.[\\w-]+$/);",
+                  "    pm.expect(res.DT.user.role).to.eql('User');",
+                  "    pm.expect(res.DT.user.email).to.eql(pm.variables.get('userAEmail'));",
+                  "});",
+                  "if (res && res.EC === 0 && res.DT && res.DT.accessToken) {",
+                  "    pm.collectionVariables.set('tokenA', res.DT.accessToken);",
+                  "    pm.collectionVariables.set('userAId', String(res.DT.user.userId));",
+                  "} else {",
+                  "    postman.setNextRequest(null); // Không có token thì mọi test phía sau đều vô nghĩa",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{userAEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Spec 1.2 - POST /auth/login. Lưu tokenA và userAId vào collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SETUP-03 Đăng nhập User B (người khác - dùng test 403) lấy token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var res = null;",
+                  "try { res = pm.response.json(); } catch (e) { res = null; }",
+                  "pm.test('TC-SETUP-03 Đăng nhập User B (người khác - dùng test 403) - 200 OK, EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(res.EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-SETUP-03 DT.accessToken là JWT, user.role = User, email khớp', function () {",
+                  "    pm.expect(res.DT.accessToken).to.be.a('string');",
+                  "    pm.expect(res.DT.accessToken).to.match(/^[\\w-]+\\.[\\w-]+\\.[\\w-]+$/);",
+                  "    pm.expect(res.DT.user.role).to.eql('User');",
+                  "    pm.expect(res.DT.user.email).to.eql(pm.variables.get('userBEmail'));",
+                  "});",
+                  "pm.test('TC-SETUP-03 User B khác User A (cần để test phân quyền 403)', function () {",
+                  "    pm.expect(String(res.DT.user.userId)).to.not.eql(pm.collectionVariables.get('userAId'));",
+                  "});",
+                  "if (res && res.EC === 0 && res.DT && res.DT.accessToken) {",
+                  "    pm.collectionVariables.set('tokenB', res.DT.accessToken);",
+                  "    pm.collectionVariables.set('userBId', String(res.DT.user.userId));",
+                  "} else {",
+                  "    postman.setNextRequest(null); // Không có token thì mọi test phía sau đều vô nghĩa",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{userBEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Spec 1.2 - POST /auth/login. Lưu tokenB và userBId vào collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SETUP-04 Lấy danh mục chuẩn (stdCategoryId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var res = null;",
+                  "try { res = pm.response.json(); } catch (e) { res = null; }",
+                  "pm.test('TC-SETUP-04 GET /categories - 200 OK, DT là mảng không rỗng', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(res.EC).to.eql(0);",
+                  "    pm.expect(res.DT).to.be.an('array');",
+                  "    pm.expect(res.DT.length).to.be.at.least(1);",
+                  "});",
+                  "var list = (res && Array.isArray(res.DT)) ? res.DT : [];",
+                  "pm.test('TC-SETUP-04 Mỗi danh mục có categoryId (number), categoryName (string), createdBy', function () {",
+                  "    list.forEach(function (c) {",
+                  "        pm.expect(c.categoryId).to.be.a('number');",
+                  "        pm.expect(c.categoryName).to.be.a('string');",
+                  "        pm.expect(c).to.have.property('createdBy');",
+                  "    });",
+                  "});",
+                  "// Danh mục chuẩn = createdBy null. Bỏ 'Đóng góp của cộng đồng' vì hệ thống tự gắn khi công thức công khai được duyệt.",
+                  "var std = list.filter(function (c) {",
+                  "    return c.createdBy === null && c.categoryName !== 'Đóng góp của cộng đồng';",
+                  "});",
+                  "pm.test('TC-SETUP-04 Có >= 2 danh mục chuẩn để gắn vào công thức', function () {",
+                  "    pm.expect(std.length).to.be.at.least(2);",
+                  "});",
+                  "if (std.length >= 2) {",
+                  "    pm.collectionVariables.set('stdCategoryId', String(std[0].categoryId));",
+                  "    pm.collectionVariables.set('stdCategoryId2', String(std[1].categoryId));",
+                  "} else {",
+                  "    postman.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.1 - GET /categories (kèm token để xác nhận nhánh optional-JWT). Lưu stdCategoryId, stdCategoryId2."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01_Category",
+      "description": "Spec 2.1 - 2.4 - UC-25. PRE-25-01 (chuẩn bị) + TC-25-01 đến TC-25-29. Thứ tự là thứ tự chạy: các request sau dùng id do request trước tạo. TC-25-30 (xóa danh mục đang gắn công thức) chưa làm vì cần collection công thức.",
+      "item": [
+        {
+          "name": "PRE-25-01 [Chuẩn bị] User B tạo danh mục (dùng cho test 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE-25-01 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.categoryId) { pm.collectionVariables.set('catIdB', String(_res.DT.categoryId)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.2 | Loại: - | Kỹ thuật: -\nDữ liệu vào: User B, categoryName = TB-AUTO-{{runId}}-B-Owner\nKết quả mong đợi: 201, EC 0; lưu catIdB",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-B-Owner\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-01 Tạo danh mục cá nhân hợp lệ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-01 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-25-01 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Tạo danh mục cá nhân thành công!\");",
+                  "});",
+                  "pm.test('TC-25-01 DT: categoryId là số, categoryName khớp, createdBy = User A', function () {",
+                  "    var dt = pm.response.json().DT;",
+                  "    pm.expect(dt.categoryId).to.be.a('number');",
+                  "    pm.expect(dt.categoryName).to.eql('TB-AUTO-' + pm.collectionVariables.get('runId') + '-A');",
+                  "    pm.expect(String(dt.createdBy)).to.eql(pm.collectionVariables.get('userAId'));",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.categoryId) { pm.collectionVariables.set('catIdA', String(_res.DT.categoryId)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.2 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: User A, categoryName = TB-AUTO-{{runId}}-A\nKết quả mong đợi: 201, EC 0, EM 'Tạo danh mục cá nhân thành công!', DT {categoryId (số), categoryName khớp, createdBy = User A}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-A\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-02 Tên có khoảng trắng hai đầu và có dấu được cắt khoảng trắng",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-02 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-25-02 categoryName đã được cắt khoảng trắng hai đầu', function () {",
+                  "    pm.expect(pm.response.json().DT.categoryName).to.eql('TB-AUTO-' + pm.collectionVariables.get('runId') + '-Món Ăn');",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.categoryId) { pm.collectionVariables.set('catIdA2', String(_res.DT.categoryId)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.2 | Loại: Normal | Kỹ thuật: Error Guessing\nDữ liệu vào: categoryName = '  TB-AUTO-{{runId}}-Món Ăn  '\nKết quả mong đợi: 201, EC 0, categoryName đã cắt khoảng trắng hai đầu; lưu catIdA2",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"  TB-AUTO-{{runId}}-Món Ăn  \"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-03 Tên danh mục rỗng",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-03 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-25-03 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Tên danh mục không được để trống!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.2 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: categoryName = ''\nKết quả mong đợi: 400, EC 1, EM 'Tên danh mục không được để trống!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-04 Tên danh mục chỉ gồm khoảng trắng",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-04 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-25-04 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Tên danh mục không được để trống!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.2 | Loại: Boundary | Kỹ thuật: BVA\nDữ liệu vào: categoryName = '   '\nKết quả mong đợi: 400, EC 1, EM 'Tên danh mục không được để trống!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"   \"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-05 Body không có trường categoryName",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-05 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-25-05 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Tên danh mục không được để trống!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.2 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Body = {}\nKết quả mong đợi: 400, EC 1, EM 'Tên danh mục không được để trống!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-06 Tạo danh mục khi không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-06 HTTP 401 + EC = 5', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "    pm.expect(pm.response.json().EC).to.eql(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.2 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Không có header Authorization\nKết quả mong đợi: 401, EC 5 (không so EM vì middleware dùng chung, đặc tả ghi EM khác nhau giữa các endpoint)",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-NoToken\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-07 Tạo danh mục trùng tên y hệt",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-07 HTTP 409 + EC = 2', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "    pm.expect(pm.response.json().EC).to.eql(2);",
+                  "});",
+                  "pm.test('TC-25-07 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Danh mục này đã tồn tại trong danh sách của bạn!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.2 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: categoryName trùng TC-25-01\nKết quả mong đợi: 409, EC 2, EM 'Danh mục này đã tồn tại trong danh sách của bạn!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-A\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-08 Trùng tên khác hoa/thường và khác dấu",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-08 HTTP 409 + EC = 2', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "    pm.expect(pm.response.json().EC).to.eql(2);",
+                  "});",
+                  "pm.test('TC-25-08 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Danh mục này đã tồn tại trong danh sách của bạn!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.2 | Loại: Boundary | Kỹ thuật: Error Guessing\nDữ liệu vào: categoryName = tb-auto-{{runId}}-mon an (trùng TC-25-02 nếu bỏ qua hoa/thường và dấu)\nKết quả mong đợi: 409, EC 2, EM 'Danh mục này đã tồn tại trong danh sách của bạn!'\nLƯU Ý: Đặc tả chưa nêu rõ quy tắc so sánh; code hiện bỏ qua hoa/thường và dấu. Cần BE xác nhận.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"tb-auto-{{runId}}-mon an\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-09 Tên chứa ký tự % không bị coi là ký tự đại diện (nghi vấn bug)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-09 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.categoryId) { pm.collectionVariables.set('catIdWild', String(_res.DT.categoryId)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.2 | Loại: Abnormal | Kỹ thuật: Error Guessing\nDữ liệu vào: categoryName = TB-AUTO-{{runId}}-% (chưa có danh mục nào trùng đúng chữ)\nKết quả mong đợi: 201, EC 0 (không phải trùng); lưu catIdWild\nLƯU Ý: Nghi vấn: code so sánh bằng iLike nên % có thể khớp tên khác và trả 409 sai. Nếu Fail, ghi bug lên Jira.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-%\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-10 GET danh mục (User A) thấy danh mục cá nhân của mình",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-10 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-25-10 DT là mảng, có danh mục cá nhân vừa tạo và có danh mục chuẩn', function () {",
+                  "    pm.expect(pm.response.json().DT).to.be.an('array');",
+                  "    var found = pm.response.json().DT.filter(function (c) { return String(c.categoryId) === pm.collectionVariables.get('catIdA'); })[0];",
+                  "    pm.expect(found, 'Danh mục cá nhân vừa tạo không có trong danh sách').to.be.an('object');",
+                  "    pm.expect(String(found.createdBy)).to.eql(pm.collectionVariables.get('userAId'));",
+                  "    var system = pm.response.json().DT.filter(function (c) { return c.createdBy === null; });",
+                  "    pm.expect(system.length).to.be.at.least(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.1 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: User A\nKết quả mong đợi: 200, EC 0, DT chứa danh mục cá nhân (createdBy = User A) và danh mục chuẩn (createdBy = null)",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-11 GET danh mục (User B) không thấy danh mục cá nhân của User A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-11 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-25-11 Không thấy danh mục của User A, thấy danh mục của User B', function () {",
+                  "    var ids = pm.response.json().DT.map(function (c) { return String(c.categoryId); });",
+                  "    pm.expect(ids).to.not.include(pm.collectionVariables.get('catIdA'));",
+                  "    pm.expect(ids).to.not.include(pm.collectionVariables.get('catIdA2'));",
+                  "    pm.expect(ids).to.include(pm.collectionVariables.get('catIdB'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.1 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: User B\nKết quả mong đợi: 200, EC 0, không có danh mục của User A, có danh mục của User B",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-12 GET danh mục khi không có token chỉ trả danh mục chuẩn",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-12 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-25-12 Chỉ có danh mục chuẩn (createdBy = null)', function () {",
+                  "    var list = pm.response.json().DT;",
+                  "    pm.expect(list.length).to.be.at.least(1);",
+                  "    list.forEach(function (c) { pm.expect(c.createdBy).to.eql(null); });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.1 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: Không có token\nKết quả mong đợi: 200, EC 0, mọi mục có createdBy = null",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-13 Sửa tên danh mục cá nhân hợp lệ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-13 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-25-13 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Cập nhật danh mục thành công!\");",
+                  "});",
+                  "pm.test('TC-25-13 DT: categoryId không đổi, categoryName là tên mới', function () {",
+                  "    var dt = pm.response.json().DT;",
+                  "    pm.expect(String(dt.categoryId)).to.eql(pm.collectionVariables.get('catIdA'));",
+                  "    pm.expect(dt.categoryName).to.eql('TB-AUTO-' + pm.collectionVariables.get('runId') + '-A-Sua');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdA}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdA}}"]
+            },
+            "description": "Spec 2.3 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: categoryId = catIdA, categoryName = TB-AUTO-{{runId}}-A-Sua\nKết quả mong đợi: 200, EC 0, EM 'Cập nhật danh mục thành công!', DT {categoryId, categoryName mới}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-A-Sua\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-14 Sau khi sửa, GET trả tên mới (dữ liệu đã lưu)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-14 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-25-14 Tên mới đã được lưu, tên cũ không còn', function () {",
+                  "    var found = pm.response.json().DT.filter(function (c) { return String(c.categoryId) === pm.collectionVariables.get('catIdA'); })[0];",
+                  "    pm.expect(found, 'Không thấy danh mục catIdA').to.be.an('object');",
+                  "    pm.expect(found.categoryName).to.eql('TB-AUTO-' + pm.collectionVariables.get('runId') + '-A-Sua');",
+                  "    var oldName = pm.response.json().DT.filter(function (c) { return c.categoryName === 'TB-AUTO-' + pm.collectionVariables.get('runId') + '-A'; });",
+                  "    pm.expect(oldName.length).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.1, 2.3 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: User A\nKết quả mong đợi: 200, danh mục catIdA mang tên mới, không còn tên cũ",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-15 Sửa tên trùng với danh mục cá nhân khác của mình",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-15 HTTP 409 + EC = 2', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "    pm.expect(pm.response.json().EC).to.eql(2);",
+                  "});",
+                  "pm.test('TC-25-15 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Danh mục này đã tồn tại trong danh sách của bạn!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdA}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdA}}"]
+            },
+            "description": "Spec 2.3 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Sửa catIdA thành tên của catIdA2\nKết quả mong đợi: 409, EC 2, EM 'Danh mục này đã tồn tại trong danh sách của bạn!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-Món Ăn\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-16 Sửa chỉ đổi hoa/thường của chính tên mình (không tự trùng)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-16 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-25-16 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Cập nhật danh mục thành công!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdA}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdA}}"]
+            },
+            "description": "Spec 2.3 | Loại: Boundary | Kỹ thuật: Error Guessing\nDữ liệu vào: Đổi TB-AUTO-...-A-Sua thành chữ thường\nKết quả mong đợi: 200, EC 0, EM 'Cập nhật danh mục thành công!'\nLƯU Ý: Đặc tả chưa nêu; code loại trừ chính bản ghi khi kiểm tra trùng nên trả 200. Cần BE xác nhận.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"tb-auto-{{runId}}-a-sua\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-17 Sửa với tên rỗng",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-17 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-25-17 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Tên danh mục không được để trống!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdA}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdA}}"]
+            },
+            "description": "Spec 2.3 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: categoryName = ''\nKết quả mong đợi: 400, EC 1, EM 'Tên danh mục không được để trống!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-18 Sửa danh mục khi không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-18 HTTP 401 + EC = 5', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "    pm.expect(pm.response.json().EC).to.eql(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdA}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdA}}"]
+            },
+            "description": "Spec 2.3 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Không có token\nKết quả mong đợi: 401, EC 5",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-NoToken2\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-19 Sửa danh mục của người khác",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-19 HTTP 403 + EC = 4', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    pm.expect(pm.response.json().EC).to.eql(4);",
+                  "});",
+                  "pm.test('TC-25-19 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Bạn không có quyền chỉnh sửa danh mục này!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdB}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdB}}"]
+            },
+            "description": "Spec 2.3 | Loại: Abnormal | Kỹ thuật: Decision Table\nDữ liệu vào: User A sửa danh mục của User B\nKết quả mong đợi: 403, EC 4, EM 'Bạn không có quyền chỉnh sửa danh mục này!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-Hack\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-20 Sửa danh mục chuẩn của hệ thống",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-20 HTTP 403 + EC = 4', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    pm.expect(pm.response.json().EC).to.eql(4);",
+                  "});",
+                  "pm.test('TC-25-20 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Bạn không có quyền chỉnh sửa danh mục này!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{stdCategoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{stdCategoryId}}"]
+            },
+            "description": "Spec 2.3 | Loại: Abnormal | Kỹ thuật: Decision Table\nDữ liệu vào: User sửa danh mục chuẩn (createdBy = null)\nKết quả mong đợi: 403, EC 4, EM 'Bạn không có quyền chỉnh sửa danh mục này!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-HackStd\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-21 Sửa danh mục không tồn tại",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-21 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});",
+                  "pm.test('TC-25-21 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Không tìm thấy danh mục cần cập nhật!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/999999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "999999999"]
+            },
+            "description": "Spec 2.3 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: categoryId = 999999999\nKết quả mong đợi: 404, EC 3, EM 'Không tìm thấy danh mục cần cập nhật!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-X\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-22 Sửa với categoryId không phải số",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-22 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});",
+                  "pm.test('TC-25-22 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Không tìm thấy danh mục cần cập nhật!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/abc",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "abc"]
+            },
+            "description": "Spec 2.3 | Loại: Boundary | Kỹ thuật: Error Guessing\nDữ liệu vào: categoryId = abc\nKết quả mong đợi: 404, EC 3, EM 'Không tìm thấy danh mục cần cập nhật!'\nLƯU Ý: Đặc tả không có dòng 400 cho ID sai; code trả 404. Cần BE xác nhận.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-X\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-23 Xóa danh mục khi không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-23 HTTP 401 + EC = 5', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "    pm.expect(pm.response.json().EC).to.eql(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdA2}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdA2}}"]
+            },
+            "description": "Spec 2.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Không có token\nKết quả mong đợi: 401, EC 5",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-24 Xóa danh mục của người khác",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-24 HTTP 403 + EC = 4', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    pm.expect(pm.response.json().EC).to.eql(4);",
+                  "});",
+                  "pm.test('TC-25-24 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Bạn không có quyền xóa danh mục này!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdB}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdB}}"]
+            },
+            "description": "Spec 2.4 | Loại: Abnormal | Kỹ thuật: Decision Table\nDữ liệu vào: User A xóa danh mục của User B\nKết quả mong đợi: 403, EC 4, EM 'Bạn không có quyền xóa danh mục này!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-25 Xóa danh mục chuẩn của hệ thống",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-25 HTTP 403 + EC = 4', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    pm.expect(pm.response.json().EC).to.eql(4);",
+                  "});",
+                  "pm.test('TC-25-25 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Bạn không có quyền xóa danh mục này!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{stdCategoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{stdCategoryId}}"]
+            },
+            "description": "Spec 2.4 | Loại: Abnormal | Kỹ thuật: Decision Table\nDữ liệu vào: User xóa danh mục chuẩn\nKết quả mong đợi: 403, EC 4, EM 'Bạn không có quyền xóa danh mục này!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-26 Xóa danh mục không tồn tại",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-26 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});",
+                  "pm.test('TC-25-26 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Không tìm thấy danh mục cần xóa!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/999999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "999999999"]
+            },
+            "description": "Spec 2.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: categoryId = 999999999\nKết quả mong đợi: 404, EC 3, EM 'Không tìm thấy danh mục cần xóa!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-27 Xóa danh mục cá nhân của mình",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-27 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-25-27 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Đã xóa danh mục cá nhân thành công!\");",
+                  "});",
+                  "pm.test('TC-25-27 DT = null', function () {",
+                  "    pm.expect(pm.response.json().DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdA2}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdA2}}"]
+            },
+            "description": "Spec 2.4 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: categoryId = catIdA2\nKết quả mong đợi: 200, EC 0, EM 'Đã xóa danh mục cá nhân thành công!', DT = null",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-28 Sau khi xóa, GET không còn danh mục đã xóa (và danh mục khác không bị ảnh hưởng)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-28 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-25-28 catIdA2 đã biến mất, catIdA vẫn còn', function () {",
+                  "    var ids = pm.response.json().DT.map(function (c) { return String(c.categoryId); });",
+                  "    pm.expect(ids).to.not.include(pm.collectionVariables.get('catIdA2'));",
+                  "    pm.expect(ids).to.include(pm.collectionVariables.get('catIdA'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.1, 2.4 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: User A\nKết quả mong đợi: 200, không có catIdA2, vẫn còn catIdA",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-25-29 Xóa lại danh mục đã xóa",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-25-29 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});",
+                  "pm.test('TC-25-29 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Không tìm thấy danh mục cần xóa!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdA2}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdA2}}"]
+            },
+            "description": "Spec 2.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: categoryId = catIdA2 (đã xóa ở TC-25-27)\nKết quả mong đợi: 404, EC 3, EM 'Không tìm thấy danh mục cần xóa!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "99_Teardown",
+      "description": "Dọn danh mục test còn sót lại. Request nào không còn dữ liệu để dọn vẫn Pass (chấp nhận 404).",
+      "item": [
+        {
+          "name": "TD-25-01 Dọn danh mục A (catIdA)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Nếu request tạo dữ liệu bị lỗi nên biến rỗng thì dùng id không tồn tại, request vẫn trả 404 hợp lệ.",
+                  "if (!pm.collectionVariables.get('catIdA')) { pm.collectionVariables.set('catIdA', '999999999'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TD-25-01 Dọn dữ liệu - 200 (đã xóa) hoặc 404 (đã được xóa từ trước)', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdA}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdA}}"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Dọn dữ liệu test UC-25 (A (catIdA))."
+          },
+          "response": []
+        },
+        {
+          "name": "TD-25-02 Dọn danh mục tên chứa % (catIdWild)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Nếu request tạo dữ liệu bị lỗi nên biến rỗng thì dùng id không tồn tại, request vẫn trả 404 hợp lệ.",
+                  "if (!pm.collectionVariables.get('catIdWild')) { pm.collectionVariables.set('catIdWild', '999999999'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TD-25-02 Dọn dữ liệu - 200 (đã xóa) hoặc 404 (đã được xóa từ trước)', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdWild}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdWild}}"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Dọn dữ liệu test UC-25 (tên chứa % (catIdWild))."
+          },
+          "response": []
+        },
+        {
+          "name": "TD-25-03 Dọn danh mục của User B (catIdB)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Nếu request tạo dữ liệu bị lỗi nên biến rỗng thì dùng id không tồn tại, request vẫn trả 404 hợp lệ.",
+                  "if (!pm.collectionVariables.get('catIdB')) { pm.collectionVariables.set('catIdB', '999999999'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TD-25-03 Dọn dữ liệu - 200 (đã xóa) hoặc 404 (đã được xóa từ trước)', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdB}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdB}}"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Dọn dữ liệu test UC-25 (của User B (catIdB))."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

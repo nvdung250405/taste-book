@@ -7,11 +7,6 @@
   },
   "variable": [
     {
-      "key": "baseUrl",
-      "value": "http://localhost:5000/api/v1",
-      "type": "string"
-    },
-    {
       "key": "accessToken",
       "value": "",
       "type": "string"
@@ -90,13 +85,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/auth/login",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "auth",
-            "login"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
         }
       },
       "response": []
@@ -109,7 +99,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.cookies.jar().clear(pm.collectionVariables.get('baseUrl'), function () {});"
+              "pm.cookies.jar().clear(pm.variables.get('baseUrl'), function () {});"
             ]
           }
         },
@@ -131,13 +121,8 @@
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
         }
       },
       "response": []
@@ -177,13 +162,8 @@
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
         }
       },
       "response": []
@@ -223,13 +203,8 @@
         "method": "GET",
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
         }
       },
       "description": "Case bổ sung phục vụ cleanup. Không thay đổi dữ liệu; chỉ đọc hồ sơ hiện tại và lưu phone/avatar gốc vào collection variables.",
@@ -265,13 +240,8 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
         }
       },
       "description": "Đặc tả yêu cầu token không hợp lệ hoặc hết hạn phải trả 401 / EC=5. Collection dùng token giả không hợp lệ để kiểm thử.",
@@ -318,13 +288,8 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
         }
       },
       "description": "Cần cấu hình userNotFoundToken là JWT hợp lệ nhưng trỏ tới user đã không còn tồn tại trong CSDL. Bỏ trống biến thì request tự động được skip để tránh false fail.",
@@ -372,13 +337,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
         }
       },
       "response": []
@@ -423,13 +383,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
         }
       },
       "response": []
@@ -474,13 +429,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
         },
         "description": "SĐT không đúng định dạng số điện thoại VN -> phải bị validate chặn."
       },
@@ -519,13 +469,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
         }
       },
       "description": "Đặc tả yêu cầu chưa xác thực khi cập nhật hồ sơ phải trả 401 / EC=5.",
@@ -585,13 +530,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
         }
       },
       "description": "Cần cấu hình duplicatePhone là số điện thoại đang thuộc về một user khác trong CSDL. Không được dùng SĐT hiện tại của chính user test. Bỏ trống biến thì request tự động được skip.",
@@ -651,13 +591,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
         }
       },
       "description": "Đặc tả yêu cầu ảnh đại diện vượt quá 5MB phải trả 400 / EC=1. Vì contract hiện mô tả avatarUrl là string URL chứ không phải multipart file, collection để biến oversizedAvatarUrl trống và yêu cầu cấu hình một giá trị/URL thực sự kích hoạt giới hạn 5MB. Bỏ trống biến thì request tự động được skip.",
@@ -703,14 +638,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me",
-            "password"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
         }
       },
       "response": []
@@ -755,14 +684,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me",
-            "password"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
         }
       },
       "response": []
@@ -807,14 +730,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me",
-            "password"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
         }
       },
       "response": []
@@ -859,14 +776,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me",
-            "password"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
         }
       },
       "response": []
@@ -914,14 +825,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me",
-            "password"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
         }
       },
       "description": "oldPassword là trường bắt buộc theo đặc tả; thiếu trường phải bị validation 400 / EC=1.",
@@ -970,14 +875,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me",
-            "password"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
         }
       },
       "description": "newPassword là trường bắt buộc theo đặc tả; thiếu trường phải bị validation 400 / EC=1.",
@@ -1026,14 +925,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me",
-            "password"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
         }
       },
       "description": "confirmPassword là trường bắt buộc theo đặc tả; thiếu trường phải bị validation 400 / EC=1.",
@@ -1079,14 +972,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me",
-            "password"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
         }
       },
       "response": []
@@ -1131,14 +1018,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me/password",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me",
-            "password"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me", "password"]
         }
       },
       "response": []
@@ -1183,13 +1064,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
         },
         "description": "Bước 2 đã đổi permanent username sang '(Updated)' — cần trả lại tên gốc để dữ liệu seed sạch cho lần chạy sau, tương tự tinh thần của bước 7 với mật khẩu."
       },
@@ -1239,13 +1115,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/users/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "me"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "me"]
         }
       },
       "description": "Bổ sung cleanup cho phone và avatarUrl. Item 8 hiện tại vẫn được giữ nguyên; item này chỉ hoàn tác phần avatarUrl/phone về đúng dữ liệu đọc được trước khi sửa hồ sơ.",
