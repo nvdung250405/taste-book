@@ -93,7 +93,7 @@ const handleCreateRecipe = async (req, res) => {
 // 4.5 GET /api/v1/recipes/mine - Quản lý công thức của tôi (UC-09)
 const handleGetMyRecipes = async (req, res) => {
   try {
-    let result = await recipeService.getMyRecipes(req.user);
+    let result = await recipeService.getMyRecipes(req.user, req.query);
     return res.status(mapEcToStatus(result.EC)).json(result);
   } catch (error) {
     console.log(error);

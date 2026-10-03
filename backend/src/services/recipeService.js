@@ -1,5 +1,62 @@
 import db from "../models/index";
 import { Op, Sequelize } from "sequelize";
+import { isQualitativeUnit } from "./unitService";
+
+const isPositiveInteger = (value) =>
+  (Number.isInteger(value) || value === String(value)) &&
+  Number.isInteger(Number(value)) &&
+  Number(value) > 0;
+
+const cookingStepsError = (steps) => {
+  const seen = new Set();
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    const stepNumber = step?.stepNumber === undefined ? i + 1 : step.stepNumber;
+    if (!isPositiveInteger(stepNumber)) {
+      return {
+        EC: 1,
+        EM: `Số thứ tự bước làm ở vị trí ${i + 1} phải là số nguyên dương!`,
+        DT: null,
+      };
+    }
+    const number = Number(stepNumber);
+    if (seen.has(number)) {
+      return {
+        EC: 1,
+        EM: `Số thứ tự bước làm ${number} bị trùng trong công thức!`,
+        DT: null,
+      };
+    }
+    seen.add(number);
+    if (!step?.instruction || !String(step.instruction).trim()) {
+      return {
+        EC: 1,
+        EM: `Nội dung bước làm thứ ${number} không được để trống!`,
+        DT: null,
+      };
+    }
+  }
+  return null;
+};
+
+const ingredientQuantityError = (quantity, unitName, position) => {
+  const value = Number(quantity);
+  if (
+    quantity === undefined ||
+    quantity === null ||
+    String(quantity).trim() === "" ||
+    !Number.isFinite(value) ||
+    value < 0 ||
+    (value === 0 && !isQualitativeUnit(unitName))
+  ) {
+    return {
+      EC: 1,
+      EM: `Định lượng nguyên liệu ở vị trí ${position} phải lớn hơn 0; chỉ đơn vị định tính mới được dùng 0!`,
+      DT: null,
+    };
+  }
+  return null;
+};
 
 // Hàm kiểm tra chuỗi có chứa dấu tiếng Việt hay không
 const hasVietnameseAccents = (str) => {
@@ -509,7 +566,6 @@ const scaleRecipeIngredients = async (
     let scaleFactor = Math.round((targetServings / baseServings) * 100) / 100;
 
     // Đơn vị định tính theo chuẩn hệ thống (UC-07 - Luồng 2a): Giữ nguyên định lượng gốc, không nhân hệ số N
-    const qualitativeUnits = ["vừa đủ", "tùy khẩu vị"];
 
     let ingredients = (recipe.ingredients || []).map((item) => {
       let baseQuantity = Number(item.quantity);
@@ -520,9 +576,7 @@ const scaleRecipeIngredients = async (
         ? item.ingredient.ingredientName
         : item.customIngredientName || "";
 
-      const isQualitative = qualitativeUnits.includes(
-        unitName.toLowerCase().trim(),
-      );
+      const isQualitative = isQualitativeUnit(unitName);
 
       let scaledQuantity = isQualitative
         ? baseQuantity
@@ -627,8 +681,7 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
     if (
       cookTimeMinutes === undefined ||
       cookTimeMinutes === null ||
-      isNaN(Number(cookTimeMinutes)) ||
-      Number(cookTimeMinutes) <= 0
+      !isPositiveInteger(cookTimeMinutes)
     ) {
       return {
         EC: 1,
@@ -656,8 +709,7 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
     if (
       defaultServings === undefined ||
       defaultServings === null ||
-      isNaN(Number(defaultServings)) ||
-      Number(defaultServings) <= 0
+      !isPositiveInteger(defaultServings)
     ) {
       return {
         EC: 1,
@@ -696,22 +748,20 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
     const processedIngredients = [];
     for (let i = 0; i < ingredients.length; i++) {
       const ing = ingredients[i];
-      if (
-        ing.quantity === undefined ||
-        ing.quantity === null ||
-        isNaN(Number(ing.quantity)) ||
-        Number(ing.quantity) <= 0
-      ) {
-        return {
-          EC: 1,
-          EM: `Định lượng nguyên liệu ở vị trí ${i + 1} phải lớn hơn 0!`,
-          DT: null,
-        };
-      }
-
       // TH 1: Người dùng chọn nguyên liệu của hệ thống (có ingredientId)
       if (ing.ingredientId) {
-        const foundIng = await db.Ingredient.findByPk(Number(ing.ingredientId));
+        const foundIng = await db.Ingredient.findByPk(
+          Number(ing.ingredientId),
+          {
+            include: [
+              {
+                model: db.Unit,
+                as: "defaultUnit",
+                attributes: ["id", "unitName"],
+              },
+            ],
+          },
+        );
         if (!foundIng) {
           return {
             EC: 1,
@@ -720,21 +770,43 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
           };
         }
 
-        // Nếu có gửi unitId, chỉ cho phép đúng defaultUnit của nguyên liệu đó
-        if (ing.unitId && Number(ing.unitId) !== foundIng.defaultUnitId) {
+        let unitId = foundIng.defaultUnitId;
+        let customUnit = null;
+        let unitName = foundIng.defaultUnit?.unitName || "";
+        if (ing.customUnit && String(ing.customUnit).trim()) {
+          unitId = null;
+          customUnit = String(ing.customUnit).trim();
+          unitName = customUnit;
+        } else if (
+          ing.unitId &&
+          Number(ing.unitId) !== foundIng.defaultUnitId
+        ) {
+          const selectedUnit = await db.Unit.findByPk(Number(ing.unitId));
+          if (!selectedUnit) {
           return {
             EC: 1,
-            EM: `Nguyên liệu "${foundIng.ingredientName}" chỉ được sử dụng đơn vị đo mặc định của hệ thống!`,
+              EM: `Đơn vị đo hệ thống với ID ${ing.unitId} không tồn tại!`,
             DT: null,
           };
         }
+          unitId = selectedUnit.id;
+          unitName = selectedUnit.unitName;
+        } else if (Number(ing.quantity) === 0 && !unitName && unitId) {
+          unitName = (await db.Unit.findByPk(unitId))?.unitName || "";
+        }
+        const quantityError = ingredientQuantityError(
+          ing.quantity,
+          unitName,
+          i + 1,
+        );
+        if (quantityError) return quantityError;
 
         processedIngredients.push({
           ingredientId: foundIng.id,
           customIngredientName: null,
           quantity: Number(ing.quantity),
-          unitId: foundIng.defaultUnitId,
-          customUnit: null, // Nguyên liệu hệ thống luôn chỉ dùng đơn vị mặc định
+          unitId,
+          customUnit,
         });
       }
       // TH 2: Người dùng tự gõ tay nguyên liệu ngoài hệ thống (customIngredientName)
@@ -745,6 +817,7 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
         let customIngName = String(ing.customIngredientName).trim();
         let unitId = null;
         let customUnit = null;
+        let unitName = "";
 
         // Có thể chọn đơn vị đo của hệ thống (unitId)
         if (ing.unitId) {
@@ -757,10 +830,12 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
             };
           }
           unitId = foundUnit.id;
+          unitName = foundUnit.unitName;
         }
         // Hoặc tự gõ tay đơn vị ngoài hệ thống (customUnit)
         else if (ing.customUnit && String(ing.customUnit).trim()) {
           customUnit = String(ing.customUnit).trim();
+          unitName = customUnit;
         } else {
           return {
             EC: 1,
@@ -768,6 +843,13 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
             DT: null,
           };
         }
+
+        const quantityError = ingredientQuantityError(
+          ing.quantity,
+          unitName,
+          i + 1,
+        );
+        if (quantityError) return quantityError;
 
         processedIngredients.push({
           ingredientId: null,
@@ -786,17 +868,14 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
     }
 
     // Kiểm tra từng bước làm
-    for (let i = 0; i < stepsList.length; i++) {
-      const st = stepsList[i];
-      if (!st.instruction || !String(st.instruction).trim()) {
-        return {
-          EC: 1,
-          EM: `Nội dung bước làm thứ ${st.stepNumber || i + 1} không được để trống!`,
-          DT: null,
-        };
-      }
-    }
+    const stepsError = cookingStepsError(stepsList);
+    if (stepsError) return stepsError;
 
+    // FE: Khi user.role === "Admin", tạo qua chức năng cá nhân (isAdminCreate = false)
+    // và chọn isPublic = true, hiển thị xác nhận TRƯỚC khi gọi API:
+    // "Chú ý: bạn đang là tài khoản quản trị viên, khi công thức này được phê duyệt ra hệ thống thì sẽ trở thành công thức chuẩn của hệ thống. Bạn có chắc chắn không?"
+    // Chỉ gửi yêu cầu khi người dùng xác nhận. API cá nhân vẫn lưu Pending;
+    // chỉ luồng tạo công thức chuẩn qua API quản trị mới duyệt ngay.
     // Xác định trạng thái duyệt dựa trên isPublic (hoặc isAdminCreate)
     const isPub = isAdminCreate
       ? true
@@ -852,9 +931,7 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
       const cookingStepsData = stepsList.map((st, index) => ({
         recipeId: newRecipe.id,
         stepNumber:
-          st.stepNumber !== undefined && !isNaN(Number(st.stepNumber))
-            ? Number(st.stepNumber)
-            : index + 1,
+          st.stepNumber !== undefined ? Number(st.stepNumber) : index + 1,
         instruction: String(st.instruction).trim(),
       }));
       await db.CookingStep.bulkCreate(cookingStepsData, { transaction: t });
@@ -948,7 +1025,7 @@ const ensureCommunityCategory = async (recipeId, transaction = null) => {
 };
 
 // 4.5 GET /api/v1/recipes/mine - Quản lý công thức của tôi (UC-09)
-const getMyRecipes = async (user) => {
+const getMyRecipes = async (user, query = {}) => {
   try {
     const userId = user ? user.id || user.userId : null;
     if (!userId) {
@@ -959,7 +1036,36 @@ const getMyRecipes = async (user) => {
       };
     }
 
-    const recipes = await db.Recipe.findAll({
+    const { page, limit } = query;
+
+    let pageNumber = 1;
+    if (page !== undefined && page !== null && page !== "") {
+      pageNumber = Number(page);
+      if (!Number.isInteger(pageNumber) || pageNumber <= 0) {
+        return {
+          EC: 1,
+          EM: "Tham số phân trang page hoặc limit không hợp lệ!",
+          DT: null,
+        };
+      }
+    }
+
+    let limitNumber = 10;
+    if (limit !== undefined && limit !== null && limit !== "") {
+      limitNumber = Number(limit);
+      if (!Number.isInteger(limitNumber) || limitNumber <= 0) {
+        return {
+          EC: 1,
+          EM: "Tham số phân trang page hoặc limit không hợp lệ!",
+          DT: null,
+        };
+      }
+      if (limitNumber > 100) limitNumber = 100;
+    }
+
+    const offset = (pageNumber - 1) * limitNumber;
+
+    const { count, rows: recipes } = await db.Recipe.findAndCountAll({
       where: {
         authorId: userId,
         isDeleted: false,
@@ -977,6 +1083,8 @@ const getMyRecipes = async (user) => {
         "createdAt",
       ],
       order: [["createdAt", "DESC"]],
+      limit: limitNumber,
+      offset: offset,
     });
 
     const formatted = recipes.map((r) => ({
@@ -995,7 +1103,13 @@ const getMyRecipes = async (user) => {
     return {
       EC: 0,
       EM: "Thành công!",
-      DT: formatted,
+      DT: {
+        page: pageNumber,
+        limit: limitNumber,
+        total: count,
+        totalPages: Math.ceil(count / limitNumber),
+        items: formatted,
+      },
     };
   } catch (e) {
     console.log("getMyRecipes error:", e);
@@ -1120,8 +1234,7 @@ const updateRecipe = async (recipeId, user, data) => {
     if (
       cookTimeMinutes === undefined ||
       cookTimeMinutes === null ||
-      isNaN(Number(cookTimeMinutes)) ||
-      Number(cookTimeMinutes) <= 0
+      !isPositiveInteger(cookTimeMinutes)
     ) {
       return {
         EC: 1,
@@ -1149,8 +1262,7 @@ const updateRecipe = async (recipeId, user, data) => {
     if (
       defaultServings === undefined ||
       defaultServings === null ||
-      isNaN(Number(defaultServings)) ||
-      Number(defaultServings) <= 0
+      !isPositiveInteger(defaultServings)
     ) {
       return {
         EC: 1,
@@ -1189,19 +1301,6 @@ const updateRecipe = async (recipeId, user, data) => {
     const processedIngredients = [];
     for (let i = 0; i < ingredients.length; i++) {
       const ing = ingredients[i];
-      if (
-        ing.quantity === undefined ||
-        ing.quantity === null ||
-        isNaN(Number(ing.quantity)) ||
-        Number(ing.quantity) <= 0
-      ) {
-        return {
-          EC: 1,
-          EM: `Định lượng nguyên liệu ở vị trí ${i + 1} phải lớn hơn 0!`,
-          DT: null,
-        };
-      }
-
       // TH 1: Người dùng chọn nguyên liệu của hệ thống (có ingredientId)
       if (ing.ingredientId) {
         const foundIng = await db.Ingredient.findByPk(
@@ -1224,23 +1323,45 @@ const updateRecipe = async (recipeId, user, data) => {
           };
         }
 
-        // Nếu có gửi unitId, chỉ cho phép đúng defaultUnit của nguyên liệu đó
-        if (ing.unitId && Number(ing.unitId) !== foundIng.defaultUnitId) {
+        let unitId = foundIng.defaultUnitId;
+        let customUnit = null;
+        let unitName = foundIng.defaultUnit?.unitName || "";
+        if (ing.customUnit && String(ing.customUnit).trim()) {
+          unitId = null;
+          customUnit = String(ing.customUnit).trim();
+          unitName = customUnit;
+        } else if (
+          ing.unitId &&
+          Number(ing.unitId) !== foundIng.defaultUnitId
+        ) {
+          const selectedUnit = await db.Unit.findByPk(Number(ing.unitId));
+          if (!selectedUnit) {
           return {
             EC: 1,
-            EM: `Nguyên liệu "${foundIng.ingredientName}" chỉ được sử dụng đơn vị đo mặc định của hệ thống!`,
+              EM: `Đơn vị đo hệ thống với ID ${ing.unitId} không tồn tại!`,
             DT: null,
           };
         }
+          unitId = selectedUnit.id;
+          unitName = selectedUnit.unitName;
+        } else if (Number(ing.quantity) === 0 && !unitName && unitId) {
+          unitName = (await db.Unit.findByPk(unitId))?.unitName || "";
+        }
+        const quantityError = ingredientQuantityError(
+          ing.quantity,
+          unitName,
+          i + 1,
+        );
+        if (quantityError) return quantityError;
 
         processedIngredients.push({
           ingredientId: foundIng.id,
           ingredientName: foundIng.ingredientName,
           customIngredientName: null,
           quantity: Number(ing.quantity),
-          unitId: foundIng.defaultUnitId,
-          unit: foundIng.defaultUnit ? foundIng.defaultUnit.unitName : "",
-          customUnit: null,
+          unitId,
+          unit: unitName,
+          customUnit,
         });
       }
       // TH 2: Người dùng tự gõ tay nguyên liệu ngoài hệ thống (customIngredientName)
@@ -1278,6 +1399,13 @@ const updateRecipe = async (recipeId, user, data) => {
           };
         }
 
+        const quantityError = ingredientQuantityError(
+          ing.quantity,
+          unitName,
+          i + 1,
+        );
+        if (quantityError) return quantityError;
+
         processedIngredients.push({
           ingredientId: null,
           ingredientName: customIngName,
@@ -1297,17 +1425,13 @@ const updateRecipe = async (recipeId, user, data) => {
     }
 
     // Kiểm tra từng bước làm
-    for (let i = 0; i < stepsList.length; i++) {
-      const st = stepsList[i];
-      if (!st.instruction || !String(st.instruction).trim()) {
-        return {
-          EC: 1,
-          EM: `Nội dung bước làm thứ ${st.stepNumber || i + 1} không được để trống!`,
-          DT: null,
-        };
-      }
-    }
+    const stepsError = cookingStepsError(stepsList);
+    if (stepsError) return stepsError;
 
+    // FE: Khi user.role === "Admin" và chọn gửi công thức cá nhân để duyệt
+    // công khai (isPublic = true), hiển thị xác nhận TRƯỚC khi gọi API:
+    // "Chú ý: bạn đang là tài khoản quản trị viên, khi công thức này được phê duyệt ra hệ thống thì sẽ trở thành công thức chuẩn của hệ thống. Bạn có chắc chắn không?"
+    // Chỉ gửi yêu cầu khi người dùng xác nhận. Việc gửi công khai vẫn lưu Pending.
     // Xác định trạng thái duyệt dựa trên isPublic
     // - Nếu chọn công khai (isPublic = true), bài chuyển/giữ trạng thái 'Pending' để Quản trị viên duyệt.
     // - Nếu để riêng tư (isPublic = false), bài ở trạng thái 'Approved' (cá nhân).
@@ -1376,9 +1500,7 @@ const updateRecipe = async (recipeId, user, data) => {
       const cookingStepsData = stepsList.map((st, index) => ({
         recipeId: rId,
         stepNumber:
-          st.stepNumber !== undefined && !isNaN(Number(st.stepNumber))
-            ? Number(st.stepNumber)
-            : index + 1,
+          st.stepNumber !== undefined ? Number(st.stepNumber) : index + 1,
         instruction: String(st.instruction).trim(),
       }));
       await db.CookingStep.bulkCreate(cookingStepsData, { transaction: t });
