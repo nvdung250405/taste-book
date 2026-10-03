@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Pencil, Trash2, ChefHat, Clock, Star, Loader2, BookOpen } from 'lucide-react'
+import { Plus, Pencil, Trash2, ChefHat, Clock, Loader2, BookOpen } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
 import {
