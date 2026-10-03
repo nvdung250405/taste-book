@@ -36,6 +36,7 @@ export default function RecipeFormPage() {
     difficulty: 'Trung bình',
     categories: [],
     tags: [],
+    isPublic: true,
     ingredients: [{ name: '', quantity: '', unit: '' }],
     steps: [{ title: '', content: '' }],
   })
@@ -48,21 +49,34 @@ export default function RecipeFormPage() {
       setFormData({
         title: r.title || '',
         description: r.description || '',
-        thumbnail: r.thumbnail || r.image || '',
-        prepTime: r.prepTime || r.time || '',
-        servings: r.servings || r.portions || 4,
-        difficulty: r.difficulty || 'Trung bình',
-        categories: r.categories?.map(c => c._id || c.id || c) || [],
+        thumbnail: r.thumbnailUrl || r.thumbnail || r.image || '',
+        prepTime: r.cookTimeMinutes || r.prepTime || r.time || '',
+        servings: r.defaultServings || r.servings || r.portions || 4,
+        difficulty: r.difficulty === 'Easy' ? 'Dễ' : r.difficulty === 'Hard' ? 'Khó' : 'Trung bình',
+        categories: r.categories?.map(c => c.categoryId || c._id || c.id || c) || [],
         tags: r.tags?.map(t => t.name || t) || [],
+        isPublic: r.isPublic !== undefined ? r.isPublic : true,
         ingredients: r.ingredients?.length ? r.ingredients.map(i => ({
-          name: i.ingredient?.name || i.name || '',
+          name: i.ingredientName || i.ingredient?.name || i.name || '',
           quantity: i.quantity || '',
           unit: i.unit || i.ingredient?.unit || ''
         })) : [{ name: '', quantity: '', unit: '' }],
-        steps: r.steps?.length ? r.steps.map(s => ({
-          title: s.title || '',
-          content: s.description || s.content || s.instruction || ''
-        })) : [{ title: '', content: '' }],
+        steps: r.steps?.length ? r.steps.map((s, idx) => {
+          let title = s.title || '';
+          let content = s.instruction || s.description || s.content || '';
+          // Try to extract title from "Title: Content" format if instruction has it
+          if (!s.title && s.instruction && s.instruction.includes(': ')) {
+             const parts = s.instruction.split(': ');
+             if (parts.length > 1 && parts[0].length < 30) { // arbitrary length check for title
+                title = parts[0];
+                content = parts.slice(1).join(': ');
+             }
+          }
+          return {
+            title: title || `Bước ${s.stepNumber || idx + 1}`,
+            content: content
+          }
+        }) : [{ title: '', content: '' }],
       })
     }
   }, [isEdit, recipeRes])
@@ -117,15 +131,33 @@ export default function RecipeFormPage() {
     
     // Validate
     if (!formData.title.trim()) return toast.error('Vui lòng nhập tên món')
+    if (!formData.description.trim()) return toast.error('Vui lòng nhập mô tả món ăn')
+    if (!formData.prepTime || Number(formData.prepTime) <= 0) return toast.error('Thời gian nấu phải lớn hơn 0')
+    if (!formData.servings || Number(formData.servings) <= 0) return toast.error('Khẩu phần phải lớn hơn 0')
+    if (formData.categories.length === 0) return toast.error('Vui lòng chọn ít nhất 1 danh mục')
+    
     const validIngs = formData.ingredients.filter(i => i.name.trim())
     if (validIngs.length === 0) return toast.error('Cần ít nhất 1 nguyên liệu')
     const validSteps = formData.steps.filter(s => s.content.trim())
     if (validSteps.length === 0) return toast.error('Cần ít nhất 1 bước thực hiện')
 
     const payload = {
-      ...formData,
-      ingredients: validIngs,
-      steps: validSteps,
+      title: formData.title,
+      description: formData.description,
+      thumbnailUrl: formData.thumbnail,
+      cookTimeMinutes: Number(formData.prepTime),
+      difficulty: formData.difficulty === 'Dễ' ? 'Easy' : formData.difficulty === 'Khó' ? 'Hard' : 'Medium',
+      defaultServings: Number(formData.servings),
+      isPublic: formData.isPublic,
+      categoryIds: formData.categories,
+      ingredients: validIngs.map(i => ({
+        customIngredientName: i.name,
+        quantity: Number(i.quantity),
+        customUnit: i.unit
+      })),
+      steps: validSteps.map(s => ({
+        instruction: s.title ? `${s.title}: ${s.content}` : s.content
+      })),
     }
 
     if (isEdit) {
@@ -134,17 +166,17 @@ export default function RecipeFormPage() {
           toast.success('Cập nhật công thức thành công')
           navigate(`/recipe/${id}`)
         },
-        onError: () => toast.error('Lỗi khi cập nhật'),
+        onError: (error) => toast.error(error?.EM || 'Lỗi khi cập nhật'),
       })
     } else {
       createRecipe(payload, {
         onSuccess: (res) => {
           toast.success('Đã tạo công thức thành công')
-          const newId = res?.DT?._id || res?.DT?.id
+          const newId = res?.DT?.recipeId || res?.DT?.id || res?.DT?._id
           if (newId) navigate(`/recipe/${newId}`)
           else navigate('/my-recipes')
         },
-        onError: () => toast.error('Lỗi khi tạo'),
+        onError: (error) => toast.error(error?.EM || 'Lỗi khi tạo'),
       })
     }
   }

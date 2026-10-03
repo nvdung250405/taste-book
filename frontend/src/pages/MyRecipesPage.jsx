@@ -74,39 +74,51 @@ export default function MyRecipesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {recipes.map(recipe => {
-            const status = STATUS_STYLES[recipe.status] || STATUS_STYLES['draft']
+            // Determine status label based on isPublic and approvalStatus
+            let statusKey = 'draft';
+            if (recipe.isPublic) {
+              if (recipe.approvalStatus === 'Approved') statusKey = 'approved';
+              else if (recipe.approvalStatus === 'Pending') statusKey = 'pending';
+              else if (recipe.approvalStatus === 'Rejected') statusKey = 'rejected';
+            }
+            const status = STATUS_STYLES[statusKey] || STATUS_STYLES['draft'];
+            const rId = recipe.recipeId || recipe.id || recipe._id;
+
             return (
-              <Card key={recipe._id || recipe.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                <div className="relative h-48 overflow-hidden">
+              <Card key={rId} className="overflow-hidden group hover:shadow-lg transition-all duration-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
+                <div className="relative h-48 overflow-hidden shrink-0">
                   <img
-                    src={recipe.thumbnail || recipe.image || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=600&auto=format&fit=crop'}
+                    src={recipe.thumbnailUrl || recipe.thumbnail || recipe.image || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=600&auto=format&fit=crop'}
                     alt={recipe.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=600&auto=format&fit=crop' }}
                   />
-                  <div className="absolute top-3 left-3">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${status.cls}`}>
+                  <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm w-fit ${status.cls}`}>
                       {status.label}
                     </span>
+                    {!recipe.isPublic && (
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm bg-slate-800/80 text-white backdrop-blur-sm w-fit">
+                        Riêng tư
+                      </span>
+                    )}
                   </div>
                 </div>
-                <CardContent className="p-4">
-                  <h3 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-1 mb-2 text-lg group-hover:text-orange-500 transition-colors">
+                <CardContent className="p-4 flex flex-col flex-1">
+                  <h3 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-2 mb-2 text-lg group-hover:text-orange-500 transition-colors">
                     {recipe.title}
                   </h3>
-                  <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-4">
+                  <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-4 mt-auto">
                     <div className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" /> {recipe.prepTime || recipe.time || '—'}
+                      <Clock className="w-3.5 h-3.5" /> {recipe.cookTimeMinutes || recipe.prepTime || recipe.time || '—'}p
                     </div>
                     <div className="flex items-center gap-1">
-                      <ChefHat className="w-3.5 h-3.5" /> {recipe.difficulty || '—'}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3.5 h-3.5 fill-orange-400 text-orange-400" /> {recipe.rating || '—'}
+                      <ChefHat className="w-3.5 h-3.5" /> {recipe.difficulty === 'Easy' ? 'Dễ' : recipe.difficulty === 'Hard' ? 'Khó' : recipe.difficulty === 'Medium' ? 'Trung bình' : (recipe.difficulty || '—')}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1 rounded-lg" asChild>
-                      <Link to={`/recipe/${recipe._id || recipe.id}/edit`}>
+                  <div className="flex gap-2 mt-auto">
+                    <Button size="sm" variant="outline" className="flex-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" asChild>
+                      <Link to={`/recipe/${rId}/edit`}>
                         <Pencil className="w-3.5 h-3.5 mr-1.5" /> Sửa
                       </Link>
                     </Button>
