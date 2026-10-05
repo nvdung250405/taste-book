@@ -4,6 +4,12 @@
 !.env.example
 reports/
 
+# Local performance tests
+/tests/performance/
+/jest.performance.config.js
+/scripts/performance-options.js
+/scripts/run-performance-tests.js
+
 # Tài liệu dự án & Quy chuẩn
 01. SRS - Đặc tả yêu cầu - Nhóm-09.pdf
 Báo cáo task sp2-task03.docx

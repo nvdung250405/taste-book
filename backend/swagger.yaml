@@ -1597,6 +1597,319 @@ paths:
                 EC: -1
                 EM: Lỗi kết nối máy chủ!
                 DT: null
+  /favorites:
+    get:
+      tags:
+        - Favorites
+      summary: "5.1. UC-12: Danh sách món yêu thích"
+      description: "Lấy danh sách các món ăn được người dùng lưu vào bộ sưu tập yêu thích kèm ghi chú cá nhân (personalNotes), thông tin món ăn (ảnh đại diện, thời gian nấu, tác giả...) và hỗ trợ phân trang (page, limit)."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: "Số trang cần lấy (mặc định: 1)"
+          schema:
+            type: integer
+            default: 1
+          example: 1
+        - name: limit
+          in: query
+          description: "Số lượng món ăn mỗi trang (mặc định: 10, tối đa: 100)"
+          schema:
+            type: integer
+            default: 10
+          example: 10
+      responses:
+        "200":
+          description: Lấy thành công.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: "Thành công!"
+                DT:
+                  page: 1
+                  limit: 10
+                  total: 25
+                  totalPages: 3
+                  items:
+                    - recipeId: 101
+                      title: "Bò lúc lắc"
+                      thumbnailUrl: "https://res.cloudinary.com/tastebook/image/upload/v1/recipes/bo.jpg"
+                      cookTimeMinutes: 25
+                      difficulty: "Easy"
+                      author:
+                        userId: 2
+                        username: "chef_nguyen"
+                      personalNotes: "Nêm ớt vừa tay, nấu cho gia đình vào cuối tuần."
+                      createdAt: "2026-08-22T08:30:00.000Z"
+        "400":
+          description: Tham số phân trang page hoặc limit không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: "Tham số phân trang page hoặc limit không hợp lệ!"
+                DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
+  "/favorites/{recipeId}":
+    post:
+      tags:
+        - Favorites
+      summary: "5.2. UC-12: Thêm yêu thích"
+      description: "Người dùng đã đăng nhập thêm một món ăn vào bộ sưu tập yêu thích của mình kèm theo ghi chú cá nhân (tùy chọn)."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          description: "ID món ăn cần thêm vào bộ sưu tập yêu thích"
+          schema:
+            type: integer
+          example: 101
+      requestBody:
+        description: "Ghi chú cá nhân của người dùng cho món ăn (tùy chọn, tối đa 500 ký tự)"
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                personalNotes:
+                  type: string
+                  maxLength: 500
+                  example: "Thử nấu vào cuối tuần"
+      responses:
+        "201":
+          description: Thêm thành công.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: "Đã thêm vào bộ sưu tập yêu thích!"
+                DT: null
+        "400":
+          description: ID món ăn không hợp lệ hoặc dữ liệu đầu vào sai
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: "ID món ăn không hợp lệ!"
+                DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "404":
+          description: Không tìm thấy công thức.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: "Không tìm thấy món ăn để thêm vào yêu thích!"
+                DT: null
+        "409":
+          description: Món ăn đã có trong danh sách yêu thích.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: "Món ăn này đã tồn tại trong danh sách yêu thích!"
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
+    put:
+      tags:
+        - Favorites
+      summary: "5.3. UC-12: Sửa ghi chú món yêu thích"
+      description: "Người dùng cập nhật nội dung ghi chú cá nhân (personalNotes) cho một món ăn đã lưu trong danh sách yêu thích."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          description: "ID món ăn cần cập nhật ghi chú cá nhân"
+          schema:
+            type: integer
+          example: 101
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - personalNotes
+              properties:
+                personalNotes:
+                  type: string
+                  maxLength: 500
+                  example: "Nấu ít ớt lại"
+      responses:
+        "200":
+          description: Cập nhật thành công.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: "Cập nhật ghi chú thành công!"
+                DT: null
+        "400":
+          description: ID món ăn hoặc dữ liệu ghi chú không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: "ID món ăn không hợp lệ!"
+                DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "404":
+          description: Món ăn chưa có trong danh sách yêu thích
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: "Món ăn chưa có trong danh sách yêu thích của bạn!"
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
+    delete:
+      tags:
+        - Favorites
+      summary: "5.4. UC-12: Bỏ yêu thích"
+      description: "Người dùng gỡ bỏ một món ăn khỏi danh sách yêu thích của mình."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          description: "ID món ăn cần bỏ khỏi danh sách yêu thích"
+          schema:
+            type: integer
+          example: 101
+      responses:
+        "200":
+          description: Bỏ yêu thích thành công.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: "Đã xóa khỏi danh sách yêu thích!"
+                DT: null
+        "400":
+          description: ID món ăn không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: "ID món ăn không hợp lệ!"
+                DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "404":
+          description: Món ăn chưa có trong danh sách yêu thích
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: "Món ăn chưa có trong danh sách yêu thích của bạn!"
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
   /images:
     post:
       tags:
