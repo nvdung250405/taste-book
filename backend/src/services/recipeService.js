@@ -1059,14 +1059,13 @@ const getMyRecipes = async (user, query = {}) => {
     let limitNumber = 10;
     if (limit !== undefined && limit !== null && limit !== "") {
       limitNumber = Number(limit);
-      if (!Number.isInteger(limitNumber) || limitNumber <= 0) {
+      if (!Number.isInteger(limitNumber) || limitNumber <= 0 || limitNumber > 100) {
         return {
           EC: 1,
           EM: "Tham số phân trang page hoặc limit không hợp lệ!",
           DT: null,
         };
       }
-      if (limitNumber > 100) limitNumber = 100;
     }
 
     const offset = (pageNumber - 1) * limitNumber;
