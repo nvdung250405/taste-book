@@ -29,11 +29,10 @@ export const useScaledRecipe = (recipeId, servings, options = {}) => {
   });
 };
 
-export const useMyRecipes = (params = {}, options = {}) => {
+export const useMyRecipes = () => {
   return useQuery({
-    queryKey: ['my-recipes', params],
-    queryFn: () => recipesApi.getMyRecipes(params),
-    ...options,
+    queryKey: ['my-recipes'],
+    queryFn: () => recipesApi.getMyRecipes(),
   });
 };
 

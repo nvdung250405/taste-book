@@ -89,7 +89,7 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 function App() {
   return (
     <>
-      <Toaster position="top-right" richColors closeButton />
+      <Toaster position="top-right" richColors />
 
       <BrowserRouter>
         <AppBehaviorHandler />
