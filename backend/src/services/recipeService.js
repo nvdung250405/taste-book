@@ -7,6 +7,27 @@ const isPositiveInteger = (value) =>
   Number.isInteger(Number(value)) &&
   Number(value) > 0;
 
+const systemIngredientUnitError = (ingredient, input) => {
+  const hasUnitId = input.unitId !== undefined && input.unitId !== null;
+  const hasCustomUnit =
+    input.customUnit !== undefined &&
+    input.customUnit !== null &&
+    String(input.customUnit).trim() !== "";
+  if (
+    hasCustomUnit ||
+    (hasUnitId &&
+      (!isPositiveInteger(input.unitId) ||
+        Number(input.unitId) !== Number(ingredient.defaultUnitId)))
+  ) {
+    return {
+      EC: 1,
+      EM: "Nguyên liệu hệ thống chỉ được sử dụng đơn vị đo mặc định của hệ thống!",
+      DT: null,
+    };
+  }
+  return null;
+};
+
 const cookingStepsError = (steps) => {
   const seen = new Set();
   for (let i = 0; i < steps.length; i++) {
@@ -770,28 +791,13 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
           };
         }
 
-        let unitId = foundIng.defaultUnitId;
-        let customUnit = null;
+        const unitError = systemIngredientUnitError(foundIng, ing);
+        if (unitError) return unitError;
+
+        const unitId = foundIng.defaultUnitId;
+        const customUnit = null;
         let unitName = foundIng.defaultUnit?.unitName || "";
-        if (ing.customUnit && String(ing.customUnit).trim()) {
-          unitId = null;
-          customUnit = String(ing.customUnit).trim();
-          unitName = customUnit;
-        } else if (
-          ing.unitId &&
-          Number(ing.unitId) !== foundIng.defaultUnitId
-        ) {
-          const selectedUnit = await db.Unit.findByPk(Number(ing.unitId));
-          if (!selectedUnit) {
-          return {
-            EC: 1,
-              EM: `Đơn vị đo hệ thống với ID ${ing.unitId} không tồn tại!`,
-            DT: null,
-          };
-        }
-          unitId = selectedUnit.id;
-          unitName = selectedUnit.unitName;
-        } else if (Number(ing.quantity) === 0 && !unitName && unitId) {
+        if (Number(ing.quantity) === 0 && !unitName && unitId) {
           unitName = (await db.Unit.findByPk(unitId))?.unitName || "";
         }
         const quantityError = ingredientQuantityError(
@@ -1323,28 +1329,13 @@ const updateRecipe = async (recipeId, user, data) => {
           };
         }
 
-        let unitId = foundIng.defaultUnitId;
-        let customUnit = null;
+        const unitError = systemIngredientUnitError(foundIng, ing);
+        if (unitError) return unitError;
+
+        const unitId = foundIng.defaultUnitId;
+        const customUnit = null;
         let unitName = foundIng.defaultUnit?.unitName || "";
-        if (ing.customUnit && String(ing.customUnit).trim()) {
-          unitId = null;
-          customUnit = String(ing.customUnit).trim();
-          unitName = customUnit;
-        } else if (
-          ing.unitId &&
-          Number(ing.unitId) !== foundIng.defaultUnitId
-        ) {
-          const selectedUnit = await db.Unit.findByPk(Number(ing.unitId));
-          if (!selectedUnit) {
-          return {
-            EC: 1,
-              EM: `Đơn vị đo hệ thống với ID ${ing.unitId} không tồn tại!`,
-            DT: null,
-          };
-        }
-          unitId = selectedUnit.id;
-          unitName = selectedUnit.unitName;
-        } else if (Number(ing.quantity) === 0 && !unitName && unitId) {
+        if (Number(ing.quantity) === 0 && !unitName && unitId) {
           unitName = (await db.Unit.findByPk(unitId))?.unitName || "";
         }
         const quantityError = ingredientQuantityError(
