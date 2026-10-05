@@ -40,8 +40,8 @@ export default function RecipeDetailPage() {
   // Check if recipe is favorited
   const favorites = Array.isArray(favRes?.DT) ? favRes.DT : (favRes?.DT?.items || [])
   const isFavorited = favorites.some(f => {
-    const rid = f.recipe?._id || f.recipe?.id || f._id || f.id
-    return rid === id
+    const rid = f.recipe?._id || f.recipe?.id || f.recipeId || f._id || f.id
+    return String(rid) === String(id)
   })
 
   const actualServings = servings || recipe?.defaultServings || recipe?.servings || 4
