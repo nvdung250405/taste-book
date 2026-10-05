@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import {
   Search,
@@ -148,7 +148,9 @@ export default function RecipeSearchPage() {
   const { mutate: addFav, isPending: adding } = useAddFavorite()
   const { mutate: removeFav, isPending: removing } = useRemoveFavorite()
 
-  const favorites = Array.isArray(favRes?.DT) ? favRes.DT : (favRes?.DT?.items || [])
+  const favorites = useMemo(() => {
+    return Array.isArray(favRes?.DT) ? favRes.DT : (favRes?.DT?.items || [])
+  }, [favRes])
 
   const isFavorited = useCallback((recipeId) => {
     return favorites.some(f => {
