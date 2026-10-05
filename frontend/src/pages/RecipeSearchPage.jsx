@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import {
   Search,
@@ -17,6 +17,7 @@ import { Card, CardContent } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { useRecipes } from '../hooks/queries/useRecipeQueries'
 import { useCategories } from '../hooks/queries/useCategoryQueries'
+import { useFavorites, useAddFavorite, useRemoveFavorite } from '../hooks/queries/useFavoriteQueries'
 import { toast } from 'sonner'
 import RecipeCardSkeleton from '../components/recipe/RecipeCardSkeleton'
 
@@ -141,7 +142,42 @@ export default function RecipeSearchPage() {
   const { data: recipesRes, isLoading } = useRecipes(params)
   const { data: categoriesRes } = useCategories()
 
-  // Backend trả về: { EC:0, DT: { page, limit, total, totalPages, recipes: [...] } }
+  // Favorites
+  const hasToken = !!localStorage.getItem('token')
+  const { data: favRes } = useFavorites({ enabled: hasToken })
+  const { mutate: addFav, isPending: adding } = useAddFavorite()
+  const { mutate: removeFav, isPending: removing } = useRemoveFavorite()
+
+  const favorites = Array.isArray(favRes?.DT) ? favRes.DT : (favRes?.DT?.items || [])
+
+  const isFavorited = useCallback((recipeId) => {
+    return favorites.some(f => {
+      const fid = f.recipe?.id || f.recipe?._id || f.recipeId
+      return String(fid) === String(recipeId)
+    })
+  }, [favorites])
+
+  const handleToggleFavorite = useCallback((e, recipeId) => {
+    e.stopPropagation()
+    e.preventDefault()
+    if (!hasToken) {
+      toast.info('Vui lòng đăng nhập để lưu công thức yêu thích')
+      return
+    }
+    if (isFavorited(recipeId)) {
+      removeFav(recipeId, {
+        onSuccess: () => toast.success('Đã bỏ lưu khỏi yêu thích'),
+        onError: () => toast.error('Không thể bỏ lưu. Vui lòng thử lại!'),
+      })
+    } else {
+      addFav({ recipeId, data: {} }, {
+        onSuccess: () => toast.success('Đã thêm vào yêu thích ❤️'),
+        onError: () => toast.error('Không thể thêm. Vui lòng thử lại!'),
+      })
+    }
+  }, [hasToken, isFavorited, addFav, removeFav])
+
+
   const allRecipes = Array.isArray(recipesRes?.DT?.recipes)
     ? recipesRes.DT.recipes
     : []
@@ -344,14 +380,18 @@ export default function RecipeSearchPage() {
                       </div>
 
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toast.info('Chức năng yêu thích yêu cầu đăng nhập')
-                        }}
-                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white backdrop-blur-md flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors shadow-sm z-10"
-                        aria-label="Thêm vào yêu thích"
+                        onClick={(e) => handleToggleFavorite(e, recipe.recipeId || recipe.id || recipe._id)}
+                        disabled={adding || removing}
+                        className={`absolute top-3 right-3 w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center shadow-sm z-10 transition-all hover:scale-110 active:scale-95 ${
+                          isFavorited(recipe.recipeId || recipe.id || recipe._id)
+                            ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/40'
+                            : 'bg-white/90 hover:bg-white text-slate-400 hover:text-red-500'
+                        }`}
+                        aria-label={isFavorited(recipe.recipeId || recipe.id || recipe._id) ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
                       >
-                        <Heart className="w-4 h-4" />
+                        <Heart className={`w-4 h-4 ${
+                          isFavorited(recipe.recipeId || recipe.id || recipe._id) ? 'fill-white' : ''
+                        }`} />
                       </button>
 
                       {recipe.difficulty && (
