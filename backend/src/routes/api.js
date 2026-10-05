@@ -6,6 +6,7 @@ import adminRoutes from "./admin";
 import homeRoutes from "./home";
 import recipeRoutes from "./recipe";
 import categoryRoutes from "./category";
+import favoriteRoutes from "./favorite";
 
 const router = express.Router();
 
@@ -22,6 +23,7 @@ const initApiRoutes = (app) => {
   router.use("/admin", adminRoutes);
   router.use("/categories", categoryRoutes);
   router.use("/recipes", recipeRoutes);
+  router.use("/favorites", favoriteRoutes);
 
   return app.use("/api/v1/", router);
 };
