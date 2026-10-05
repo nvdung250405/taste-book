@@ -965,7 +965,7 @@ paths:
       summary: "UC-08: Người dùng tạo công thức món ăn mới"
       description: |
         User và Admin đều có thể tạo công thức cá nhân qua API này. Nếu isPublic = false hoặc không truyền, công thức được lưu riêng tư với approvalStatus = 'Approved'. Nếu isPublic = true, công thức được lưu với approvalStatus = 'Pending' để chờ duyệt, kể cả khi tác giả là Admin.
-        Nguyên liệu định tính dùng quantity = 0 với unitId hoặc customUnit mang đơn vị như "vừa đủ", "tùy khẩu vị", "nêm nếm". Nguyên liệu định lượng phải có quantity > 0. Với ingredientId chuẩn, có thể chọn unitId khác hoặc nhập customUnit tự do (ví dụ "trái to"); customUnit được ưu tiên nếu gửi cả hai. Hệ thống lưu đúng tên đơn vị và không tự quy đổi giữa các đơn vị.
+        Nguyên liệu định tính dùng quantity = 0 với unitId hoặc customUnit mang đơn vị như "vừa đủ", "tùy khẩu vị", "nêm nếm". Nguyên liệu định lượng phải có quantity > 0. Với ingredientId chuẩn, chỉ được sử dụng unitId bằng defaultUnitId của nguyên liệu; bỏ unitId thì dùng đơn vị mặc định. Không được nhập customUnit cho nguyên liệu chuẩn; vi phạm trả HTTP 400, EC: 1. Hệ thống lưu đúng tên đơn vị và không tự quy đổi giữa các đơn vị.
         Công thức có tác giả là Admin sau khi được duyệt công khai sẽ trở thành công thức chuẩn hệ thống.
         FE: Khi tài khoản Admin chọn gửi công khai, hiển thị xác nhận trước khi gọi API và chỉ gửi khi người dùng đồng ý:
         "Chú ý: bạn đang là tài khoản quản trị viên, khi công thức này được phê duyệt ra hệ thống thì sẽ trở thành công thức chuẩn của hệ thống. Bạn có chắc chắn không?"
@@ -1042,11 +1042,12 @@ paths:
                       unitId:
                         type: integer
                         nullable: true
+                        description: "Với ingredientId chuẩn, phải bằng defaultUnitId; bỏ trường này hoặc gửi null thì dùng mặc định. Với nguyên liệu tự nhập, có thể chọn đơn vị hệ thống bất kỳ."
                         example: 1
                       customUnit:
                         type: string
                         nullable: true
-                        description: "Đơn vị tự nhập cho cả nguyên liệu chuẩn và tự nhập, ví dụ 'trái to' hoặc 'vừa đủ'. Với ingredientId chuẩn, customUnit được ưu tiên nếu gửi cùng unitId."
+                        description: "Chỉ dùng cho nguyên liệu tự nhập (customIngredientName), ví dụ 'trái to' hoặc 'vừa đủ'. Nguyên liệu chuẩn (ingredientId) không được nhập customUnit."
                         example: null
                 cookingSteps:
                   type: array
@@ -1124,6 +1125,8 @@ paths:
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 10
           description: Số lượng món mỗi trang (tối đa 100)
       responses:
@@ -1251,7 +1254,7 @@ paths:
       summary: "UC-10: Sửa công thức cá nhân"
       description: |
         User và Admin chỉ được chỉnh sửa công thức cá nhân do chính mình tạo. Nếu isPublic = false hoặc không truyền, công thức được lưu riêng tư với approvalStatus = 'Approved'. Nếu isPublic = true, công thức được lưu với approvalStatus = 'Pending' để chờ duyệt, kể cả khi tác giả là Admin.
-        Nguyên liệu định tính dùng quantity = 0 với unitId hoặc customUnit mang đơn vị như "vừa đủ", "tùy khẩu vị", "nêm nếm". Nguyên liệu định lượng phải có quantity > 0. Với ingredientId chuẩn, có thể chọn unitId khác hoặc nhập customUnit tự do (ví dụ "trái to"); customUnit được ưu tiên nếu gửi cả hai. Hệ thống lưu đúng tên đơn vị và không tự quy đổi giữa các đơn vị.
+        Nguyên liệu định tính dùng quantity = 0 với unitId hoặc customUnit mang đơn vị như "vừa đủ", "tùy khẩu vị", "nêm nếm". Nguyên liệu định lượng phải có quantity > 0. Với ingredientId chuẩn, chỉ được sử dụng unitId bằng defaultUnitId của nguyên liệu; bỏ unitId thì dùng đơn vị mặc định. Không được nhập customUnit cho nguyên liệu chuẩn; vi phạm trả HTTP 400, EC: 1. Hệ thống lưu đúng tên đơn vị và không tự quy đổi giữa các đơn vị.
         Nếu công thức đã công khai và được duyệt (isPublic = true và approvalStatus = 'Approved'), API cá nhân từ chối chỉnh sửa (403 Forbidden). Công thức có tác giả là Admin sau khi được duyệt công khai trở thành công thức chuẩn hệ thống và có thể được sửa qua API quản trị.
         FE: Khi tài khoản Admin chọn gửi công khai, hiển thị xác nhận trước khi gọi API và chỉ gửi khi người dùng đồng ý:
         "Chú ý: bạn đang là tài khoản quản trị viên, khi công thức này được phê duyệt ra hệ thống thì sẽ trở thành công thức chuẩn của hệ thống. Bạn có chắc chắn không?"
@@ -1336,11 +1339,12 @@ paths:
                       unitId:
                         type: integer
                         nullable: true
+                        description: "Với ingredientId chuẩn, phải bằng defaultUnitId; bỏ trường này hoặc gửi null thì dùng mặc định. Với nguyên liệu tự nhập, có thể chọn đơn vị hệ thống bất kỳ."
                         example: 1
                       customUnit:
                         type: string
                         nullable: true
-                        description: "Đơn vị tự nhập cho cả nguyên liệu chuẩn và tự nhập, ví dụ 'trái to' hoặc 'vừa đủ'. Với ingredientId chuẩn, customUnit được ưu tiên nếu gửi cùng unitId."
+                        description: "Chỉ dùng cho nguyên liệu tự nhập (customIngredientName), ví dụ 'trái to' hoặc 'vừa đủ'. Nguyên liệu chuẩn (ingredientId) không được nhập customUnit."
                         example: null
                 cookingSteps:
                   type: array
