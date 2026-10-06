@@ -20,7 +20,7 @@ describe("Auth & Core API Integration Tests (Supertest)", () => {
 
       expect(res.status).toBe(404);
       expect(res.body).toEqual({
-        EC: -1,
+        EC: 3,
         EM: "API endpoint not found.",
         DT: null,
       });
