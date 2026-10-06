@@ -24,7 +24,6 @@ configViewEngine(app);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
 //test connection db
 if (process.env.NODE_ENV !== "test") {
   connection();
@@ -39,7 +38,7 @@ initApiRoutes(app);
 //req => middleware => res
 app.use((req, res) => {
   return res.status(404).json({
-    EC: -1,
+    EC: 3,
     EM: "API endpoint not found.",
     DT: null,
   });
