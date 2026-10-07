@@ -39,7 +39,7 @@ export default function Footer({ handleLinkClick }) {
           </div>
 
           <div>
-            <h3 className="font-semibold text-slate-900 dark:text-slate-50 mb-4">Khám phá</h3>
+            <h2 className="font-semibold text-slate-900 dark:text-slate-50 mb-4">Khám phá</h2>
             <ul className="space-y-3 text-sm text-slate-500 dark:text-slate-400">
               <li><Link to="/search" className="text-slate-500 dark:text-slate-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">Khám phá công thức</Link></li>
               <li><Link to="/search" className="hover:text-orange-500 transition-colors">Món ăn nổi bật</Link></li>
@@ -48,7 +48,7 @@ export default function Footer({ handleLinkClick }) {
           </div>
 
           <div>
-            <h3 className="font-semibold text-slate-900 dark:text-slate-50 mb-4">Tiện ích</h3>
+            <h2 className="font-semibold text-slate-900 dark:text-slate-50 mb-4">Tiện ích</h2>
             <ul className="space-y-3 text-sm text-slate-500 dark:text-slate-400">
               <li><Link to="/my-recipes" onClick={(e) => handleLinkClick(e, true)} className="hover:text-orange-500 transition-colors">Công thức của bạn</Link></li>
               <li><Link to="/menu" onClick={(e) => handleLinkClick(e, true)} className="hover:text-orange-500 transition-colors">Lên thực đơn</Link></li>
@@ -58,7 +58,7 @@ export default function Footer({ handleLinkClick }) {
           </div>
 
           <div>
-            <h3 className="font-semibold text-slate-900 dark:text-slate-50 mb-4">Liên hệ</h3>
+            <h2 className="font-semibold text-slate-900 dark:text-slate-50 mb-4">Liên hệ</h2>
             <ul className="space-y-3 text-sm text-slate-500 dark:text-slate-400">
               <li className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-orange-500 shrink-0" />

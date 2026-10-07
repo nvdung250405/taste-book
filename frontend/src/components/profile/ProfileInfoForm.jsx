@@ -62,7 +62,9 @@ export default function ProfileInfoForm({ user, profileForm, setProfileForm, han
             <div className="flex items-center gap-5">
               {/* Avatar Preview */}
               <div 
-                onClick={() => fileInputRef.current?.click()}
+                role="button" tabIndex={0} aria-label="Đổi ảnh đại diện"
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!isUploading) fileInputRef.current?.click() } }}
+                onClick={() => { if (!isUploading) fileInputRef.current?.click() }}
                 className="relative group w-20 h-20 rounded-full overflow-hidden border-2 border-orange-300 dark:border-orange-800/60 shadow-sm cursor-pointer shrink-0 bg-slate-100 dark:bg-slate-800"
                 title="Nhấp để đổi ảnh"
               >
@@ -97,7 +99,7 @@ export default function ProfileInfoForm({ user, profileForm, setProfileForm, han
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
-                    className="bg-orange-500 hover:bg-orange-600 text-white cursor-pointer h-9 px-4 text-xs font-medium"
+                    className="bg-orange-700 hover:bg-orange-800 text-white cursor-pointer h-9 px-4 text-xs font-medium"
                   >
                     {isUploading ? (
                       <>
@@ -132,7 +134,7 @@ export default function ProfileInfoForm({ user, profileForm, setProfileForm, han
             {showUrlInput && (
               <div className="pt-2 animate-in fade-in duration-200">
                 <Input 
-                  value={profileForm.avatar}
+                  aria-label="Đường dẫn ảnh đại diện" value={profileForm.avatar}
                   onChange={(e) => setProfileForm(p => ({ ...p, avatar: e.target.value }))}
                   placeholder="https://example.com/anh-dai-dien.jpg"
                   className="text-xs font-mono"
@@ -143,41 +145,34 @@ export default function ProfileInfoForm({ user, profileForm, setProfileForm, han
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Họ và tên</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="profile-name">Họ và tên</label>
               <Input 
-                value={profileForm.name}
+                id="profile-name" value={profileForm.name}
                 onChange={(e) => setProfileForm(p => ({ ...p, name: e.target.value }))}
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="profile-email">Email</label>
               <Input 
-                value={user.email}
+                id="profile-email" value={user.email}
                 disabled
                 className="bg-slate-50 dark:bg-slate-900 text-slate-500"
               />
               <p className="text-xs text-slate-400">Email không thể thay đổi</p>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Số điện thoại</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="profile-phone">Số điện thoại</label>
               <Input 
-                value={profileForm.phone}
+                id="profile-phone" value={profileForm.phone}
                 onChange={(e) => setProfileForm(p => ({ ...p, phone: e.target.value }))}
                 placeholder="09xx xxx xxx"
               />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Địa chỉ</label>
-              <Input 
-                value={profileForm.address}
-                onChange={(e) => setProfileForm(p => ({ ...p, address: e.target.value }))}
-                placeholder="Thành phố, Quốc gia..."
-              />
-            </div>
+
           </div>
 
           <div className="pt-4 flex justify-end">
-            <Button type="submit" disabled={updating} className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl px-6">
+            <Button type="submit" disabled={updating || isUploading} className="bg-orange-700 hover:bg-orange-800 text-white rounded-xl px-6">
               {updating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Lưu thay đổi
             </Button>

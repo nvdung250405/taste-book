@@ -18,21 +18,21 @@ export default function RecipeIngredientsForm({ formData, handleIngChange, remov
             <div className="flex-1 grid grid-cols-12 gap-2">
               <div className="col-span-12 sm:col-span-6">
                 <Input
-                  placeholder="Tên nguyên liệu (VD: Thịt bò)"
+                  aria-label={`Tên nguyên liệu ${idx + 1}`} placeholder="Tên nguyên liệu (VD: Thịt bò)"
                   value={ing.name}
                   onChange={(e) => handleIngChange(idx, 'name', e.target.value)}
                 />
               </div>
               <div className="col-span-6 sm:col-span-3">
                 <Input
-                  placeholder="Số lượng"
+                  aria-label={`Số lượng nguyên liệu ${idx + 1}`} placeholder="Số lượng"
                   value={ing.quantity}
                   onChange={(e) => handleIngChange(idx, 'quantity', e.target.value)}
                 />
               </div>
               <div className="col-span-6 sm:col-span-3">
                 <Input
-                  placeholder="Đơn vị (VD: gram)"
+                  aria-label={`Đơn vị nguyên liệu ${idx + 1}`} placeholder="Đơn vị (VD: gram)"
                   value={ing.unit}
                   onChange={(e) => handleIngChange(idx, 'unit', e.target.value)}
                 />
@@ -43,7 +43,7 @@ export default function RecipeIngredientsForm({ formData, handleIngChange, remov
               variant="ghost"
               size="icon"
               className="shrink-0 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-              onClick={() => removeIngredient(idx)}
+              aria-label={`Xóa nguyên liệu ${idx + 1}`} onClick={() => removeIngredient(idx)}
               disabled={formData.ingredients.length === 1}
             >
               <Trash2 className="w-4 h-4" />

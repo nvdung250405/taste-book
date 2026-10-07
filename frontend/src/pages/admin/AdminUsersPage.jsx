@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import QueryError from '../../components/ui/QueryError'
 import { Users, Search } from 'lucide-react'
 import { useAdminUsers } from '../../hooks/queries/useUserQueries'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
@@ -7,7 +8,7 @@ export default function AdminUsersPage() {
   const [keyword, setKeyword] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
 
-  const { data: res, isLoading } = useAdminUsers({ keyword: keyword || undefined, role: roleFilter || undefined })
+  const { data: res, isLoading, isError, isFetching, refetch } = useAdminUsers({ keyword: keyword || undefined, role: roleFilter || undefined })
   const users = res?.DT?.users || res?.DT || []
 
   return (
@@ -24,14 +25,14 @@ export default function AdminUsersPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
-                type="text"
+                type="text" aria-label="Tìm người dùng theo email hoặc tên"
                 placeholder="Tìm kiếm theo email, tên..."
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-400"
               />
             </div>
-            <select
+            <select aria-label="Lọc vai trò người dùng"
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
               className="px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -53,7 +54,7 @@ export default function AdminUsersPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {isLoading ? (
+          {isError ? <QueryError title="Không thể tải người dùng" onRetry={refetch} isRetrying={isFetching} /> : isLoading ? (
             <div className="flex items-center justify-center py-20 text-slate-400">Đang tải...</div>
           ) : users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-2">

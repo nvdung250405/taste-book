@@ -32,8 +32,11 @@ import RecipeCardSkeleton from '../components/recipe/RecipeCardSkeleton'
 import QueryError from '../components/ui/QueryError'
 import ListPagination from '../components/ui/ListPagination'
 import useListPagination from '../hooks/useListPagination'
+import useRecipeGridColumns from '../hooks/useRecipeGridColumns'
+import { recipeImageProps, handleRecipeImageError } from '../lib/recipeImages'
 
 export default function FavoritesPage() {
+  const gridColumns = useRecipeGridColumns('favorites')
   const hasToken = !!localStorage.getItem('token')
   const { data: res, isLoading, isError, isFetching, refetch } = useFavorites()
   const { mutate: removeFav } = useRemoveFavorite()
@@ -133,7 +136,7 @@ export default function FavoritesPage() {
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Tìm trong danh sách..."
+              aria-label="Tìm trong danh sách..." placeholder="Tìm trong danh sách..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
@@ -157,9 +160,9 @@ export default function FavoritesPage() {
           <div className="w-16 h-16 rounded-full bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center mb-4 text-orange-500 shadow-inner">
             <Lock className="w-8 h-8" />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">
             Đăng nhập để xem danh sách yêu thích
-          </h3>
+          </h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mt-2 mb-6">
             Danh sách món yêu thích được lưu an toàn trên tài khoản của bạn để bạn có thể xem lại bất cứ lúc nào.
           </p>
@@ -184,9 +187,9 @@ export default function FavoritesPage() {
           <div className="w-20 h-20 rounded-full bg-red-50 dark:bg-red-950/40 flex items-center justify-center mb-4 shadow-inner ring-8 ring-red-50/50 dark:ring-red-950/20">
             <Heart className="w-10 h-10 text-red-400" />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">
             Chưa có món yêu thích nào
-          </h3>
+          </h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm max-w-md mt-2 mb-6">
             Khi lướt xem các công thức, hãy nhấn vào biểu tượng trái tim để lưu lại vào đây và xem lại dễ dàng bất cứ lúc nào!
           </p>
@@ -203,9 +206,9 @@ export default function FavoritesPage() {
         /* Search Not Found State */
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" />
-          <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">
+          <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-300">
             Không tìm thấy công thức phù hợp
-          </h3>
+          </h2>
           <p className="text-sm text-slate-400 mt-1">
             Thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc tìm kiếm
           </p>
@@ -221,7 +224,7 @@ export default function FavoritesPage() {
       ) : (
         /* Favorites Grid */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {visibleItems.map((fav) => {
+          {visibleItems.map((fav, index) => {
             const recipe = fav.recipe || fav
             const recipeId = recipe.id || recipe._id || fav.recipeId
             const isRemoving = removingIds.has(String(recipeId))
@@ -230,7 +233,7 @@ export default function FavoritesPage() {
             return (
               <Card
                 key={fav.id || recipeId}
-                className={`group relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col ${
+                className={`group relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 transition-[transform,box-shadow,opacity] duration-300 motion-reduce:transition-none hover:shadow-xl hover:-translate-y-1 flex flex-col ${
                   isRemoving
                     ? 'opacity-0 scale-95 pointer-events-none'
                     : 'opacity-100'
@@ -243,18 +246,14 @@ export default function FavoritesPage() {
                     className="block w-full h-full"
                   >
                     <img
-                      src={
-                        recipe.thumbnailUrl ||
-                        recipe.thumbnail ||
-                        recipe.image ||
-                        'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=600&auto=format&fit=crop'
-                      }
+                      {...recipeImageProps(recipe.thumbnailUrl || recipe.thumbnail || recipe.image)}
+                      sizes="(min-width: 1536px) 350px, (min-width: 1280px) 285px, (min-width: 1024px) 305px, (min-width: 768px) 340px, (min-width: 640px) 276px, calc(100vw - 96px)"
+                      loading={index < gridColumns ? 'eager' : 'lazy'}
+                      fetchPriority={index === 0 ? 'high' : 'auto'}
+                      decoding="async"
                       alt={recipe.title}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      onError={(e) => {
-                        e.target.src =
-                          'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=600&auto=format&fit=crop'
-                      }}
+                      onError={handleRecipeImageError}
                     />
                   </Link>
 
@@ -306,14 +305,14 @@ export default function FavoritesPage() {
 
                 {/* Card Content */}
                 <CardContent className="p-4 flex flex-col flex-1">
-                  <h3 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-2 text-base group-hover:text-orange-500 transition-colors mb-2">
+                  <h2 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-2 text-base group-hover:text-orange-500 transition-colors mb-2">
                     <Link
                       to={`/recipe/${recipeId}`}
                       className="hover:underline"
                     >
                       {recipe.title}
                     </Link>
-                  </h3>
+                  </h2>
 
                   {/* Personal note if exists */}
                   {noteText ? (

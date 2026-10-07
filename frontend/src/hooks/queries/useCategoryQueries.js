@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import categoriesApi from '../../api/categories.api';
 
+
+const invalidateCategoryRecipes = (queryClient) => Promise.all(
+  ['recipe', 'my-recipes', 'recipes', 'favorites', 'home-recipes', 'admin-recipes', 'pending-recipes']
+    .map(key => queryClient.invalidateQueries({ queryKey: [key] }))
+);
+
 // --- QUERIES ---
 
 export const useCategories = (options = {}) => {
@@ -43,10 +49,7 @@ export const useUpdateCategory = () => {
         ...previous, DT: previous.DT.map(c => c.categoryId === categoryId ? { ...c, ...response.DT } : c),
       } : undefined);
       queryClient.invalidateQueries({ queryKey: ['categories'] });
-      queryClient.invalidateQueries({ queryKey: ['recipe'] });
-      queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
-      queryClient.invalidateQueries({ queryKey: ['recipes'] });
-      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      await invalidateCategoryRecipes(queryClient);
     },
   });
 };
@@ -61,10 +64,7 @@ export const useDeleteCategory = () => {
         ...previous, DT: previous.DT.filter(c => c.categoryId !== categoryId),
       } : undefined);
       queryClient.invalidateQueries({ queryKey: ['categories'] });
-      queryClient.invalidateQueries({ queryKey: ['recipe'] });
-      queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
-      queryClient.invalidateQueries({ queryKey: ['recipes'] });
-      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      await invalidateCategoryRecipes(queryClient);
     },
   });
 };
@@ -86,9 +86,10 @@ export const useUpdateAdminCategory = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ categoryId, data }) => categoriesApi.updateAdminCategory(categoryId, data),
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+      await invalidateCategoryRecipes(queryClient);
     },
   });
 };
@@ -97,9 +98,10 @@ export const useDeleteAdminCategory = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (categoryId) => categoriesApi.deleteAdminCategory(categoryId),
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+      await invalidateCategoryRecipes(queryClient);
     },
   });
 };

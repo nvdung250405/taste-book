@@ -6,6 +6,7 @@ import { useRecipeDetail } from '../hooks/queries/useRecipeQueries'
 import { useAddFavorite, useRemoveFavorite, useFavorites } from '../hooks/queries/useFavoriteQueries'
 import { useProfile } from '../hooks/queries/useAuthQueries'
 import { toast } from 'sonner'
+import QueryError from '../components/ui/QueryError'
 
 import { Badge } from '../components/ui/badge'
 
@@ -23,9 +24,13 @@ const DIFFICULTY_TEXT = {
 
 export default function RecipeDetailPage() {
   const { id } = useParams()
+  return <RecipeDetail key={id} id={id} />
+}
+
+function RecipeDetail({ id }) {
   const navigate = useNavigate()
 
-  const { data: recipeRes, isLoading, error } = useRecipeDetail(id)
+  const { data: recipeRes, isLoading, error, refetch, isFetching } = useRecipeDetail(id)
   const { data: profileRes } = useProfile()
   const { data: favRes } = useFavorites()
   const { mutate: addFav, isPending: adding } = useAddFavorite()
@@ -98,6 +103,8 @@ export default function RecipeDetailPage() {
       </div>
     )
   }
+
+  if (error && error.EC !== 3) return <QueryError title="Không thể tải công thức" onRetry={refetch} isRetrying={isFetching} />
 
   if (error || !recipe) {
     return (

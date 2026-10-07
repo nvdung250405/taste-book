@@ -1,3 +1,5 @@
+import useRecipeGridColumns from '../hooks/useRecipeGridColumns'
+import { recipeImageProps, handleRecipeImageError } from '../lib/recipeImages'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import {
@@ -21,6 +23,7 @@ import { useFavorites, useAddFavorite, useRemoveFavorite } from '../hooks/querie
 import { toast } from 'sonner'
 import RecipeCardSkeleton from '../components/recipe/RecipeCardSkeleton'
 import QueryError from '../components/ui/QueryError'
+const ITEMS_PER_PAGE = 12
 
 const DIFFICULTY_COLORS = {
   Easy: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400',
@@ -35,24 +38,10 @@ const DIFFICULTY_LABELS = {
   Hard: 'Khó',
 }
 
-const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=400&auto=format&fit=crop'
-const ITEMS_PER_PAGE = 12
 
-function getOptimizedImageUrl(url) {
-  if (!url) return FALLBACK_IMAGE;
-  if (url.includes('res.cloudinary.com')) {
-    if (url.includes('/upload/') && !url.includes('/upload/c_')) {
-      return url.replace('/upload/', '/upload/c_fill,w_400,q_auto,f_auto/');
-    }
-  } else if (url.includes('images.unsplash.com') && !url.includes('w=')) {
-    const sep = url.includes('?') ? '&' : '?';
-    return `${url}${sep}q=80&w=400&auto=format&fit=crop`;
-  }
-  return url;
-}
 
 export default function RecipeSearchPage() {
+  const gridColumns = useRecipeGridColumns()
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const location = useLocation()
@@ -121,7 +110,7 @@ export default function RecipeSearchPage() {
 
   // Fetch data
   const { data: recipesRes, isLoading, isError, isFetching, refetch } = useRecipes(params)
-  const { data: categoriesRes } = useCategories()
+  const { data: categoriesRes, isError: categoriesError, isFetching: categoriesFetching, refetch: retryCategories } = useCategories()
 
   // Favorites
   const hasToken = !!localStorage.getItem('token')
@@ -200,7 +189,7 @@ export default function RecipeSearchPage() {
         <div className="flex-1 relative flex items-center">
           <Search className="absolute left-4 w-5 h-5 text-slate-400" />
           <Input
-            value={inputValue}
+            aria-label="Tìm kiếm công thức" value={inputValue}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Nhập tên món ăn hoặc nguyên liệu (VD: Thịt bò, Canh chua)..."
             className="pl-12 pr-10 h-12 rounded-xl bg-white dark:bg-slate-900 text-base shadow-sm"
@@ -226,7 +215,7 @@ export default function RecipeSearchPage() {
 
         <div className="flex flex-wrap gap-3">
           <select
-            value={selectedDifficulty}
+            aria-label="Lọc độ khó" value={selectedDifficulty}
             onChange={(e) => handleDifficultyChange(e.target.value)}
             className="h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:border-orange-500 min-w-[140px]"
           >
@@ -237,7 +226,7 @@ export default function RecipeSearchPage() {
           </select>
 
           <select
-            value={selectedMaxTime}
+            aria-label="Lọc thời gian nấu" value={selectedMaxTime}
             onChange={(e) => handleMaxTimeChange(e.target.value)}
             className="h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:border-orange-500 min-w-[140px]"
           >
@@ -261,6 +250,7 @@ export default function RecipeSearchPage() {
       </div>
 
       {/* Category filter pills */}
+      {categoriesError && <QueryError title="Không thể tải bộ lọc danh mục" onRetry={retryCategories} isRetrying={categoriesFetching} />}
       <div className="flex gap-2 flex-wrap mb-8">
         <button
           onClick={() => handleCategoryChange('')}
@@ -322,7 +312,7 @@ export default function RecipeSearchPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-            {currentRecipes.map((recipe) => {
+            {currentRecipes.map((recipe, imageIndex) => {
               const recipeUrl = `/recipe/${recipe.recipeId || recipe.id || recipe._id}`
               return (
                 <div
@@ -334,13 +324,11 @@ export default function RecipeSearchPage() {
                   <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col h-full">
                     <div className="relative h-52 overflow-hidden shrink-0">
                       <img
-                        src={getOptimizedImageUrl(recipe.thumbnailUrl || recipe.thumbnail || recipe.image)}
+                        {...recipeImageProps(recipe.thumbnailUrl || recipe.thumbnail || recipe.image)} decoding="async"
                         alt={recipe.title}
-                        loading="lazy"
+                        loading={imageIndex < gridColumns ? 'eager' : 'lazy'} fetchPriority={imageIndex === 0 ? 'high' : 'auto'}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => {
-                          e.target.src = FALLBACK_IMAGE
-                        }}
+                        onError={handleRecipeImageError}
                       />
 
                       {/* Tags (Categories) */}

@@ -53,7 +53,8 @@ function RecipeForm({ id, recipe }) {
   const navigate = useNavigate()
   const isEdit = !!id
 
-  const { data: categoriesRes } = useCategories()
+  const { data: categoriesRes, isError: categoriesError, isFetching: fetchingCategories, refetch: refetchCategories } = useCategories()
+  const [isUploading, setIsUploading] = useState(false)
   const { mutate: createRecipe, isPending: creating } = useCreateRecipe()
   const { mutate: updateRecipe, isPending: updating } = useUpdateRecipe()
 
@@ -157,14 +158,16 @@ function RecipeForm({ id, recipe }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    
+    if (creating || updating) return
+    if (isUploading) return toast.error('Vui lòng đợi ảnh tải lên hoàn tất')
+
     // Validate
     if (!formData.title.trim()) return toast.error('Vui lòng nhập tên món')
     if (!formData.description.trim()) return toast.error('Vui lòng nhập mô tả món ăn')
     if (!formData.prepTime || Number(formData.prepTime) <= 0) return toast.error('Thời gian nấu phải lớn hơn 0')
     if (!formData.servings || Number(formData.servings) <= 0) return toast.error('Khẩu phần phải lớn hơn 0')
     if (formData.categories.length === 0) return toast.error('Vui lòng chọn ít nhất 1 danh mục')
-    
+
     const validIngs = formData.ingredients.filter(i => i.name.trim())
     if (validIngs.length === 0) return toast.error('Cần ít nhất 1 nguyên liệu')
     const validSteps = formData.steps.filter(s => s.content.trim())
@@ -215,7 +218,7 @@ function RecipeForm({ id, recipe }) {
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <button
-          onClick={() => navigate(-1)}
+          aria-label="Quay lại" type="button" onClick={() => navigate(-1)}
           className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
         >
           <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
@@ -229,26 +232,31 @@ function RecipeForm({ id, recipe }) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        <RecipeBasicInfoForm 
-          formData={formData} 
-          handleChange={handleChange} 
-          setFormData={setFormData} 
-          categories={categories} 
-          toggleCategory={toggleCategory} 
+        <RecipeBasicInfoForm
+          isUploading={isUploading}
+          setIsUploading={setIsUploading}
+          formData={formData}
+          handleChange={handleChange}
+          setFormData={setFormData}
+          categories={categories}
+          categoriesError={categoriesError}
+          fetchingCategories={fetchingCategories}
+          refetchCategories={refetchCategories}
+          toggleCategory={toggleCategory}
         />
 
-        <RecipeIngredientsForm 
-          formData={formData} 
-          handleIngChange={handleIngChange} 
-          removeIngredient={removeIngredient} 
-          addIngredient={addIngredient} 
+        <RecipeIngredientsForm
+          formData={formData}
+          handleIngChange={handleIngChange}
+          removeIngredient={removeIngredient}
+          addIngredient={addIngredient}
         />
 
-        <RecipeStepsForm 
-          formData={formData} 
-          handleStepChange={handleStepChange} 
-          removeStep={removeStep} 
-          addStep={addStep} 
+        <RecipeStepsForm
+          formData={formData}
+          handleStepChange={handleStepChange}
+          removeStep={removeStep}
+          addStep={addStep}
         />
 
         {/* Submit */}
@@ -256,13 +264,13 @@ function RecipeForm({ id, recipe }) {
           <Button type="button" variant="outline" onClick={() => navigate(-1)} className="rounded-xl px-6">
             Hủy
           </Button>
-          <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl px-8" disabled={creating || updating}>
-            {(creating || updating) ? (
+          <Button type="submit" className="bg-orange-700 hover:bg-orange-800 text-white rounded-xl px-8" disabled={creating || updating || isUploading}>
+            {(creating || updating || isUploading) ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            {isEdit ? 'Lưu thay đổi' : 'Đăng công thức'}
+            {isUploading ? 'Đang tải ảnh...' : isEdit ? 'Lưu thay đổi' : 'Đăng công thức'}
           </Button>
         </div>
       </form>
