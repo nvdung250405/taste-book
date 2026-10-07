@@ -14,7 +14,7 @@ export default function DashboardPage() {
   const { data: recipesRes, isLoading: loadingRecipes } = useRecipes()
 
   const totalUsers = usersRes?.DT?.users?.length ?? '—'
-  const totalRecipes = recipesRes?.DT?.length ?? recipesRes?.DT?.recipes?.length ?? '—'
+  const totalRecipes = recipesRes?.DT?.total ?? '—'
 
   const STATS = [
     {
@@ -31,7 +31,7 @@ export default function DashboardPage() {
       icon: UtensilsCrossed,
       color: 'text-orange-500',
       bg: 'bg-orange-100 dark:bg-orange-900/30',
-      note: 'Công thức đã được duyệt',
+      note: 'Công thức công khai đã được duyệt',
     },
     {
       title: 'Công thức chờ duyệt',
