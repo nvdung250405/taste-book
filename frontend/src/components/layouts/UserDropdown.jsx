@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   UserCircle,
+  FolderHeart,
+  UtensilsCrossed,
   ShieldCheck,
   LogOut,
   ChevronDown
@@ -53,6 +55,8 @@ export default function UserDropdown({ user, onLogout }) {
           >
             <UserCircle className="w-4 h-4" /> Hồ sơ cá nhân
           </Link>
+          <Link to="/my-recipes" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-orange-50 dark:hover:bg-orange-900/20"><UtensilsCrossed className="w-4 h-4" /> Công thức của tôi</Link>
+          <Link to="/my-categories" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-orange-50 dark:hover:bg-orange-900/20"><FolderHeart className="w-4 h-4" /> Danh mục của tôi</Link>
           {isAdmin && (
             <Link
               to="/admin"
