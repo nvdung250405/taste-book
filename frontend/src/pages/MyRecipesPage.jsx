@@ -29,6 +29,9 @@ import {
 import { useMyRecipes, useDeleteRecipe } from '../hooks/queries/useRecipeQueries'
 import { toast } from 'sonner'
 import RecipeCardSkeleton from '../components/recipe/RecipeCardSkeleton'
+import QueryError from '../components/ui/QueryError'
+import ListPagination from '../components/ui/ListPagination'
+import useListPagination from '../hooks/useListPagination'
 
 const STATUS_CONFIG = {
   approved: {
@@ -66,7 +69,7 @@ const STATUS_CONFIG = {
 }
 
 export default function MyRecipesPage() {
-  const { data: res, isLoading } = useMyRecipes()
+  const { data: res, isLoading, isError, isFetching, refetch } = useMyRecipes()
   const { mutate: deleteRecipe, isPending: deleting } = useDeleteRecipe()
 
   const [activeTab, setActiveTab] = useState('all') // 'all' | 'approved' | 'pending' | 'rejected' | 'draft'
@@ -111,6 +114,10 @@ export default function MyRecipesPage() {
       return matchesTab && matchesSearch
     })
   }, [recipes, activeTab, searchQuery])
+
+  const { page, totalPages, visibleItems, setPage } = useListPagination(
+    filteredRecipes, JSON.stringify([activeTab, searchQuery]),
+  )
 
   // Tabs cấu hình
   const tabs = [
@@ -256,6 +263,8 @@ export default function MyRecipesPage() {
             <RecipeCardSkeleton key={idx} />
           ))}
         </div>
+      ) : isError ? (
+        <QueryError onRetry={() => refetch()} isRetrying={isFetching} />
       ) : recipes.length === 0 ? (
         /* Empty State: Chưa tạo công thức nào */
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-gradient-to-b from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-950">
@@ -324,7 +333,7 @@ export default function MyRecipesPage() {
       ) : (
         /* Grid công thức */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredRecipes.map((recipe) => {
+          {visibleItems.map((recipe) => {
             const statusKey = getRecipeStatusKey(recipe)
             const status = STATUS_CONFIG[statusKey] || STATUS_CONFIG.draft
             const StatusIcon = status.icon
@@ -481,6 +490,10 @@ export default function MyRecipesPage() {
             )
           })}
         </div>
+      )}
+
+      {!isLoading && !isError && (
+        <ListPagination page={page} totalPages={totalPages} onPageChange={setPage} />
       )}
 
       {/* Modal Xác Nhận Xóa (Delete Confirmation Dialog) */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Loader2, Save } from 'lucide-react'
 import { Button } from '../components/ui/button'
@@ -17,69 +17,98 @@ import RecipeStepsForm from '../components/recipe/RecipeStepsForm'
 export default function RecipeFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { data: recipeRes, isPending, refetch } = useRecipeDetail(id)
+
+  if (id && !recipeRes?.DT) {
+    if (isPending) {
+      return (
+        <div role="status" aria-label="Đang tải công thức" className="max-w-4xl mx-auto px-4 py-8 animate-pulse">
+          <div className="h-10 w-48 bg-slate-200 dark:bg-slate-800 rounded mb-8"></div>
+          <div className="space-y-6">
+            <div className="h-20 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+            <div className="h-40 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+            <div className="h-64 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div role="alert" className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
+        <h1 className="text-2xl font-bold">Không thể tải công thức</h1>
+        <p className="text-slate-500">Vui lòng thử lại để chỉnh sửa công thức.</p>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => navigate(-1)}>Quay lại</Button>
+          <Button onClick={() => refetch()}>Thử lại</Button>
+        </div>
+      </div>
+    )
+  }
+
+  // A different recipe (or create mode) gets its own form state.
+  return <RecipeForm key={id || 'create'} id={id} recipe={recipeRes?.DT} />
+}
+
+function RecipeForm({ id, recipe }) {
+  const navigate = useNavigate()
   const isEdit = !!id
 
   const { data: categoriesRes } = useCategories()
-  const { data: recipeRes, isLoading: loadingRecipe } = useRecipeDetail(id, { enabled: isEdit })
   const { mutate: createRecipe, isPending: creating } = useCreateRecipe()
   const { mutate: updateRecipe, isPending: updating } = useUpdateRecipe()
 
   const categories = categoriesRes?.DT || []
 
-  // Form State
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    thumbnail: '',
-    prepTime: '',
-    servings: 4,
-    difficulty: 'Trung bình',
-    categories: [],
-    tags: [],
-    isPublic: true,
-    ingredients: [{ name: '', quantity: '', unit: '' }],
-    steps: [{ title: '', content: '' }],
-  })
-
-  // Load edit data
-  useEffect(() => {
-    if (isEdit && recipeRes?.DT) {
-      const r = recipeRes.DT
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFormData({
-        title: r.title || '',
-        description: r.description || '',
-        thumbnail: r.thumbnailUrl || r.thumbnail || r.image || '',
-        prepTime: r.cookTimeMinutes || r.prepTime || r.time || '',
-        servings: r.defaultServings || r.servings || r.portions || 4,
-        difficulty: r.difficulty === 'Easy' ? 'Dễ' : r.difficulty === 'Hard' ? 'Khó' : 'Trung bình',
-        categories: r.categories?.map(c => c.categoryId || c._id || c.id || c) || [],
-        tags: r.tags?.map(t => t.name || t) || [],
-        isPublic: r.isPublic !== undefined ? r.isPublic : true,
-        ingredients: r.ingredients?.length ? r.ingredients.map(i => ({
-          name: i.ingredientName || i.ingredient?.name || i.name || '',
-          quantity: i.quantity || '',
-          unit: i.unit || i.ingredient?.unit || ''
-        })) : [{ name: '', quantity: '', unit: '' }],
-        steps: r.steps?.length ? r.steps.map((s, idx) => {
-          let title = s.title || '';
-          let content = s.instruction || s.description || s.content || '';
-          // Try to extract title from "Title: Content" format if instruction has it
-          if (!s.title && s.instruction && s.instruction.includes(': ')) {
-             const parts = s.instruction.split(': ');
-             if (parts.length > 1 && parts[0].length < 30) { // arbitrary length check for title
-                title = parts[0];
-                content = parts.slice(1).join(': ');
-             }
-          }
-          return {
-            title: title || `Bước ${s.stepNumber || idx + 1}`,
-            content: content
-          }
-        }) : [{ title: '', content: '' }],
-      })
+  // Initialize once after the recipe loads; refetches must not replace the draft.
+  const [formData, setFormData] = useState(() => {
+    if (!recipe) return {
+      title: '',
+      description: '',
+      thumbnail: '',
+      prepTime: '',
+      servings: 4,
+      difficulty: 'Trung bình',
+      categories: [],
+      tags: [],
+      isPublic: true,
+      ingredients: [{ name: '', quantity: '', unit: '' }],
+      steps: [{ title: '', content: '' }],
     }
-  }, [isEdit, recipeRes])
+
+    const r = recipe
+    return {
+      title: r.title || '',
+      description: r.description || '',
+      thumbnail: r.thumbnailUrl || r.thumbnail || r.image || '',
+      prepTime: r.cookTimeMinutes || r.prepTime || r.time || '',
+      servings: r.defaultServings || r.servings || r.portions || 4,
+      difficulty: r.difficulty === 'Easy' ? 'Dễ' : r.difficulty === 'Hard' ? 'Khó' : 'Trung bình',
+      categories: r.categories?.map(c => c.categoryId || c._id || c.id || c) || [],
+      tags: r.tags?.map(t => t.name || t) || [],
+      isPublic: r.isPublic !== undefined ? r.isPublic : true,
+      ingredients: r.ingredients?.length ? r.ingredients.map(i => ({
+        name: i.ingredientName || i.ingredient?.name || i.name || '',
+        quantity: i.quantity || '',
+        unit: i.unit || i.ingredient?.unit || ''
+      })) : [{ name: '', quantity: '', unit: '' }],
+      steps: r.steps?.length ? r.steps.map((s, idx) => {
+        let title = s.title || '';
+        let content = s.instruction || s.description || s.content || '';
+        // Try to extract title from "Title: Content" format if instruction has it
+        if (!s.title && s.instruction && s.instruction.includes(': ')) {
+          const parts = s.instruction.split(': ');
+          if (parts.length > 1 && parts[0].length < 30) { // arbitrary length check for title
+            title = parts[0];
+            content = parts.slice(1).join(': ');
+          }
+        }
+        return {
+          title: title || `Bước ${s.stepNumber || idx + 1}`,
+          content: content
+        }
+      }) : [{ title: '', content: '' }],
+    }
+  })
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -179,19 +208,6 @@ export default function RecipeFormPage() {
         onError: (error) => toast.error(error?.EM || 'Lỗi khi tạo'),
       })
     }
-  }
-
-  if (isEdit && loadingRecipe) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8 animate-pulse">
-        <div className="h-10 w-48 bg-slate-200 dark:bg-slate-800 rounded mb-8"></div>
-        <div className="space-y-6">
-          <div className="h-20 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
-          <div className="h-40 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
-          <div className="h-64 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
-        </div>
-      </div>
-    )
   }
 
   return (

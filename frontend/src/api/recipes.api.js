@@ -25,8 +25,8 @@ const recipesApi = {
   },
 
   // Quản lý công thức của tôi
-  getMyRecipes(params = {}) {
-    return axiosClient.get('/recipes/mine', { params: { limit: 50, ...params } });
+  getMyRecipes(params = {}, options = {}) {
+    return axiosClient.get('/recipes/mine', { ...options, params: { limit: 50, ...params } });
   },
 
   // Sửa công thức cá nhân

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import favoritesApi from '../../api/favorites.api';
+import { fetchCollection } from '../../api/fetchCollection';
 
 export const useFavorites = (params = {}, options = {}) => {
   const isOptions = params && ('enabled' in params || 'staleTime' in params);
@@ -10,7 +11,9 @@ export const useFavorites = (params = {}, options = {}) => {
 
   return useQuery({
     queryKey: ['favorites', queryParams],
-    queryFn: () => favoritesApi.getFavorites({ limit: 100, ...queryParams }),
+    queryFn: ({ signal }) => queryParams.page !== undefined
+      ? favoritesApi.getFavorites({ limit: 100, ...queryParams }, { signal })
+      : fetchCollection(page => favoritesApi.getFavorites({ ...queryParams, page, limit: 100 }, { signal }), signal),
     enabled: hasToken,
     retry: false,
     ...queryOptions,
@@ -63,6 +66,8 @@ export const useRemoveFavorite = () => {
           return String(id) !== String(recipeId);
         });
 
+        if (filtered.length === currentList.length) return old;
+
         if (Array.isArray(old.DT)) {
           return { ...old, DT: filtered };
         } else if (old.DT?.items) {
@@ -71,7 +76,7 @@ export const useRemoveFavorite = () => {
             DT: {
               ...old.DT,
               items: filtered,
-              total: Math.max(0, (old.DT.total || filtered.length + 1) - 1),
+              total: Math.max(0, (old.DT.total ?? currentList.length) - 1),
             },
           };
         }

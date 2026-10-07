@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   UtensilsCrossed,
@@ -11,7 +12,7 @@ import {
   LogOut
 } from 'lucide-react'
 import { Button } from '../ui/button'
-import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet'
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '../ui/sheet'
 import UserDropdown from './UserDropdown'
 
 const NAV_LINKS = [
@@ -24,6 +25,15 @@ const NAV_LINKS = [
 ]
 
 export default function Header({ isAuthenticated, user, profileLoading, handleLogout, isActive, handleLinkClick }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const displayName = user?.username || user?.name || 'Người dùng'
+  const closeMobileMenu = () => setMobileMenuOpen(false)
+
+  const handleMobileLinkClick = (event, authRequired) => {
+    closeMobileMenu()
+    handleLinkClick(event, authRequired)
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -68,13 +78,14 @@ export default function Header({ isAuthenticated, user, profileLoading, handleLo
 
           {/* Mobile Menu */}
           <div className="md:hidden flex items-center">
-            <Sheet>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="text-slate-500" aria-label="Mở menu điều hướng">
                   <Menu className="w-6 h-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[280px] p-0 flex flex-col">
+              <SheetContent side="left" aria-describedby={undefined} className="w-[280px] p-0 flex flex-col">
+                <SheetTitle className="sr-only">Menu điều hướng</SheetTitle>
                 {/* Mobile header */}
                 <div className="h-16 flex items-center gap-2 px-6 border-b shrink-0">
                   <UtensilsCrossed className="w-5 h-5 text-orange-500" />
@@ -87,10 +98,10 @@ export default function Header({ isAuthenticated, user, profileLoading, handleLo
                 {isAuthenticated && user && (
                   <div className="px-4 py-3 border-b bg-slate-50 dark:bg-slate-800/50 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold uppercase">
-                      {(user.name || 'U').charAt(0)}
+                      {displayName.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-900 dark:text-slate-50 text-sm">{user.name}</p>
+                      <p className="font-semibold text-slate-900 dark:text-slate-50 text-sm">{displayName}</p>
                       <p className="text-xs text-slate-500">{user.email}</p>
                     </div>
                   </div>
@@ -101,7 +112,7 @@ export default function Header({ isAuthenticated, user, profileLoading, handleLo
                     <Link
                       key={to}
                       to={to}
-                      onClick={(e) => handleLinkClick(e, authRequired)}
+                      onClick={(e) => handleMobileLinkClick(e, authRequired)}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
                         isActive(to)
                           ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-500'
@@ -116,7 +127,7 @@ export default function Header({ isAuthenticated, user, profileLoading, handleLo
                   {isAuthenticated && (
                     <>
                       <div className="h-px bg-slate-200 dark:bg-slate-700 my-2" />
-                      <Link to="/profile" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors">
+                      <Link to="/profile" onClick={closeMobileMenu} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors">
                         <UserCircle className="w-5 h-5" />
                         <span className="font-medium">Hồ sơ cá nhân</span>
                       </Link>
@@ -128,10 +139,10 @@ export default function Header({ isAuthenticated, user, profileLoading, handleLo
                 {!isAuthenticated && (
                   <div className="p-4 border-t shrink-0 flex flex-col gap-2">
                     <Button variant="outline" asChild className="w-full justify-center">
-                      <Link to="/login">Đăng nhập</Link>
+                      <Link to="/login" onClick={closeMobileMenu}>Đăng nhập</Link>
                     </Button>
                     <Button asChild className="w-full justify-center bg-orange-500 hover:bg-orange-600 text-white">
-                      <Link to="/register">Đăng ký</Link>
+                      <Link to="/register" onClick={closeMobileMenu}>Đăng ký</Link>
                     </Button>
                   </div>
                 )}
@@ -139,7 +150,10 @@ export default function Header({ isAuthenticated, user, profileLoading, handleLo
                 {isAuthenticated && (
                   <div className="p-4 border-t shrink-0">
                     <button
-                      onClick={handleLogout}
+                      onClick={() => {
+                        closeMobileMenu()
+                        handleLogout()
+                      }}
                       className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium text-sm"
                     >
                       <LogOut className="w-4 h-4" />

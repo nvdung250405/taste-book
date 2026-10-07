@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import authApi from '../../api/auth.api';
+import { clearAuthSession } from '../../lib/authSession';
 
 // --- AUTH MUTATIONS ---
 
@@ -34,10 +35,8 @@ export const useLogout = () => {
   return useMutation({
     mutationFn: () => authApi.logout(),
     onSettled: () => {
-      // Xóa token và invalidate query dù logout thành công hay lỗi
-      localStorage.removeItem('token');
-      // localStorage.removeItem('user');
-      queryClient.clear(); // Xóa toàn bộ cache
+      // Clear the session even when the logout request fails.
+      clearAuthSession(queryClient);
     },
   });
 };
