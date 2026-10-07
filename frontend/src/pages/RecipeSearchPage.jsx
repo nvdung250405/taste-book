@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Search,
   Clock,
@@ -20,20 +20,7 @@ import { useCategories } from '../hooks/queries/useCategoryQueries'
 import { useFavorites, useAddFavorite, useRemoveFavorite } from '../hooks/queries/useFavoriteQueries'
 import { toast } from 'sonner'
 import RecipeCardSkeleton from '../components/recipe/RecipeCardSkeleton'
-
-// Custom hook for debouncing input
-function useDebounce(value, delay) {
-  const [debouncedValue, setDebouncedValue] = useState(value)
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value)
-    }, delay)
-    return () => {
-      clearTimeout(handler)
-    }
-  }, [value, delay])
-  return debouncedValue
-}
+import QueryError from '../components/ui/QueryError'
 
 const DIFFICULTY_COLORS = {
   Easy: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400',
@@ -68,69 +55,63 @@ function getOptimizedImageUrl(url) {
 export default function RecipeSearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
+  const location = useLocation()
 
-  // Initialize state from URL params (lazy init - runs once on mount)
-  const [inputValue, setInputValue] = useState(
-    () => searchParams.get('search') || '',
-  )
-  const debouncedSearch = useDebounce(inputValue, 500)
+  // The URL owns the applied filters. Only text awaiting debounce is local state.
+  const search = searchParams.get('search') || ''
+  const selectedCategory = searchParams.get('categoryId') || ''
+  const selectedDifficulty = searchParams.get('difficulty') || ''
+  const selectedMaxTime = searchParams.get('maxTime') || ''
+  const page = Number(searchParams.get('page'))
+  const currentPage = Number.isInteger(page) && page > 0 ? page : 1
+  const [searchDraft, setSearchDraft] = useState(null)
+  const inputValue = searchDraft?.locationKey === location.key ? searchDraft.value : search
 
-  const [selectedCategory, setSelectedCategory] = useState(
-    () => searchParams.get('categoryId') || '',
-  )
-  const [selectedDifficulty, setSelectedDifficulty] = useState(
-    () => searchParams.get('difficulty') || '',
-  )
-  const [selectedMaxTime, setSelectedMaxTime] = useState(
-    () => searchParams.get('maxTime') || '',
-  )
+  if (searchDraft && searchDraft.locationKey !== location.key) {
+    setSearchDraft(null)
+  }
 
-  const [currentPage, setCurrentPage] = useState(
-    () => Number(searchParams.get('page')) || 1,
-  )
-
-  // Sync URL params when filters change (updates external system = URL, not React state)
+  // Navigation discards pending text and cancels its timer, including Back/Forward.
   useEffect(() => {
-    const urlParams = {}
-    if (debouncedSearch) urlParams.search = debouncedSearch
-    if (selectedCategory) urlParams.categoryId = selectedCategory
-    if (selectedDifficulty) urlParams.difficulty = selectedDifficulty
-    if (selectedMaxTime) urlParams.maxTime = selectedMaxTime
-    if (currentPage > 1) urlParams.page = currentPage
-    setSearchParams(urlParams, { replace: true })
-  }, [
-    debouncedSearch,
-    selectedCategory,
-    selectedDifficulty,
-    selectedMaxTime,
-    currentPage,
-    setSearchParams,
-  ])
+    if (inputValue === search) return
 
-  // Wrapper handlers that also reset page to 1 when filter changes
-  const handleCategoryChange = (id) => {
-    setSelectedCategory(id)
-    setCurrentPage(1)
+    const timer = setTimeout(() => {
+      setSearchParams(previous => {
+        const next = new URLSearchParams(previous)
+        if (inputValue) next.set('search', inputValue)
+        else next.delete('search')
+        next.delete('page')
+        return next
+      }, { replace: true })
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [inputValue, search, location.key, setSearchParams])
+
+  const updateFilters = (changes) => {
+    const next = new URLSearchParams(searchParams)
+    // Apply pending text together with a filter change so it isn't lost.
+    if (inputValue) next.set('search', inputValue)
+    else next.delete('search')
+    next.delete('page')
+    Object.entries(changes).forEach(([key, value]) => {
+      if (value) next.set(key, String(value))
+      else next.delete(key)
+    })
+    setSearchParams(next)
   }
 
-  const handleDifficultyChange = (val) => {
-    setSelectedDifficulty(val)
-    setCurrentPage(1)
-  }
-
-  const handleMaxTimeChange = (val) => {
-    setSelectedMaxTime(val)
-    setCurrentPage(1)
-  }
+  const handleCategoryChange = (id) => updateFilters({ categoryId: id })
+  const handleDifficultyChange = (val) => updateFilters({ difficulty: val })
+  const handleMaxTimeChange = (val) => updateFilters({ maxTime: val })
 
   const handleSearchChange = (val) => {
-    setInputValue(val)
-    setCurrentPage(1)
+    setSearchDraft({ locationKey: location.key, value: val })
   }
 
   // Build query params for backend (server-side pagination)
   const params = {
-    ...(debouncedSearch && { search: debouncedSearch }),
+    ...(search && { search }),
     ...(selectedCategory && { categoryId: selectedCategory }),
     ...(selectedDifficulty && { difficulty: selectedDifficulty }),
     ...(selectedMaxTime && { maxTime: selectedMaxTime }),
@@ -139,7 +120,7 @@ export default function RecipeSearchPage() {
   }
 
   // Fetch data
-  const { data: recipesRes, isLoading } = useRecipes(params)
+  const { data: recipesRes, isLoading, isError, isFetching, refetch } = useRecipes(params)
   const { data: categoriesRes } = useCategories()
 
   // Favorites
@@ -193,17 +174,13 @@ export default function RecipeSearchPage() {
   // Handlers
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
-      setCurrentPage(newPage)
+      updateFilters({ page: inputValue === search && newPage > 1 ? newPage : '' })
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
   const clearAllFilters = () => {
-    setInputValue('')
-    setSelectedCategory('')
-    setSelectedDifficulty('')
-    setSelectedMaxTime('')
-    setCurrentPage(1)
+    setSearchParams({})
   }
 
   return (
@@ -231,10 +208,7 @@ export default function RecipeSearchPage() {
           {inputValue && (
             <button
               type="button"
-              onClick={() => {
-                setInputValue('')
-                setCurrentPage(1)
-              }}
+              onClick={() => updateFilters({ search: '' })}
               className="absolute right-4 text-slate-400 hover:text-slate-600"
               aria-label="Xóa từ khóa tìm kiếm"
             >
@@ -316,6 +290,8 @@ export default function RecipeSearchPage() {
             <RecipeCardSkeleton key={idx} />
           ))}
         </div>
+      ) : isError ? (
+        <QueryError onRetry={() => refetch()} isRetrying={isFetching} />
       ) : allRecipes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
           <div className="w-20 h-20 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">

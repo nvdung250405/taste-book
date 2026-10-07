@@ -29,10 +29,13 @@ import {
 } from '../hooks/queries/useFavoriteQueries'
 import { toast } from 'sonner'
 import RecipeCardSkeleton from '../components/recipe/RecipeCardSkeleton'
+import QueryError from '../components/ui/QueryError'
+import ListPagination from '../components/ui/ListPagination'
+import useListPagination from '../hooks/useListPagination'
 
 export default function FavoritesPage() {
   const hasToken = !!localStorage.getItem('token')
-  const { data: res, isLoading } = useFavorites()
+  const { data: res, isLoading, isError, isFetching, refetch } = useFavorites()
   const { mutate: removeFav } = useRemoveFavorite()
   const { mutate: updateNote, isPending: updatingNote } = useUpdateFavoriteNote()
 
@@ -62,6 +65,8 @@ export default function FavoritesPage() {
     })
   }, [favorites, searchQuery])
 
+  const { page, totalPages, visibleItems, setPage } = useListPagination(filteredFavorites, searchQuery)
+
   // Xử lý hủy lưu nhanh và cập nhật UI tức thì
   const handleQuickRemove = (recipeId, title) => {
     setRemovingIds((prev) => new Set([...prev, String(recipeId)]))
@@ -74,6 +79,8 @@ export default function FavoritesPage() {
       },
       onError: () => {
         toast.error('Không thể bỏ lưu công thức. Vui lòng thử lại!')
+      },
+      onSettled: () => {
         setRemovingIds((prev) => {
           const next = new Set(prev)
           next.delete(String(recipeId))
@@ -169,6 +176,8 @@ export default function FavoritesPage() {
             <RecipeCardSkeleton key={idx} />
           ))}
         </div>
+      ) : isError ? (
+        <QueryError title="Không thể tải danh sách yêu thích" onRetry={() => refetch()} isRetrying={isFetching} />
       ) : favorites.length === 0 ? (
         /* Empty State */
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-gradient-to-b from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-950">
@@ -212,7 +221,7 @@ export default function FavoritesPage() {
       ) : (
         /* Favorites Grid */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredFavorites.map((fav) => {
+          {visibleItems.map((fav) => {
             const recipe = fav.recipe || fav
             const recipeId = recipe.id || recipe._id || fav.recipeId
             const isRemoving = removingIds.has(String(recipeId))
@@ -374,6 +383,10 @@ export default function FavoritesPage() {
             )
           })}
         </div>
+      )}
+
+      {hasToken && !isLoading && !isError && (
+        <ListPagination page={page} totalPages={totalPages} onPageChange={setPage} />
       )}
 
       {/* Note Dialog */}

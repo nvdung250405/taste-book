@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import recipesApi from '../../api/recipes.api';
+import { fetchCollection } from '../../api/fetchCollection';
 
 // --- PUBLIC & USER RECIPE QUERIES ---
 
@@ -32,7 +33,9 @@ export const useScaledRecipe = (recipeId, servings, options = {}) => {
 export const useMyRecipes = (params = {}, options = {}) => {
   return useQuery({
     queryKey: ['my-recipes', params],
-    queryFn: () => recipesApi.getMyRecipes(params),
+    queryFn: ({ signal }) => params.page !== undefined
+      ? recipesApi.getMyRecipes(params, { signal })
+      : fetchCollection(page => recipesApi.getMyRecipes({ ...params, page, limit: 100 }, { signal }), signal),
     ...options,
   });
 };

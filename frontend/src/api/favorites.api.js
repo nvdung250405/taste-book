@@ -2,8 +2,8 @@ import axiosClient from './axiosClient';
 
 const favoritesApi = {
   // Lấy danh sách yêu thích từ database backend
-  getFavorites(params = {}) {
-    return axiosClient.get('/favorites', { params });
+  getFavorites(params = {}, options = {}) {
+    return axiosClient.get('/favorites', { ...options, params });
   },
 
   // Thêm vào yêu thích (lưu trực tiếp vào database)
