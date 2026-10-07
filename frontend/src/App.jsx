@@ -76,6 +76,7 @@ const AdminIngredientsPage = lazy(() => import('./pages/admin/AdminIngredientsPa
 const AdminUnitsPage = lazy(() => import('./pages/admin/AdminUnitsPage'))
 const RecipeSearchPage = lazy(() => import('./pages/RecipeSearchPage'))
 const MyRecipesPage = lazy(() => import('./pages/MyRecipesPage'))
+const MyCategoriesPage = lazy(() => import('./pages/MyCategoriesPage'))
 const MenuPage = lazy(() => import('./pages/MenuPage'))
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage'))
 const ShoppingListPage = lazy(() => import('./pages/ShoppingListPage'))
@@ -99,6 +100,7 @@ function App() {
               {/* User routes */}
               <Route path="/search" element={<RecipeSearchPage />} />
               <Route path="/my-recipes" element={<MyRecipesPage />} />
+              <Route path="/my-categories" element={<MyCategoriesPage />} />
               <Route path="/menu" element={<MenuPage />} />
               <Route path="/favorites" element={<FavoritesPage />} />
               <Route path="/shopping-list" element={<ShoppingListPage />} />

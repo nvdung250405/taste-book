@@ -4,11 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Input } from '../ui/input'
 import uploadApi from '../../api/upload.api'
 import { toast } from 'sonner'
+import { Button } from '../ui/button'
+import CategoryFormDialog from '../category/CategoryFormDialog'
 
 const DIFFICULTIES = ['Dễ', 'Trung bình', 'Khó']
 
 export default function RecipeBasicInfoForm({ formData, handleChange, setFormData, categories, toggleCategory }) {
   const [isUploading, setIsUploading] = useState(false)
+  const [creatingCategory, setCreatingCategory] = useState(false)
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0]
@@ -160,7 +163,11 @@ export default function RecipeBasicInfoForm({ formData, handleChange, setFormDat
             </div>
 
             <div className="pt-2">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Danh mục món ăn</label>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Danh mục món ăn</label>
+                <Button type="button" size="sm" variant="outline" onClick={() => setCreatingCategory(true)}>+ Tạo danh mục</Button>
+              </div>
+              {creatingCategory && <CategoryFormDialog onClose={() => setCreatingCategory(false)} onCreated={(category) => setFormData(prev => ({ ...prev, categories: [...new Set([...prev.categories, category.categoryId])] }))} />}
               <div className="flex flex-wrap gap-2">
                 {categories.map(cat => {
                   const id = cat.categoryId || cat._id || cat.id

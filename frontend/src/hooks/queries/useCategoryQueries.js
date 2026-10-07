@@ -3,10 +3,11 @@ import categoriesApi from '../../api/categories.api';
 
 // --- QUERIES ---
 
-export const useCategories = () => {
+export const useCategories = (options = {}) => {
   return useQuery({
-    queryKey: ['categories'],
+    queryKey: ['categories', localStorage.getItem('token') || null],
     queryFn: () => categoriesApi.getCategories(),
+    ...options,
   });
 };
 
@@ -23,7 +24,10 @@ export const useCreateCategory = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data) => categoriesApi.createCategory(data),
-    onSuccess: () => {
+    onSuccess: async (response) => {
+      await queryClient.cancelQueries({ queryKey: ['categories'] });
+      queryClient.setQueryData(['categories', localStorage.getItem('token') || null], (previous) =>
+        previous ? { ...previous, DT: [...previous.DT.filter(c => c.categoryId !== response.DT.categoryId), response.DT] } : undefined);
       queryClient.invalidateQueries({ queryKey: ['categories'] });
     },
   });
@@ -33,8 +37,16 @@ export const useUpdateCategory = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ categoryId, data }) => categoriesApi.updateCategory(categoryId, data),
-    onSuccess: () => {
+    onSuccess: async (response, { categoryId }) => {
+      await queryClient.cancelQueries({ queryKey: ['categories'] });
+      queryClient.setQueriesData({ queryKey: ['categories'] }, (previous) => previous ? {
+        ...previous, DT: previous.DT.map(c => c.categoryId === categoryId ? { ...c, ...response.DT } : c),
+      } : undefined);
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe'] });
+      queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
     },
   });
 };
@@ -43,8 +55,16 @@ export const useDeleteCategory = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (categoryId) => categoriesApi.deleteCategory(categoryId),
-    onSuccess: () => {
+    onSuccess: async (_response, categoryId) => {
+      await queryClient.cancelQueries({ queryKey: ['categories'] });
+      queryClient.setQueriesData({ queryKey: ['categories'] }, (previous) => previous ? {
+        ...previous, DT: previous.DT.filter(c => c.categoryId !== categoryId),
+      } : undefined);
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe'] });
+      queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
     },
   });
 };
