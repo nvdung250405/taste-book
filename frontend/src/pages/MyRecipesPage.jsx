@@ -32,6 +32,8 @@ import RecipeCardSkeleton from '../components/recipe/RecipeCardSkeleton'
 import QueryError from '../components/ui/QueryError'
 import ListPagination from '../components/ui/ListPagination'
 import useListPagination from '../hooks/useListPagination'
+import useRecipeGridColumns from '../hooks/useRecipeGridColumns'
+import { recipeImageProps, handleRecipeImageError } from '../lib/recipeImages'
 
 const STATUS_CONFIG = {
   approved: {
@@ -69,6 +71,7 @@ const STATUS_CONFIG = {
 }
 
 export default function MyRecipesPage() {
+  const gridColumns = useRecipeGridColumns()
   const { data: res, isLoading, isError, isFetching, refetch } = useMyRecipes()
   const { mutate: deleteRecipe, isPending: deleting } = useDeleteRecipe()
 
@@ -239,7 +242,7 @@ export default function MyRecipesPage() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Tìm công thức của bạn..."
+              aria-label="Tìm công thức của bạn..." placeholder="Tìm công thức của bạn..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-1.5 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
@@ -271,9 +274,9 @@ export default function MyRecipesPage() {
           <div className="w-20 h-20 rounded-full bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center mb-4 ring-8 ring-orange-50/50 dark:ring-orange-950/20 shadow-inner">
             <BookOpen className="w-10 h-10 text-orange-400" />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">
             Bạn chưa có công thức nào
-          </h3>
+          </h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mt-2 mb-6">
             Hãy chia sẻ bí quyết và hương vị món ăn yêu thích của bạn đến với cộng đồng ẩm thực TasteBook!
           </p>
@@ -298,7 +301,7 @@ export default function MyRecipesPage() {
               <Search className="w-8 h-8 text-slate-400" />
             )}
           </div>
-          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
             {activeTab === 'pending'
               ? 'Không có công thức nào đang chờ duyệt'
               : activeTab === 'rejected'
@@ -308,7 +311,7 @@ export default function MyRecipesPage() {
               : activeTab === 'draft'
               ? 'Không có bản nháp hoặc công thức riêng tư'
               : 'Không tìm thấy công thức phù hợp'}
-          </h3>
+          </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
             {searchQuery
               ? 'Hãy thử tìm kiếm bằng từ khóa khác hoặc xóa bộ lọc tìm kiếm.'
@@ -333,7 +336,7 @@ export default function MyRecipesPage() {
       ) : (
         /* Grid công thức */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {visibleItems.map((recipe) => {
+          {visibleItems.map((recipe, index) => {
             const statusKey = getRecipeStatusKey(recipe)
             const status = STATUS_CONFIG[statusKey] || STATUS_CONFIG.draft
             const StatusIcon = status.icon
@@ -344,7 +347,7 @@ export default function MyRecipesPage() {
             return (
               <Card
                 key={rId}
-                className="overflow-hidden group hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col rounded-2xl"
+                className="overflow-hidden group hover:shadow-xl hover:-translate-y-0.5 transition-[transform,box-shadow] duration-300 motion-reduce:transition-none border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col rounded-2xl"
               >
                 {/* Ảnh cover & Badges */}
                 <div className="relative h-48 sm:h-52 overflow-hidden bg-slate-100 dark:bg-slate-800">
@@ -353,18 +356,13 @@ export default function MyRecipesPage() {
                     className="block w-full h-full"
                   >
                     <img
-                      src={
-                        recipe.thumbnailUrl ||
-                        recipe.thumbnail ||
-                        recipe.image ||
-                        'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=600&auto=format&fit=crop'
-                      }
+                      {...recipeImageProps(recipe.thumbnailUrl || recipe.thumbnail || recipe.image)}
+                      loading={index < gridColumns ? 'eager' : 'lazy'}
+                      fetchPriority={index === 0 ? 'high' : 'auto'}
+                      decoding="async"
                       alt={recipe.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      onError={(e) => {
-                        e.target.src =
-                          'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=600&auto=format&fit=crop'
-                      }}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 motion-reduce:transition-none"
+                      onError={handleRecipeImageError}
                     />
                   </Link>
 
@@ -374,7 +372,7 @@ export default function MyRecipesPage() {
                   {/* Status Badges */}
                   <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
                     <span
-                      className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm backdrop-blur-md border ${status.badgeCls}`}
+                      className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm border ${status.badgeCls}`}
                     >
                       <StatusIcon className="w-3.5 h-3.5" />
                       {status.label}
@@ -390,14 +388,14 @@ export default function MyRecipesPage() {
 
                 {/* Card Content */}
                 <CardContent className="p-4 sm:p-5 flex flex-col flex-1">
-                  <h3 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-2 mb-2 text-base sm:text-lg group-hover:text-orange-500 transition-colors">
+                  <h2 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-2 mb-2 text-base sm:text-lg group-hover:text-orange-500 transition-colors">
                     <Link
                       to={isApproved ? `/recipe/${rId}` : `/recipe/${rId}/edit`}
                       className="hover:underline"
                     >
                       {recipe.title}
                     </Link>
-                  </h3>
+                  </h2>
 
                   {/* Meta info */}
                   <div className="flex items-center gap-4 text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-3">

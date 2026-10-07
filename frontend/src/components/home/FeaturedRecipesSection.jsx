@@ -1,3 +1,4 @@
+import { recipeImageProps, handleRecipeImageError } from '../../lib/recipeImages'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
@@ -48,21 +49,7 @@ function RecipeSkeletonGrid({ count = 6 }) {
 
 // ─── Recipe Card ──────────────────────────────────────────────────────────────
 
-const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=400&auto=format&fit=crop'
 
-function getOptimizedImageUrl(url) {
-  if (!url) return FALLBACK_IMAGE;
-  if (url.includes('res.cloudinary.com')) {
-    if (url.includes('/upload/') && !url.includes('/upload/c_')) {
-      return url.replace('/upload/', '/upload/c_fill,w_400,q_auto,f_auto/');
-    }
-  } else if (url.includes('images.unsplash.com') && !url.includes('w=')) {
-    const sep = url.includes('?') ? '&' : '?';
-    return `${url}${sep}q=80&w=400&auto=format&fit=crop`;
-  }
-  return url;
-}
 
 const DIFFICULTY_MAP = {
   Easy: 'Dễ',
@@ -119,11 +106,11 @@ function RecipeCard({ recipe, rank }) {
         {/* Image */}
         <div className="relative h-56 overflow-hidden">
           <img
-            src={getOptimizedImageUrl(recipe.thumbnailUrl || recipe.thumbnail || recipe.image)}
+            {...recipeImageProps(recipe.thumbnailUrl || recipe.thumbnail || recipe.image)} decoding="async"
             alt={recipe.title}
             loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            onError={(e) => { e.target.src = FALLBACK_IMAGE }}
+            onError={handleRecipeImageError}
           />
           {/* Tags (Categories) */}
           <div className="absolute top-4 left-4 flex gap-2">
@@ -258,7 +245,7 @@ export function TrendingRecipesSection({ recipes, isLoading }) {
             </span>
           </div>
           <p className="text-slate-500 dark:text-slate-400">
-            Được yêu thích và tìm kiếm nhiều nhất tuần này
+            Những công thức được lưu yêu thích nhiều nhất
           </p>
         </div>
         <Button

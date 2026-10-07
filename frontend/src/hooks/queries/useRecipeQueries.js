@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import recipesApi from '../../api/recipes.api';
+import axiosClient from '../../api/axiosClient';
 import { fetchCollection } from '../../api/fetchCollection';
+
+export const useHomeRecipes = () => useQuery({
+  queryKey: ['home-recipes'],
+  queryFn: () => axiosClient.get('/home', { params: { limit: 6 } }),
+  staleTime: 2 * 60 * 1000,
+});
 
 // --- PUBLIC & USER RECIPE QUERIES ---
 
@@ -71,6 +78,7 @@ export const useDeleteRecipe = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
     },
   });
 };
@@ -101,6 +109,7 @@ export const useCreateAdminRecipe = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
     },
   });
 };
@@ -112,6 +121,7 @@ export const useUpdateAdminRecipe = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipe', variables.recipeId] });
     },
   });
@@ -124,6 +134,7 @@ export const useDeleteAdminRecipe = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
     },
   });
 };
@@ -136,6 +147,7 @@ export const useModerateRecipe = () => {
       queryClient.invalidateQueries({ queryKey: ['pending-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['admin-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
     },
   });
 };

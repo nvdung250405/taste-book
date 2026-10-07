@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { UserCircle } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { useProfile, useUpdateProfile, useChangePassword } from '../hooks/queries/useAuthQueries'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
+
+import QueryError from '../components/ui/QueryError'
 
 import ProfileSidebar from '../components/profile/ProfileSidebar'
 import ProfileInfoForm from '../components/profile/ProfileInfoForm'
@@ -11,21 +13,31 @@ import PasswordChangeForm from '../components/profile/PasswordChangeForm'
 
 export default function ProfilePage() {
   const navigate = useNavigate()
-  const { data: profileRes, isLoading: loadingProfile } = useProfile()
+  const { data: profileRes, isLoading, isError, isFetching, refetch } = useProfile()
+  const user = profileRes?.DT
+  if (isLoading) return <div role="status" className="py-20 text-center">Đang tải hồ sơ…</div>
+  if (isError && !user) return <QueryError title="Không thể tải hồ sơ" onRetry={refetch} isRetrying={isFetching} />
+  if (!user) return <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4"><UserCircle className="w-16 h-16 text-slate-500" /><p>Bạn chưa đăng nhập</p><Button onClick={() => navigate('/login')}>Đăng nhập ngay</Button></div>
+  return <>
+    <h1 className="text-3xl font-bold mb-6">Hồ sơ cá nhân</h1>
+    {isError && <QueryError title="Không thể cập nhật dữ liệu hồ sơ" onRetry={refetch} isRetrying={isFetching} />}
+    <ProfileEditor key={user.userId} user={user} />
+  </>
+}
+
+function ProfileEditor({ user }) {
   const { mutate: updateProfile, isPending: updating } = useUpdateProfile()
   const { mutate: changePassword, isPending: changingPassword } = useChangePassword()
 
-  const user = profileRes?.DT || null
 
   const [activeTab, setActiveTab] = useState('info') // info, security
 
   // Profile Form State
-  const [profileForm, setProfileForm] = useState({
-    name: '',
-    phone: '',
-    address: '',
-    avatar: '',
-  })
+  const [profileForm, setProfileForm] = useState(() => ({
+    name: user.username || user.name || '',
+    phone: user.phone || '',
+    avatar: user.avatarUrl || user.avatar || '',
+  }))
 
   // Password Form State
   const [passwordForm, setPasswordForm] = useState({
@@ -33,42 +45,6 @@ export default function ProfilePage() {
     newPassword: '',
     confirmPassword: '',
   })
-
-  useEffect(() => {
-    if (user) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setProfileForm({
-        name: user.name || user.username || '',
-        phone: user.phone || '',
-        address: user.address || '',
-        avatar: user.avatarUrl || user.avatar || user.profileImage || '',
-      })
-    }
-  }, [user])
-
-  if (loadingProfile) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-8 animate-pulse">
-          <div className="w-full md:w-64 h-80 bg-slate-200 dark:bg-slate-800 rounded-xl shrink-0" />
-          <div className="flex-1 space-y-6">
-            <div className="h-24 bg-slate-200 dark:bg-slate-800 rounded-xl" />
-            <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-xl" />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <UserCircle className="w-16 h-16 text-slate-300" />
-        <p className="text-slate-500">Bạn chưa đăng nhập</p>
-        <Button onClick={() => navigate('/login')}>Đăng nhập ngay</Button>
-      </div>
-    )
-  }
 
   const handleProfileSubmit = (e) => {
     e.preventDefault()

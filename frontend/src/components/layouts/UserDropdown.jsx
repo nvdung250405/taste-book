@@ -26,7 +26,7 @@ export default function UserDropdown({ user, onLogout }) {
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
+        aria-label="Mở menu tài khoản" aria-expanded={open} onClick={() => setOpen(!open)}
         className="flex items-center gap-2 rounded-full p-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
       >
         {avatar ? (

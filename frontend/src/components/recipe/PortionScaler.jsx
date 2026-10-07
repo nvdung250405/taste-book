@@ -4,7 +4,7 @@ export default function PortionScaler({ servings, onChange }) {
   return (
     <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
       <button
-        onClick={() => onChange(Math.max(1, servings - 1))}
+        aria-label="Giảm khẩu phần" onClick={() => onChange(Math.max(1, servings - 1))}
         className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center shadow-sm hover:text-orange-500 transition-colors"
       >
         <Minus className="w-3.5 h-3.5" />
@@ -13,7 +13,7 @@ export default function PortionScaler({ servings, onChange }) {
         {servings} người
       </span>
       <button
-        onClick={() => onChange(servings + 1)}
+        aria-label="Tăng khẩu phần" onClick={() => onChange(servings + 1)}
         className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center shadow-sm hover:text-orange-500 transition-colors"
       >
         <Plus className="w-3.5 h-3.5" />

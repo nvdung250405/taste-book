@@ -51,11 +51,11 @@ export default function Header({ isAuthenticated, user, profileLoading, handleLo
           {NAV_LINKS.map(({ to, label, icon: Icon, authRequired }) => (
             <Link
               key={to}
-              to={to}
+              aria-label={label} to={to}
               onClick={(e) => handleLinkClick(e, authRequired)}
               className={`relative flex items-center gap-1.5 px-3 py-2 transition-colors group ${
                 isActive(to)
-                  ? 'text-orange-500'
+                  ? 'text-orange-700 dark:text-orange-400'
                   : 'text-slate-600 dark:text-slate-300 hover:text-orange-500'
               }`}
             >
@@ -112,11 +112,11 @@ export default function Header({ isAuthenticated, user, profileLoading, handleLo
                   {NAV_LINKS.map(({ to, label, icon: Icon, authRequired }) => (
                     <Link
                       key={to}
-                      to={to}
+                      aria-label={label} to={to}
                       onClick={(e) => handleMobileLinkClick(e, authRequired)}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
                         isActive(to)
-                          ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-500'
+                          ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400'
                           : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                       }`}
                     >
@@ -143,7 +143,7 @@ export default function Header({ isAuthenticated, user, profileLoading, handleLo
                     <Button variant="outline" asChild className="w-full justify-center">
                       <Link to="/login" onClick={closeMobileMenu}>Đăng nhập</Link>
                     </Button>
-                    <Button asChild className="w-full justify-center bg-orange-500 hover:bg-orange-600 text-white">
+                    <Button asChild className="w-full justify-center bg-orange-700 hover:bg-orange-800 text-white">
                       <Link to="/register" onClick={closeMobileMenu}>Đăng ký</Link>
                     </Button>
                   </div>
@@ -178,7 +178,7 @@ export default function Header({ isAuthenticated, user, profileLoading, handleLo
                 <Button variant="ghost" asChild>
                   <Link to="/login">Đăng nhập</Link>
                 </Button>
-                <Button asChild className="bg-orange-500 hover:bg-orange-600 text-white">
+                <Button asChild className="bg-orange-700 hover:bg-orange-800 text-white">
                   <Link to="/register">Đăng ký</Link>
                 </Button>
               </div>

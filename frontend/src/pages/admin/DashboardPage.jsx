@@ -8,10 +8,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card'
 import { useAdminUsers } from '../../hooks/queries/useUserQueries'
 import { useRecipes } from '../../hooks/queries/useRecipeQueries'
+import QueryError from '../../components/ui/QueryError'
 
 export default function DashboardPage() {
-  const { data: usersRes, isLoading: loadingUsers } = useAdminUsers()
-  const { data: recipesRes, isLoading: loadingRecipes } = useRecipes()
+  const { data: usersRes, isLoading: loadingUsers, isError: usersError, isFetching: usersFetching, refetch: retryUsers } = useAdminUsers()
+  const { data: recipesRes, isLoading: loadingRecipes, isError: recipesError, isFetching: recipesFetching, refetch: retryRecipes } = useRecipes()
 
   const totalUsers = usersRes?.DT?.users?.length ?? '—'
   const totalRecipes = recipesRes?.DT?.total ?? '—'
@@ -53,6 +54,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {usersError && <QueryError title="Không thể tải thống kê người dùng" onRetry={retryUsers} isRetrying={usersFetching} />}
+      {recipesError && <QueryError title="Không thể tải thống kê công thức" onRetry={retryRecipes} isRetrying={recipesFetching} />}
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Tổng quan hệ thống</h1>
         <p className="text-slate-500">Xin chào Admin, đây là tình hình hoạt động của TasteBook.</p>

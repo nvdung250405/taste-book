@@ -26,6 +26,7 @@ export const useAddFavorite = () => {
     mutationFn: ({ recipeId, data }) => favoritesApi.addFavorite(recipeId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
     },
   });
 };
@@ -94,6 +95,7 @@ export const useRemoveFavorite = () => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
     },
   });
 };

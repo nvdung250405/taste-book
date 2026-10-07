@@ -1,4 +1,5 @@
 import PortionScaler from './PortionScaler'
+import { formatIngredientQuantity } from '../../lib/recipeQuantities'
 
 export default function RecipeIngredients({ ingredients, actualServings, setServings, ratio }) {
   return (
@@ -18,7 +19,7 @@ export default function RecipeIngredients({ ingredients, actualServings, setServ
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {ingredients.map((ing, idx) => {
             const name = ing.ingredientName || ing.ingredient?.ingredientName || ing.ingredient?.name || `Nguyên liệu ${idx + 1}`
-            const qty = ing.quantity ? (ing.quantity * ratio).toFixed(ratio !== 1 ? 1 : 0) : ''
+            const qty = formatIngredientQuantity(ing.quantity, ratio)
             const unit = ing.unit || ing.unitGroup?.unitName || ing.customUnit || ing.ingredient?.unit || ''
             return (
               <div

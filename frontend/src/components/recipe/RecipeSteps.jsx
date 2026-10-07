@@ -1,17 +1,6 @@
 import { CheckCircle2 } from 'lucide-react'
 
-function getOptimizedImageUrl(url) {
-  if (!url) return '';
-  if (url.includes('res.cloudinary.com')) {
-    if (url.includes('/upload/') && !url.includes('/upload/c_')) {
-      return url.replace('/upload/', '/upload/c_fill,w_400,q_auto,f_auto/');
-    }
-  } else if (url.includes('images.unsplash.com') && !url.includes('w=')) {
-    const sep = url.includes('?') ? '&' : '?';
-    return `${url}${sep}q=80&w=400&auto=format&fit=crop`;
-  }
-  return url;
-}
+import { recipeImageProps, handleRecipeImageError } from '../../lib/recipeImages'
 
 export default function RecipeSteps({ steps, checkedSteps, toggleStep }) {
   return (
@@ -29,6 +18,8 @@ export default function RecipeSteps({ steps, checkedSteps, toggleStep }) {
             return (
               <div
                 key={step._id || step.id || idx}
+                role="checkbox" aria-checked={checked} tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleStep(idx) } }}
                 onClick={() => toggleStep(idx)}
                 className={`flex gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
                   checked
@@ -49,11 +40,11 @@ export default function RecipeSteps({ steps, checkedSteps, toggleStep }) {
                     {step.description || step.content || step.instruction || step}
                   </p>
                   {step.image && (
-                    <img 
-                      src={getOptimizedImageUrl(step.image)} 
-                      alt={`Bước ${idx + 1}`} 
+                    <img
+                      {...recipeImageProps(step.image)} decoding="async" onError={handleRecipeImageError}
+                      alt={`Bước ${idx + 1}`}
                       loading="lazy"
-                      className="mt-3 rounded-xl w-full max-h-48 object-cover" 
+                      className="mt-3 rounded-xl w-full max-h-48 object-cover"
                     />
                   )}
                 </div>
