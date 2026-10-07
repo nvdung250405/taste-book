@@ -23,8 +23,9 @@ export default function RecipeBasicInfoForm({ formData, handleChange, setFormDat
     try {
       setIsUploading(true)
       const res = await uploadApi.uploadImage(file)
-      if (res && res.DT && res.DT.url) {
-        setFormData(prev => ({ ...prev, thumbnail: res.DT.url }))
+      const uploadedUrl = res?.DT?.imageUrl || res?.DT?.url
+      if (uploadedUrl) {
+        setFormData(prev => ({ ...prev, thumbnail: uploadedUrl }))
         toast.success('Tải ảnh lên thành công')
       } else {
         toast.error('Không thể lấy đường dẫn ảnh')
