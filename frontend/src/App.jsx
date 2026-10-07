@@ -1,22 +1,32 @@
 import { useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Toaster, toast } from 'sonner'
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import { clearAuthSession } from './lib/authSession'
 
 function AppBehaviorHandler() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   // Scroll to top when pathname changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' })
   }, [pathname])
 
-  // Reload page when user uses browser Back/Forward (popstate)
+  // Register before checking expiration so an expired token on mount is handled.
   useEffect(() => {
-    const handlePopState = () => window.location.reload()
-    window.addEventListener('popstate', handlePopState)
-    return () => window.removeEventListener('popstate', handlePopState)
-  }, [])
+    const handleUnauthorized = () => {
+      clearAuthSession(queryClient)
+      if (pathname !== '/login' && pathname !== '/register') {
+        toast.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại')
+        navigate('/login', { replace: true })
+      }
+    }
+
+    window.addEventListener('unauthorized', handleUnauthorized)
+    return () => window.removeEventListener('unauthorized', handleUnauthorized)
+  }, [navigate, pathname, queryClient])
 
   // Auto-check token expiration every 10 seconds
   useEffect(() => {
@@ -42,21 +52,6 @@ function AppBehaviorHandler() {
     return () => clearInterval(interval)
   }, [])
 
-  // Handle unauthorized events globally without hard reload (SPA style)
-  useEffect(() => {
-    const handleUnauthorized = () => {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      if (pathname !== '/login' && pathname !== '/register') {
-        toast.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại')
-        navigate('/login')
-      }
-    }
-    
-    window.addEventListener('unauthorized', handleUnauthorized)
-    return () => window.removeEventListener('unauthorized', handleUnauthorized)
-  }, [navigate, pathname])
-
   return null
 }
 
@@ -65,6 +60,7 @@ import { Suspense, lazy } from 'react'
 // Layouts
 import MainLayout from './components/layouts/MainLayout'
 import AdminLayout from './components/layouts/AdminLayout'
+import AdminRoute from './components/auth/AdminRoute'
 
 // Pages (Lazy loaded for better performance, except HomePage)
 import HomePage from './pages/HomePage'
@@ -114,7 +110,7 @@ function App() {
             </Route>
 
             {/* Admin Routes with AdminLayout */}
-            <Route path="/admin" element={<AdminLayout />}>
+            <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
               <Route index element={<DashboardPage />} />
               <Route path="approvals" element={<AdminApprovalsPage />} />
               <Route path="categories" element={<AdminCategoriesPage />} />
