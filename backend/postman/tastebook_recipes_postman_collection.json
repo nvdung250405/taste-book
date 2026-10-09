@@ -427,7 +427,7 @@
           "response": []
         },
         {
-          "name": "TC-06-06 Ngoai le: difficulty khong hop le (bo sung, xac nhan qua dac ta)",
+          "name": "TC-06-06 Ngoai le: difficulty khong hop le ",
           "event": [
             {
               "listen": "test",
