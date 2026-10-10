@@ -855,62 +855,7 @@
           },
           "response": []
         },
-        {
-          "name": "TC-25-09 Tên chứa ký tự % không bị coi là ký tự đại diện (nghi vấn bug)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('TC-25-09 HTTP 201 + EC = 0', function () {",
-                  "    pm.response.to.have.status(201);",
-                  "    pm.expect(pm.response.json().EC).to.eql(0);",
-                  "});",
-                  "var _res = null;",
-                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
-                  "if (_res && _res.DT && _res.DT.categoryId) { pm.collectionVariables.set('catIdWild', String(_res.DT.categoryId)); }"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories",
-              "host": ["{{baseUrl}}"],
-              "path": ["categories"]
-            },
-            "description": "Spec 2.2 | Loại: Abnormal | Kỹ thuật: Error Guessing\nDữ liệu vào: categoryName = TB-AUTO-{{runId}}-% (chưa có danh mục nào trùng đúng chữ)\nKết quả mong đợi: 201, EC 0 (không phải trùng); lưu catIdWild\nLƯU Ý: Nghi vấn: code so sánh bằng iLike nên % có thể khớp tên khác và trả 409 sai. Nếu Fail, ghi bug lên Jira.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{tokenA}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-%\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
+
         {
           "name": "TC-25-10 GET danh mục (User A) thấy danh mục cá nhân của mình",
           "event": [

@@ -27,6 +27,9 @@ const COLLECTIONS = {
   user: "tastebook_user_profile_postman_collection_v2.json",
   recipes: "tastebook_recipes_postman_collection.json",
   categories: "tastebook_categories_postman_collection.json",
+  uc08: "tastebook_uc08_recipe_postman_collection.json",
+  uc09_11:"tastebook_uc09_11_recipe_postman_collection.json",
+  uc12_favorites:"tastebook_uc12_favorites_postman_collection.json"
 };
 
 const ENVIRONMENTS = {
