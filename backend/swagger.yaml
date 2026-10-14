@@ -1914,6 +1914,831 @@ paths:
                 EC: -1
                 EM: "Lỗi kết nối máy chủ!"
                 DT: null
+  /recipe-lists:
+    get:
+      tags:
+        - Recipe Lists
+      summary: "UC-13: Lấy danh sách các thực đơn của người dùng"
+      description: Lấy danh sách tất cả các thực đơn do chính người dùng đang đăng
+        nhập tạo ra, kèm theo tổng số lượng món ăn hiện có trong từng thực đơn.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lấy danh sách thành công.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Thành công!
+                DT:
+                  - recipeListId: 1
+                    listName: Tiệc Sinh Nhật
+                    totalItems: 3
+                    createdAt: 2026-08-23T09:00:00.000Z
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+    post:
+      tags:
+        - Recipe Lists
+      summary: "UC-14: Tạo thực đơn mới"
+      description: "Người dùng đã đăng nhập tạo một thực đơn mới (ví dụ: 'Bữa cơm gia
+        đình', 'Tiệc cuối tuần'). Tên được trim, tối đa 100 ký tự sau trim; trùng
+        tên trong cùng người dùng (không phân biệt hoa/thường) trả 409."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - listName
+              properties:
+                listName:
+                  type: string
+                  minLength: 1
+                  pattern: \S
+                  description: Trim khoảng trắng ở hai đầu; tên sau trim dài từ 1 đến 100 ký tự.
+                    Không phân biệt hoa/thường khi kiểm tra trùng trong cùng người
+                    dùng.
+                  example: Bữa cơm giảm cân
+      responses:
+        "201":
+          description: Tạo thực đơn thành công.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Tạo thực đơn thành công!
+                DT:
+                  recipeListId: 2
+                  listName: Bữa cơm giảm cân
+        "400":
+          description: Dữ liệu đầu vào sai kiểu, thiếu, rỗng hoặc vượt giới hạn.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                emptyName:
+                  summary: Tên thực đơn để trống
+                  value:
+                    EC: 1
+                    EM: Tên thực đơn không được để trống!
+                    DT: null
+                tooLongName:
+                  summary: Tên thực đơn vượt quá 100 ký tự
+                  value:
+                    EC: 1
+                    EM: Tên thực đơn không được vượt quá 100 ký tự!
+                    DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "409":
+          description: Tên thực đơn đã tồn tại trong danh sách của bạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Tên thực đơn này đã tồn tại trong danh sách của bạn!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  "/recipe-lists/{listId}":
+    get:
+      tags:
+        - Recipe Lists
+      summary: "UC-16: Xem chi tiết món trong thực đơn"
+      description: Lấy chi tiết thông tin thực đơn cùng danh sách các món ăn có trong
+        thực đơn (kèm số khẩu phần ăn targetServings N người).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 2147483647
+          example: 1
+          description: Mã nguyên dương trong khoảng 1–2147483647; dạng thập phân, không có
+            khoảng trắng, dấu +, số mũ hoặc số 0 ở đầu.
+      responses:
+        "200":
+          description: Lấy chi tiết thành công.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Thành công!
+                DT:
+                  recipeListId: 1
+                  listName: Tiệc Sinh Nhật
+                  items:
+                    - recipeListItemId: 10
+                      recipeId: 101
+                      title: Bò lúc lắc
+                      thumbnailUrl: https://res.cloudinary.com/sf4yjct9/image/upload/v1789269706/tastebook_uploads/fxtcqitccfiph1pi2o0i.jpg
+                      cookTimeMinutes: 20
+                      difficulty: Easy
+                      authorName: Trần Minh Đức
+                      defaultServings: 2
+                      targetServings: 4
+        "400":
+          description: Mã đường dẫn không hợp lệ.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidInput:
+                  value:
+                    EC: 1
+                    EM: Mã thực đơn không hợp lệ!
+                    DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải chủ sở hữu thực đơn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền xem thực đơn này!
+                DT: null
+        "404":
+          description: Không tìm thấy thực đơn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy thực đơn!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+    put:
+      tags:
+        - Recipe Lists
+      summary: "UC-13: Đổi tên thực đơn"
+      description: Người dùng cập nhật lại tên của một thực đơn do chính mình sở hữu.
+        Tên được trim, tối đa 100 ký tự sau trim; trùng tên trong cùng người dùng
+        (không phân biệt hoa/thường) trả 409.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 2147483647
+          example: 1
+          description: Mã nguyên dương trong khoảng 1–2147483647; dạng thập phân, không có
+            khoảng trắng, dấu +, số mũ hoặc số 0 ở đầu.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - listName
+              properties:
+                listName:
+                  type: string
+                  minLength: 1
+                  pattern: \S
+                  description: Trim khoảng trắng ở hai đầu; tên sau trim dài từ 1 đến 100 ký tự.
+                    Không phân biệt hoa/thường khi kiểm tra trùng trong cùng người
+                    dùng.
+                  example: Thực đơn Healthy
+      responses:
+        "200":
+          description: Đổi tên thành công.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Đổi tên thực đơn thành công!
+                DT: null
+        "400":
+          description: Dữ liệu đầu vào sai kiểu, thiếu, rỗng hoặc vượt giới hạn.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                emptyName:
+                  summary: Tên thực đơn để trống
+                  value:
+                    EC: 1
+                    EM: Tên thực đơn không được để trống!
+                    DT: null
+                tooLongName:
+                  summary: Tên thực đơn vượt quá 100 ký tự
+                  value:
+                    EC: 1
+                    EM: Tên thực đơn không được vượt quá 100 ký tự!
+                    DT: null
+                invalidId:
+                  summary: Mã thực đơn không hợp lệ
+                  value:
+                    EC: 1
+                    EM: Mã thực đơn không hợp lệ!
+                    DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải chủ sở hữu thực đơn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền chỉnh sửa thực đơn này!
+                DT: null
+        "404":
+          description: Không tìm thấy thực đơn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy thực đơn!
+                DT: null
+        "409":
+          description: Tên thực đơn đã tồn tại trong danh sách của bạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Tên thực đơn này đã tồn tại trong danh sách của bạn!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+    delete:
+      tags:
+        - Recipe Lists
+      summary: "UC-15: Xóa thực đơn"
+      description: Người dùng xóa một thực đơn khỏi kho cá nhân của mình. Xóa cascade
+        các item và liên kết với danh sách đi chợ; không xóa chính danh sách đi
+        chợ hoặc các item đi chợ đã tạo.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 2147483647
+          example: 1
+          description: Mã nguyên dương trong khoảng 1–2147483647; dạng thập phân, không có
+            khoảng trắng, dấu +, số mũ hoặc số 0 ở đầu.
+      responses:
+        "200":
+          description: Đã xóa thực đơn thành công.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Đã xóa thực đơn thành công!
+                DT: null
+        "400":
+          description: Mã đường dẫn không hợp lệ.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidInput:
+                  value:
+                    EC: 1
+                    EM: Mã thực đơn không hợp lệ!
+                    DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải chủ sở hữu thực đơn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền xóa thực đơn này!
+                DT: null
+        "404":
+          description: Không tìm thấy thực đơn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy thực đơn!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  "/recipe-lists/{listId}/items":
+    post:
+      tags:
+        - Recipe Lists
+      summary: "UC-16: Thêm món vào thực đơn"
+      description: Thêm một món ăn vào thực đơn và gán số khẩu phần ăn thực tế N người
+        (targetServings). Công thức phải chưa bị xóa và thuộc người dùng hiện tại
+        hoặc công khai, đã duyệt. Công thức không tồn tại hoặc không được truy cập
+        đều trả 404. Một món chỉ xuất hiện một lần trong mỗi thực đơn.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 2147483647
+          example: 1
+          description: Mã nguyên dương trong khoảng 1–2147483647; dạng thập phân, không có
+            khoảng trắng, dấu +, số mũ hoặc số 0 ở đầu.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - recipeId
+                - targetServings
+              properties:
+                recipeId:
+                  type: integer
+                  format: int32
+                  minimum: 1
+                  maximum: 2147483647
+                  description: Số JSON nguyên dương, không chấp nhận chuỗi số hoặc boolean.
+                  example: 101
+                targetServings:
+                  type: integer
+                  format: int32
+                  minimum: 1
+                  maximum: 2147483647
+                  description: Số khẩu phần nguyên dương; không chấp nhận chuỗi số, boolean, mảng
+                    hoặc object.
+                  example: 4
+      responses:
+        "201":
+          description: Thêm thành công.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Thêm món vào thực đơn thành công!
+                DT:
+                  recipeListItemId: 10
+                  recipeId: 101
+                  targetServings: 4
+        "400":
+          description: Dữ liệu đầu vào sai kiểu, thiếu, rỗng hoặc vượt giới hạn.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidServings:
+                  summary: Số khẩu phần ăn không hợp lệ
+                  value:
+                    EC: 1
+                    EM: Số khẩu phần ăn targetServings phải lớn hơn 0!
+                    DT: null
+                invalidRecipeId:
+                  summary: Mã món ăn không hợp lệ
+                  value:
+                    EC: 1
+                    EM: Mã món ăn không hợp lệ!
+                    DT: null
+                invalidListId:
+                  summary: Mã thực đơn không hợp lệ
+                  value:
+                    EC: 1
+                    EM: Mã thực đơn không hợp lệ!
+                    DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải chủ sở hữu thực đơn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền chỉnh sửa thực đơn này!
+                DT: null
+        "404":
+          description: Không tìm thấy thực đơn hoặc món ăn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                listNotFound:
+                  summary: Không tìm thấy thực đơn
+                  value:
+                    EC: 3
+                    EM: Không tìm thấy thực đơn!
+                    DT: null
+                recipeNotFound:
+                  summary: Không tìm thấy món ăn
+                  value:
+                    EC: 3
+                    EM: Không tìm thấy công thức món ăn!
+                    DT: null
+        "409":
+          description: Món ăn đã có trong thực đơn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Món ăn đã có trong thực đơn, vui lòng điều chỉnh số lượng!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  "/recipe-lists/{listId}/items/{itemId}":
+    put:
+      tags:
+        - Recipe Lists
+      summary: "UC-16: Đổi khẩu phần N món trong thực đơn"
+      description: Cập nhật lại số lượng khẩu phần ăn N người (targetServings) cho một
+        món ăn đã có trong thực đơn.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 2147483647
+          example: 1
+          description: Mã nguyên dương trong khoảng 1–2147483647; dạng thập phân, không có
+            khoảng trắng, dấu +, số mũ hoặc số 0 ở đầu.
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 2147483647
+          example: 4
+          description: Mã nguyên dương trong khoảng 1–2147483647; dạng thập phân, không có
+            khoảng trắng, dấu +, số mũ hoặc số 0 ở đầu.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - targetServings
+              properties:
+                targetServings:
+                  type: integer
+                  format: int32
+                  minimum: 1
+                  maximum: 2147483647
+                  description: Số khẩu phần nguyên dương; không chấp nhận chuỗi số, boolean, mảng
+                    hoặc object.
+                  example: 6
+      responses:
+        "200":
+          description: Cập nhật khẩu phần thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Cập nhật khẩu phần thành công!
+                DT: null
+        "400":
+          description: Dữ liệu đầu vào sai kiểu, thiếu, rỗng hoặc vượt giới hạn.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidServings:
+                  summary: Số khẩu phần ăn không hợp lệ
+                  value:
+                    EC: 1
+                    EM: Số khẩu phần ăn targetServings phải lớn hơn 0!
+                    DT: null
+                invalidItemId:
+                  summary: Mã món trong thực đơn không hợp lệ
+                  value:
+                    EC: 1
+                    EM: Mã món trong thực đơn không hợp lệ!
+                    DT: null
+                invalidListId:
+                  summary: Mã thực đơn không hợp lệ
+                  value:
+                    EC: 1
+                    EM: Mã thực đơn không hợp lệ!
+                    DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải chủ sở hữu thực đơn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền chỉnh sửa thực đơn này!
+                DT: null
+        "404":
+          description: Không tìm thấy thực đơn hoặc món ăn trong thực đơn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                listNotFound:
+                  summary: Không tìm thấy thực đơn
+                  value:
+                    EC: 3
+                    EM: Không tìm thấy thực đơn!
+                    DT: null
+                itemNotFound:
+                  summary: Không tìm thấy món ăn trong thực đơn
+                  value:
+                    EC: 3
+                    EM: Không tìm thấy món ăn trong thực đơn!
+                    DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+    delete:
+      tags:
+        - Recipe Lists
+      summary: "UC-16: Xóa món khỏi thực đơn"
+      description: Xóa một món ăn ra khỏi thực đơn do người dùng sở hữu.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 2147483647
+          example: 1
+          description: Mã nguyên dương trong khoảng 1–2147483647; dạng thập phân, không có
+            khoảng trắng, dấu +, số mũ hoặc số 0 ở đầu.
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 2147483647
+          example: 4
+          description: Mã nguyên dương trong khoảng 1–2147483647; dạng thập phân, không có
+            khoảng trắng, dấu +, số mũ hoặc số 0 ở đầu.
+      responses:
+        "200":
+          description: Xóa món khỏi thực đơn thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Đã xóa món ăn khỏi thực đơn!
+                DT: null
+        "400":
+          description: Mã đường dẫn không hợp lệ.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidItemId:
+                  summary: Mã món trong thực đơn không hợp lệ
+                  value:
+                    EC: 1
+                    EM: Mã món trong thực đơn không hợp lệ!
+                    DT: null
+                invalidListId:
+                  summary: Mã thực đơn không hợp lệ
+                  value:
+                    EC: 1
+                    EM: Mã thực đơn không hợp lệ!
+                    DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải chủ sở hữu thực đơn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền chỉnh sửa thực đơn này!
+                DT: null
+        "404":
+          description: Không tìm thấy thực đơn hoặc món ăn trong thực đơn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                listNotFound:
+                  summary: Không tìm thấy thực đơn
+                  value:
+                    EC: 3
+                    EM: Không tìm thấy thực đơn!
+                    DT: null
+                itemNotFound:
+                  summary: Không tìm thấy món ăn trong thực đơn
+                  value:
+                    EC: 3
+                    EM: Không tìm thấy món ăn trong thực đơn!
+                    DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
   /images:
     post:
       tags:
