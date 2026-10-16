@@ -1,162 +1,137 @@
-import { useState } from 'react'
-import {
-  Plus, Trash2, Loader2, BookMarked, ChevronRight,
-} from 'lucide-react'
-import { Button } from '../components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '../components/ui/dialog'
-import { Input } from '../components/ui/input'
-import {
-  useRecipeLists,
-  useCreateRecipeList, useDeleteRecipeList
-} from '../hooks/queries/useRecipeListQueries'
+import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
+import { ChevronLeft, ChevronRight, Plus, Trash2, ShoppingCart, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import RecipeListDetail from '../components/menu/RecipeListDetail'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
+import QueryError from '../components/ui/QueryError'
+import { useRecipeLists, useRecipeListItems } from '../hooks/queries/useRecipeListQueries'
+import { useRecipes } from '../hooks/queries/useRecipeQueries'
+import api from '../api/recipeLists.api'
+import shoppingApi from '../api/shoppingLists.api'
+import { MEALS, dateKey, moveDate, weekStart, mealListName } from '../lib/weeklyMenu'
+import { recipeThumbnail, handleRecipeImageError } from '../lib/recipeImages'
+
+const format = date => date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
+const failure = error => toast.error(error?.EM || error?.message || 'Không thể lưu thay đổi. Vui lòng thử lại.')
+
+function MealCell({ list, date, meal, onAdd }) {
+  const client = useQueryClient()
+  const query = useRecipeListItems(list?.recipeListId)
+  const [busy, setBusy] = useState(false)
+  const items = query.data?.DT?.items || []
+  const update = async (item, servings) => {
+    if (busy) return
+    setBusy(true)
+    const key = ['recipe-list', list.recipeListId]
+    await client.cancelQueries({ queryKey: key })
+    const previous = client.getQueryData(key)
+    client.setQueryData(key, old => ({ ...old, DT: { ...old.DT, items: servings === null ? old.DT.items.filter(row => row.recipeListItemId !== item.recipeListItemId) : old.DT.items.map(row => row.recipeListItemId === item.recipeListItemId ? { ...row, targetServings: servings } : row) } }))
+    try {
+      if (servings === null) await api.removeRecipeFromMenu(list.recipeListId, item.recipeListItemId)
+      else await api.updateRecipePortion(list.recipeListId, item.recipeListItemId, { targetServings: servings })
+    } catch (error) { client.setQueryData(key, previous); failure(error) }
+    finally {
+      setBusy(false)
+      client.invalidateQueries({ queryKey: key })
+      client.invalidateQueries({ queryKey: ['recipe-lists'] })
+    }
+  }
+  return <div className="min-h-48 border-b border-r border-slate-200 p-2 dark:border-slate-800" aria-label={`${MEALS[meal]} ${format(date)}`}>
+    {query.isLoading && list ? <Loader2 className="mx-auto my-6 size-5 animate-spin text-orange-500" /> : query.isError ? <button onClick={() => query.refetch()} className="text-sm text-red-500">Tải lỗi · Thử lại</button> : <div className="space-y-2">
+      {items.map(item => <article key={item.recipeListItemId} className="rounded-xl border border-orange-100 bg-orange-50/60 p-2 dark:border-slate-700 dark:bg-slate-800">
+        <img src={recipeThumbnail(item.thumbnailUrl, 320)} onError={handleRecipeImageError} alt="" loading="lazy" className="mb-2 h-20 w-full rounded-lg object-cover" />
+        <p className="mb-2 text-sm font-semibold leading-snug">{item.title}</p>
+        <div className="flex items-center justify-between gap-1">
+          <label className="flex items-center gap-1 text-xs text-slate-500"><input key={item.targetServings} type="number" min="1" max="2147483647" defaultValue={item.targetServings} disabled={busy} aria-label={`Khẩu phần ${item.title}`} className="w-12 rounded border bg-white p-1 text-center dark:bg-slate-900" onBlur={e => {
+            const value = Number(e.target.value)
+            if (!Number.isInteger(value) || value < 1 || value > 2147483647) { e.target.value = item.targetServings; toast.error('Khẩu phần phải là số nguyên dương'); return }
+            if (value !== item.targetServings) update(item, value)
+          }} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }} /> phần</label>
+          <button disabled={busy} onClick={() => update(item, null)} aria-label={`Xóa ${item.title}`} className="rounded p-2 text-slate-400 hover:text-red-500 disabled:opacity-40"><Trash2 className="size-4" /></button>
+        </div>
+      </article>)}
+    </div>}
+    <button onClick={() => onAdd({ date, meal, list })} disabled={busy || query.isError || (!!list && query.isLoading)} className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 py-3 text-xs text-slate-500 transition-colors hover:border-orange-400 hover:bg-orange-50 hover:text-orange-600 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800"><Plus className="size-4" /> Thêm món</button>
+  </div>
+}
+
+function RecipePicker({ slot, onClose }) {
+  const [search, setSearch] = useState('')
+  const [keyword, setKeyword] = useState('')
+  const [page, setPage] = useState(1)
+  const [servings, setServings] = useState(2)
+  const [busy, setBusy] = useState(false)
+  const client = useQueryClient()
+  useEffect(() => { const timer = setTimeout(() => { setKeyword(search); setPage(1) }, 300); return () => clearTimeout(timer) }, [search])
+  const query = useRecipes({ search: keyword, page, limit: 12 })
+  const recipes = query.data?.DT?.items || query.data?.DT?.recipes || (Array.isArray(query.data?.DT) ? query.data.DT : [])
+  const add = async recipe => {
+    if (busy) return
+    if (!Number.isInteger(servings) || servings < 1 || servings > 2147483647) return toast.error('Khẩu phần phải là số nguyên dương')
+    setBusy(true)
+    try {
+      let list = slot.list
+      if (!list) {
+        const name = mealListName(slot.date, slot.meal)
+        try { list = (await api.createRecipeList({ listName: name })).DT }
+        catch (error) {
+          if (error?.EC !== 2) throw error
+          list = (await api.getRecipeLists()).DT.find(row => row.listName === name)
+          if (!list) throw error
+        }
+      }
+      await api.addRecipeToMenu(list.recipeListId, { recipeId: recipe.recipeId || recipe.id, targetServings: servings })
+      client.invalidateQueries({ queryKey: ['recipe-list', list.recipeListId] })
+      toast.success('Đã thêm món vào lịch'); onClose()
+    } catch (error) { failure(error) }
+    finally { setBusy(false); client.invalidateQueries({ queryKey: ['recipe-lists'] }) }
+  }
+  return <Dialog open onOpenChange={open => { if (!open && !busy) onClose() }}><DialogContent className="max-w-xl">
+    <DialogHeader><DialogTitle>Thêm món · {MEALS[slot.meal]} {format(slot.date)}</DialogTitle></DialogHeader>
+    <Input autoFocus placeholder="Tìm tên món ăn…" value={search} onChange={e => setSearch(e.target.value)} />
+    <label className="flex items-center gap-3 text-sm">Số khẩu phần<Input type="number" min="1" value={servings} onChange={e => setServings(Number(e.target.value))} className="w-24" disabled={busy} /></label>
+    <div className="max-h-[45vh] space-y-2 overflow-y-auto" aria-busy={busy}>
+      {query.isLoading ? <p className="py-8 text-center text-slate-500">Đang tìm món…</p> : query.isError ? <QueryError onRetry={query.refetch} /> : recipes.length === 0 ? <p className="py-8 text-center text-slate-500">Không tìm thấy món phù hợp.</p> : recipes.map(recipe => <button key={recipe.recipeId || recipe.id} disabled={busy || keyword !== search} onClick={() => add(recipe)} className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-2 text-left hover:bg-orange-50 disabled:opacity-50 dark:border-slate-800 dark:hover:bg-slate-800"><img src={recipeThumbnail(recipe.thumbnailUrl, 320)} onError={handleRecipeImageError} alt="" className="size-14 rounded-lg object-cover" /><span className="flex-1 text-sm font-medium">{recipe.title}</span><Plus className="size-4 text-orange-500" /></button>)}
+    </div>
+    <div className="flex items-center justify-between"><Button variant="outline" disabled={busy || page === 1} onClick={() => setPage(page - 1)}>Trước</Button><span className="text-sm" role="status">{busy ? 'Đang thêm món…' : `Trang ${page}`}</span><Button variant="outline" disabled={busy || query.isFetching || recipes.length < 12} onClick={() => setPage(page + 1)}>Tiếp</Button></div>
+  </DialogContent></Dialog>
+}
 
 export default function MenuPage() {
-  const { data: res, isLoading } = useRecipeLists()
-  const { mutate: createList, isPending: creating } = useCreateRecipeList()
-  const { mutate: deleteList, isPending: deleting } = useDeleteRecipeList()
-
-  const [openCreate, setOpenCreate] = useState(false)
-  const [newListName, setNewListName] = useState('')
-  const [expandedId, setExpandedId] = useState(null)
-  const [toDelete, setToDelete] = useState(null)
-
-  const lists = Array.isArray(res?.DT) ? res.DT : (res?.DT?.items || [])
-
-  const handleCreate = () => {
-    if (!newListName.trim()) return toast.error('Vui lòng nhập tên thực đơn')
-    createList({ name: newListName.trim() }, {
-      onSuccess: () => { toast.success('Đã tạo thực đơn mới'); setNewListName(''); setOpenCreate(false) },
-      onError: () => toast.error('Tạo thất bại'),
-    })
+  const [week, setWeek] = useState(() => weekStart())
+  const [slot, setSlot] = useState(null)
+  const [shopping, setShopping] = useState(false)
+  const query = useRecipeLists()
+  const client = useQueryClient()
+  const navigate = useNavigate()
+  const days = Array.from({ length: 7 }, (_, index) => moveDate(week, index))
+  const lists = Array.isArray(query.data?.DT) ? query.data.DT : []
+  const names = new Set(days.flatMap(date => MEALS.map((_, meal) => mealListName(date, meal))))
+  const weekLists = lists.filter(list => names.has(list.listName))
+  const count = weekLists.reduce((sum, list) => sum + list.totalItems, 0)
+  const createShopping = async () => {
+    setShopping(true)
+    try {
+      await shoppingApi.createShoppingList({ title: `Đi chợ ${format(week)} – ${format(days[6])}`, recipeListIds: weekLists.filter(list => list.totalItems > 0).map(list => list.recipeListId) })
+      client.invalidateQueries({ queryKey: ['shopping-lists'] })
+      toast.success('Đã tạo danh sách đi chợ'); navigate('/shopping-list')
+    } catch (error) { toast.error(error?.EM || 'Chưa thể tạo danh sách đi chợ. Vui lòng kiểm tra API đi chợ trên backend.') }
+    finally { setShopping(false) }
   }
-
-  const handleDelete = () => {
-    if (!toDelete) return
-    deleteList(toDelete._id || toDelete.id, {
-      onSuccess: () => { toast.success('Đã xóa thực đơn'); setToDelete(null) },
-      onError: () => toast.error('Xóa thất bại'),
-    })
-  }
-
-  return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Thực đơn của tôi</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">Lên kế hoạch bữa ăn và quản lý thực đơn hàng tuần</p>
-        </div>
-        <Button onClick={() => setOpenCreate(true)} className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl w-full sm:w-auto">
-          <Plus className="w-4 h-4 mr-2" /> Tạo thực đơn mới
-        </Button>
-      </div>
-
-      {/* Content */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <div key={idx} className="h-32 rounded-xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
-          ))}
-        </div>
-      ) : lists.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-          <div className="w-20 h-20 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
-            <BookMarked className="w-10 h-10 text-orange-300" />
-          </div>
-          <h3 className="text-xl font-semibold text-slate-700 dark:text-slate-300">Chưa có thực đơn nào</h3>
-          <p className="text-slate-500 text-sm text-center max-w-sm">Tạo thực đơn để lên kế hoạch bữa ăn và chia sẻ danh sách nguyên liệu cùng gia đình!</p>
-          <Button onClick={() => setOpenCreate(true)} className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl">
-            <Plus className="w-4 h-4 mr-2" /> Tạo thực đơn đầu tiên
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {lists.map(list => (
-            <Card key={list._id || list.id} className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:shadow-lg transition-all duration-300">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-xl">{list.name}</CardTitle>
-                    <p className="text-sm text-slate-500 mt-1">
-                      {list.totalItems || list.recipes?.length || 0} món ·{' '}
-                      {list.description || 'Không có mô tả'}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-slate-400 hover:text-red-500"
-                      onClick={() => setToDelete(list)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <button
-                  onClick={() => setExpandedId(expandedId === (list._id || list.id) ? null : (list._id || list.id))}
-                  className="w-full flex items-center justify-between text-sm font-medium text-orange-500 hover:text-orange-600 transition-colors"
-                >
-                  <span>{expandedId === (list._id || list.id) ? 'Ẩn bớt' : 'Xem danh sách món'}</span>
-                  <ChevronRight className={`w-4 h-4 transition-transform ${expandedId === (list._id || list.id) ? 'rotate-90' : ''}`} />
-                </button>
-                {expandedId === (list._id || list.id) && (
-                  <RecipeListDetail list={list} />
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Create Dialog */}
-      <Dialog open={openCreate} onOpenChange={setOpenCreate}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Tạo thực đơn mới</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Input
-              placeholder="Ví dụ: Thực đơn tuần này, Tiệc cuối năm..."
-              value={newListName}
-              onChange={(e) => setNewListName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-              className="rounded-xl"
-            />
-          </div>
-          <DialogFooter className="gap-2 mt-2">
-            <Button variant="outline" onClick={() => setOpenCreate(false)}>Hủy</Button>
-            <Button className="bg-orange-500 hover:bg-orange-600 text-white" onClick={handleCreate} disabled={creating}>
-              {creating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Tạo
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirm Dialog */}
-      <Dialog open={!!toDelete} onOpenChange={(open) => !open && setToDelete(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Xóa thực đơn?</DialogTitle></DialogHeader>
-          <p className="text-slate-500 text-sm">
-            Bạn có chắc muốn xóa <span className="font-semibold text-slate-700 dark:text-slate-300">"{toDelete?.name}"</span>? Toàn bộ các món trong thực đơn sẽ bị xóa.
-          </p>
-          <DialogFooter className="gap-2 mt-2">
-            <Button variant="outline" onClick={() => setToDelete(null)}>Hủy</Button>
-            <Button className="bg-red-500 hover:bg-red-600 text-white" onClick={handleDelete} disabled={deleting}>
-              {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Xóa
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
+  return <div className="container mx-auto space-y-6 px-4 py-8">
+    <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="mb-2 text-sm font-medium text-orange-500">KẾ HOẠCH BỮA ĂN</p><h1 className="text-3xl font-bold tracking-tight">Thực đơn tuần</h1><p className="mt-2 text-sm text-slate-500">Một tuần ngon miệng, bắt đầu từ kế hoạch nhỏ.</p></div><Button onClick={createShopping} disabled={shopping || !count || query.isError} className="rounded-xl bg-orange-500 text-white hover:bg-orange-600">{shopping ? <Loader2 className="mr-2 size-4 animate-spin" /> : <ShoppingCart className="mr-2 size-4" />} Tạo danh sách đi chợ</Button></div>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><div className="flex items-center gap-2"><Button variant="outline" size="icon" aria-label="Tuần trước" onClick={() => setWeek(moveDate(week, -7))}><ChevronLeft className="size-4" /></Button><span className="min-w-48 text-center font-semibold" aria-live="polite">{format(week)} – {format(days[6])}/{days[6].getFullYear()}</span><Button variant="outline" size="icon" aria-label="Tuần sau" onClick={() => setWeek(moveDate(week, 7))}><ChevronRight className="size-4" /></Button></div><div className="flex items-center gap-4"><span className="text-sm text-slate-500">{count} món đã lên lịch</span><Button variant="outline" onClick={() => setWeek(weekStart())}>Tuần này</Button></div></div>
+    {query.isError ? <QueryError title="Không thể tải lịch thực đơn" onRetry={query.refetch} /> : query.isLoading ? <div className="h-96 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" aria-label="Đang tải lịch" /> : <>
+      <p className="text-xs text-slate-500 sm:hidden">Vuốt ngang để xem đủ 7 ngày.</p>
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"><div className="grid min-w-[1150px] grid-cols-[72px_repeat(7,minmax(0,1fr))]">
+        <div className="border-b border-r border-slate-200 dark:border-slate-800" />
+        {days.map((date, index) => <div key={dateKey(date)} className={`border-b border-r border-slate-200 p-4 text-center dark:border-slate-800 ${dateKey(date) === dateKey(new Date()) ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/30' : ''}`}><p className="text-xs text-slate-500">{index === 6 ? 'Chủ nhật' : `Thứ ${index + 2}`}</p><p className="mt-1 text-lg font-bold">{format(date)}</p></div>)}
+        {MEALS.flatMap((meal, mealIndex) => [<div key={meal} className="border-b border-r border-slate-200 bg-slate-50 px-2 py-5 text-center text-sm font-semibold dark:border-slate-800 dark:bg-slate-800/40">{meal}</div>, ...days.map(date => <MealCell key={`${dateKey(date)}-${mealIndex}`} date={date} meal={mealIndex} list={lists.find(list => list.listName === mealListName(date, mealIndex))} onAdd={setSlot} />)])}
+      </div></div><p className="text-xs text-slate-500">Thêm món vào từng bữa. Nhập khẩu phần rồi nhấn Enter hoặc rời ô để lưu.</p>
+    </>}
+    {slot && <RecipePicker slot={slot} onClose={() => setSlot(null)} />}
+  </div>
 }
