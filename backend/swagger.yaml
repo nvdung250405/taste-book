@@ -2739,6 +2739,834 @@ paths:
                 EC: -1
                 EM: Lỗi kết nối máy chủ!
                 DT: null
+  /shopping-lists:
+    get:
+      tags:
+        - Shopping Lists
+      summary: "UC-17: Lấy các phiên đi chợ"
+      description: "Lấy danh sách tất cả các chuyến đi chợ do chính người dùng đang đăng nhập tạo ra (hiển thị tiêu đề và trạng thái 'In_Progress' hoặc 'Completed')."
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lấy danh sách thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: "Thành công!"
+                DT:
+                  - shoppingListId: 1
+                    title: "Đi chợ Chủ Nhật"
+                    status: "In_Progress"
+                    createdAt: "2026-08-24T08:00:00.000Z"
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
+    post:
+      tags:
+        - Shopping Lists
+      summary: "UC-17/18: Tổng hợp danh sách đi chợ"
+      description: "Gom một hoặc nhiều thực đơn, loại bỏ ID thực đơn trùng. targetServings và defaultServings phải là số nguyên dương. Định lượng được nhân targetServings/defaultServings bằng số học chính xác, cộng dồn theo mã nguyên liệu và đơn vị (trim, không phân biệt hoa thường); nguyên liệu tự nhập gộp theo tên và đơn vị. Khác đơn vị thì tách dòng, không quy đổi. Chỉ làm tròn half-up một lần sau khi cộng tổng, đến 2 chữ số thập phân; kết quả định lượng phải từ 0.01 đến 99999999.99, nếu không trả 400. Nguyên liệu định tính giữ unit và totalQuantity = 0, không nhân hoặc cộng số lượng."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - recipeListIds
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  description: "Chuỗi không rỗng sau khi trim."
+                  example: "Đi siêu thị BigC"
+                recipeListIds:
+                  type: array
+                  minItems: 1
+                  description: "Các ID số nguyên dương; ID trùng được xử lý một lần, không nhận chuỗi hoặc boolean."
+                  items:
+                    type: integer
+                    minimum: 1
+                  example:
+                    - 1
+                    - 2
+      responses:
+        "201":
+          description: Tổng hợp danh sách đi chợ thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: "Đã tổng hợp danh sách đi chợ thông minh thành công!"
+                DT:
+                  shoppingListId: 5
+                  title: "Đi siêu thị BigC"
+                  status: "In_Progress"
+                  totalItems: 15
+        "400":
+          description: Dữ liệu đầu vào không hợp lệ hoặc thực đơn chưa có món ăn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                emptyMenu:
+                  summary: Thực đơn chưa có món ăn
+                  value:
+                    EC: 1
+                    EM: "Thực đơn được chọn chưa có món ăn nào để đi chợ!"
+                    DT: null
+                missingTitle:
+                  summary: Tiêu đề để trống
+                  value:
+                    EC: 1
+                    EM: "Tiêu đề danh sách đi chợ phải là chuỗi không được để trống!"
+                    DT: null
+                missingRecipeLists:
+                  summary: Chưa chọn thực đơn
+                  value:
+                    EC: 1
+                    EM: "Vui lòng chọn ít nhất một thực đơn!"
+                    DT: null
+                invalidListIds:
+                  summary: Danh sách mã thực đơn không hợp lệ
+                  value:
+                    EC: 1
+                    EM: "Danh sách mã thực đơn không hợp lệ!"
+                    DT: null
+                invalidServings:
+                  value:
+                    EC: 1
+                    EM: "Khẩu phần targetServings và defaultServings phải là số nguyên dương!"
+                    DT: null
+                quantityTooSmall:
+                  value:
+                    EC: 1
+                    EM: "Số lượng sau làm tròn phải từ 0.01 trở lên với đơn vị định lượng!"
+                    DT: null
+                quantityOverflow:
+                  value:
+                    EC: 1
+                    EM: "Số lượng sau làm tròn không được vượt quá 99999999.99!"
+                    DT: null
+                titleTooLong:
+                  value:
+                    EC: 1
+                    EM: "Tiêu đề danh sách đi chợ không được vượt quá 100 ký tự!"
+                    DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "403":
+          description: Không có quyền sử dụng thực đơn của người khác
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: "Bạn không có quyền sử dụng thực đơn của người khác!"
+                DT: null
+        "404":
+          description: Không tìm thấy một trong các thực đơn được chọn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: "Một hoặc nhiều thực đơn được chọn không tồn tại!"
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
+  "/shopping-lists/{shoppingListId}":
+    get:
+      tags:
+        - Shopping Lists
+      summary: "UC-18: Xem chi tiết checklist mua sắm"
+      description: "Xem chi tiết danh sách checklist nguyên liệu cần mua sắm trong một chuyến đi chợ (kèm tên mặt hàng, số lượng tổng, đơn vị và trạng thái đã mua isPurchased). Với đơn vị định tính, totalQuantity = 0 và FE chỉ hiển thị unit."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shoppingListId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        "200":
+          description: Lấy chi tiết danh sách đi chợ thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: "Thành công!"
+                DT:
+                  shoppingListId: 1
+                  title: "Đi siêu thị BigC"
+                  status: "In_Progress"
+                  items:
+                    - itemId: 50
+                      ingredientId: 1
+                      itemName: "Thịt bò"
+                      totalQuantity: 600
+                      unit: "gam"
+                      isPurchased: false
+        "400":
+          description: Mã danh sách đi chợ không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: "Mã danh sách đi chợ không hợp lệ!"
+                DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "403":
+          description: Không phải chủ sở hữu danh sách đi chợ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: "Bạn không có quyền xem danh sách đi chợ này!"
+                DT: null
+        "404":
+          description: Không tìm thấy danh sách đi chợ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: "Không tìm thấy danh sách đi chợ!"
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
+    patch:
+      tags:
+        - Shopping Lists
+      summary: "UC-18: Cập nhật trạng thái chuyến đi chợ"
+      description: "Cập nhật trạng thái của chuyến đi chợ (chuyển sang 'Completed' hoặc chuyển lại 'In_Progress')."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shoppingListId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - In_Progress
+                    - Completed
+                  example: Completed
+      responses:
+        "200":
+          description: Cập nhật trạng thái chuyến đi chợ thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: "Cập nhật trạng thái chuyến đi chợ thành công!"
+                DT:
+                  shoppingListId: 1
+                  status: Completed
+        "400":
+          description: Giá trị status không hợp lệ hoặc mã danh sách không đúng định dạng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidStatus:
+                  summary: Trạng thái status không hợp lệ
+                  value:
+                    EC: 1
+                    EM: "Trạng thái không hợp lệ (Chỉ chấp nhận 'In_Progress' hoặc 'Completed')!"
+                    DT: null
+                invalidShoppingListId:
+                  summary: Mã danh sách đi chợ không hợp lệ
+                  value:
+                    EC: 1
+                    EM: "Mã danh sách đi chợ không hợp lệ!"
+                    DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "403":
+          description: Không phải chủ sở hữu danh sách đi chợ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: "Bạn không có quyền chỉnh sửa danh sách đi chợ này!"
+                DT: null
+        "404":
+          description: Không tìm thấy danh sách đi chợ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: "Không tìm thấy danh sách đi chợ!"
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
+    delete:
+      tags:
+        - Shopping Lists
+      summary: "UC-18: Xóa phiên đi chợ"
+      description: "Xóa một danh sách đi chợ khỏi tài khoản cá nhân."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shoppingListId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        "200":
+          description: Đã xóa danh sách đi chợ!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: "Đã xóa danh sách đi chợ!"
+                DT: null
+        "400":
+          description: Mã danh sách đi chợ không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: "Mã danh sách đi chợ không hợp lệ!"
+                DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "403":
+          description: Không phải chủ sở hữu danh sách đi chợ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: "Bạn không có quyền xóa danh sách đi chợ này!"
+                DT: null
+        "404":
+          description: Không tìm thấy danh sách đi chợ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: "Không tìm thấy danh sách đi chợ!"
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
+  "/shopping-lists/{shoppingListId}/items":
+    post:
+      tags:
+        - Shopping Lists
+      summary: "UC-18: Thêm món mua ngoài tự do"
+      description: "Thêm mặt hàng phát sinh. itemName và unit phải là chuỗi không rỗng sau trim, tối đa 255 ký tự. totalQuantity nếu có phải là số JSON hữu hạn (không nhận chuỗi, boolean hoặc null). Đơn vị định lượng bắt buộc có totalQuantity > 0; làm tròn half-up đến 2 chữ số thập phân, kết quả phải từ 0.01 đến 99999999.99, nếu không trả 400. Đơn vị định tính có thể bỏ totalQuantity hoặc gửi số không âm, luôn lưu totalQuantity = 0."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shoppingListId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - itemName
+                - unit
+              properties:
+                itemName:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  example: Nước rửa chén
+                totalQuantity:
+                  type: number
+                  minimum: 0
+                  description: "Bắt buộc với đơn vị định lượng, kết quả sau làm tròn half-up phải từ 0.01 đến 99999999.99. Đơn vị định tính có thể bỏ trường này, nếu gửi phải là số không âm; luôn lưu 0. Không nhận null, chuỗi hoặc boolean."
+                  example: 1
+                unit:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  example: chai
+      responses:
+        "201":
+          description: Thêm món phát sinh thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: "Thêm món phát sinh thành công!"
+                DT:
+                  itemId: 55
+                  itemName: "Nước rửa chén"
+                  totalQuantity: 1
+                  unit: "chai"
+                  isPurchased: false
+        "400":
+          description: Dữ liệu món đồ rỗng, thiếu thông tin hoặc sai định dạng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingItemName:
+                  summary: Dữ liệu món thiếu tên
+                  value:
+                    EC: 1
+                    EM: "Tên món phát sinh không được để trống!"
+                    DT: null
+                missingQuantity:
+                  summary: Dữ liệu món thiếu số lượng
+                  value:
+                    EC: 1
+                    EM: "Số lượng không được để trống!"
+                    DT: null
+                missingUnit:
+                  summary: Thiếu đơn vị tính
+                  value:
+                    EC: 1
+                    EM: "Đơn vị tính không được để trống!"
+                    DT: null
+                invalidQuantity:
+                  summary: Số lượng không hợp lệ
+                  value:
+                    EC: 1
+                    EM: "Số lượng phải lớn hơn 0; chỉ đơn vị định tính mới được dùng 0!"
+                    DT: null
+                invalidQuantityType:
+                  value:
+                    EC: 1
+                    EM: "Số lượng phải là số hữu hạn!"
+                    DT: null
+                quantityTooSmall:
+                  value:
+                    EC: 1
+                    EM: "Số lượng sau làm tròn phải từ 0.01 trở lên với đơn vị định lượng!"
+                    DT: null
+                quantityOverflow:
+                  value:
+                    EC: 1
+                    EM: "Số lượng sau làm tròn không được vượt quá 99999999.99!"
+                    DT: null
+                invalidItemNameType:
+                  value:
+                    EC: 1
+                    EM: "Tên món phát sinh phải là chuỗi!"
+                    DT: null
+                invalidUnitType:
+                  value:
+                    EC: 1
+                    EM: "Đơn vị tính phải là chuỗi!"
+                    DT: null
+                invalidShoppingListId:
+                  summary: Mã danh sách đi chợ không hợp lệ
+                  value:
+                    EC: 1
+                    EM: "Mã danh sách đi chợ không hợp lệ!"
+                    DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "403":
+          description: Không phải chủ sở hữu danh sách đi chợ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: "Bạn không có quyền chỉnh sửa danh sách đi chợ này!"
+                DT: null
+        "404":
+          description: Không tìm thấy danh sách đi chợ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: "Không tìm thấy danh sách đi chợ!"
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
+  "/shopping-lists/{shoppingListId}/items/{itemId}":
+    patch:
+      tags:
+        - Shopping Lists
+      summary: "UC-18: Đánh dấu đã mua / chưa mua"
+      description: "Tích chọn đánh dấu mặt hàng đã mua (isPurchased = true) hoặc bỏ đánh dấu (isPurchased = false) khi đang đi chợ."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shoppingListId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - isPurchased
+              properties:
+                isPurchased:
+                  type: boolean
+                  example: true
+      responses:
+        "200":
+          description: Cập nhật trạng thái mặt hàng thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: "Cập nhật trạng thái mặt hàng thành công!"
+                DT:
+                  itemId: 1
+                  isPurchased: true
+        "400":
+          description: Dữ liệu đầu vào hoặc tham số đường dẫn không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidPurchased:
+                  summary: Trạng thái isPurchased không hợp lệ
+                  value:
+                    EC: 1
+                    EM: "Trạng thái isPurchased phải là kiểu boolean (true hoặc false)!"
+                    DT: null
+                invalidItemId:
+                  summary: Mã mặt hàng không hợp lệ
+                  value:
+                    EC: 1
+                    EM: "Mã mặt hàng không hợp lệ!"
+                    DT: null
+                invalidShoppingListId:
+                  summary: Mã danh sách đi chợ không hợp lệ
+                  value:
+                    EC: 1
+                    EM: "Mã danh sách đi chợ không hợp lệ!"
+                    DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "403":
+          description: Không phải chủ sở hữu danh sách đi chợ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: "Bạn không có quyền chỉnh sửa danh sách đi chợ này!"
+                DT: null
+        "404":
+          description: Không tìm thấy danh sách đi chợ hoặc mặt hàng trong danh sách
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                itemNotFound:
+                  summary: Không tìm thấy mặt hàng trong danh sách
+                  value:
+                    EC: 3
+                    EM: "Không tìm thấy mặt hàng trong danh sách!"
+                    DT: null
+                listNotFound:
+                  summary: Không tìm thấy danh sách đi chợ
+                  value:
+                    EC: 3
+                    EM: "Không tìm thấy danh sách đi chợ!"
+                    DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
+  "/shopping-lists/{shoppingListId}/items/purchased":
+    delete:
+      tags:
+        - Shopping Lists
+      summary: "7.8. UC-18: Xóa các mặt hàng đã mua"
+      description: "Xóa tất cả mặt hàng có isPurchased = true trong danh sách thuộc người dùng đăng nhập. Giữ nguyên danh sách, trạng thái chuyến đi chợ, các liên kết thực đơn và mặt hàng chưa mua. Không cần request body. Không có mặt hàng đã mua vẫn trả 200 với deletedItems = 0. Thao tác thực hiện trong transaction và rollback khi lỗi trước khi commit thành công."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shoppingListId
+          in: path
+          required: true
+          description: "Mã danh sách dạng chữ số thập phân nguyên dương, không có dấu cách hoặc số 0 ở đầu."
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+          example: 5
+      responses:
+        "200":
+          description: Xóa thành công, kể cả khi không có mặt hàng đã mua
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [EC, EM, DT]
+                properties:
+                  EC:
+                    type: integer
+                    enum: [0]
+                  EM:
+                    type: string
+                  DT:
+                    type: object
+                    required: [shoppingListId, deletedItems]
+                    properties:
+                      shoppingListId:
+                        type: integer
+                      deletedItems:
+                        type: integer
+                        minimum: 0
+              examples:
+                deleted:
+                  value:
+                    EC: 0
+                    EM: "Đã xóa các mặt hàng đã mua!"
+                    DT:
+                      shoppingListId: 5
+                      deletedItems: 3
+                nonePurchased:
+                  value:
+                    EC: 0
+                    EM: "Đã xóa các mặt hàng đã mua!"
+                    DT:
+                      shoppingListId: 5
+                      deletedItems: 0
+        "400":
+          description: Mã danh sách đi chợ không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: "Mã danh sách đi chợ không hợp lệ!"
+                DT: null
+        "401":
+          description: Chưa xác thực hoặc token không hợp lệ, hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "403":
+          description: Không phải chủ sở hữu danh sách đi chợ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: "Bạn không có quyền xóa mặt hàng trong danh sách đi chợ này!"
+                DT: null
+        "404":
+          description: Không tìm thấy danh sách đi chợ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: "Không tìm thấy danh sách đi chợ!"
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
   /images:
     post:
       tags:

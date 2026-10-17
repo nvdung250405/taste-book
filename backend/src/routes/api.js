@@ -8,6 +8,7 @@ import recipeRoutes from "./recipe";
 import categoryRoutes from "./category";
 import favoriteRoutes from "./favorite";
 import recipeListRoutes from "./recipeList";
+import shoppingListRoutes from "./shoppingList";
 
 const router = express.Router();
 
@@ -26,6 +27,7 @@ const initApiRoutes = (app) => {
   router.use("/recipes", recipeRoutes);
   router.use("/favorites", favoriteRoutes);
   router.use("/recipe-lists", recipeListRoutes);
+  router.use("/shopping-lists", shoppingListRoutes);
 
   return app.use("/api/v1/", router);
 };
