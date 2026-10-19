@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import ShoppingMealPicker from '../components/menu/ShoppingMealPicker'
 import { ChevronLeft, ChevronRight, Plus, Trash2, ShoppingCart, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '../components/ui/button'
@@ -10,7 +10,7 @@ import QueryError from '../components/ui/QueryError'
 import { useRecipeLists, useRecipeListItems } from '../hooks/queries/useRecipeListQueries'
 import { useRecipes } from '../hooks/queries/useRecipeQueries'
 import api from '../api/recipeLists.api'
-import shoppingApi from '../api/shoppingLists.api'
+
 import { MEALS, dateKey, moveDate, weekStart, mealListName } from '../lib/weeklyMenu'
 import { recipeThumbnail, handleRecipeImageError } from '../lib/recipeImages'
 
@@ -103,26 +103,15 @@ function RecipePicker({ slot, onClose }) {
 export default function MenuPage() {
   const [week, setWeek] = useState(() => weekStart())
   const [slot, setSlot] = useState(null)
-  const [shopping, setShopping] = useState(false)
+  const [shoppingOpen, setShoppingOpen] = useState(false)
   const query = useRecipeLists()
-  const client = useQueryClient()
-  const navigate = useNavigate()
   const days = Array.from({ length: 7 }, (_, index) => moveDate(week, index))
   const lists = Array.isArray(query.data?.DT) ? query.data.DT : []
   const names = new Set(days.flatMap(date => MEALS.map((_, meal) => mealListName(date, meal))))
   const weekLists = lists.filter(list => names.has(list.listName))
   const count = weekLists.reduce((sum, list) => sum + list.totalItems, 0)
-  const createShopping = async () => {
-    setShopping(true)
-    try {
-      await shoppingApi.createShoppingList({ title: `Đi chợ ${format(week)} – ${format(days[6])}`, recipeListIds: weekLists.filter(list => list.totalItems > 0).map(list => list.recipeListId) })
-      client.invalidateQueries({ queryKey: ['shopping-lists'] })
-      toast.success('Đã tạo danh sách đi chợ'); navigate('/shopping-list')
-    } catch (error) { toast.error(error?.EM || 'Chưa thể tạo danh sách đi chợ. Vui lòng kiểm tra API đi chợ trên backend.') }
-    finally { setShopping(false) }
-  }
   return <div className="container mx-auto space-y-6 px-4 py-8">
-    <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="mb-2 text-sm font-medium text-orange-500">KẾ HOẠCH BỮA ĂN</p><h1 className="text-3xl font-bold tracking-tight">Thực đơn tuần</h1><p className="mt-2 text-sm text-slate-500">Một tuần ngon miệng, bắt đầu từ kế hoạch nhỏ.</p></div><Button onClick={createShopping} disabled={shopping || !count || query.isError} className="rounded-xl bg-orange-500 text-white hover:bg-orange-600">{shopping ? <Loader2 className="mr-2 size-4 animate-spin" /> : <ShoppingCart className="mr-2 size-4" />} Tạo danh sách đi chợ</Button></div>
+    <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="mb-2 text-sm font-medium text-orange-500">KẾ HOẠCH BỮA ĂN</p><h1 className="text-3xl font-bold tracking-tight">Thực đơn tuần</h1><p className="mt-2 text-sm text-slate-500">Một tuần ngon miệng, bắt đầu từ kế hoạch nhỏ.</p></div><Button onClick={() => setShoppingOpen(true)} disabled={!count || query.isError} className="rounded-xl bg-orange-500 text-white hover:bg-orange-600"><ShoppingCart className="mr-2 size-4" /> Tạo danh sách đi chợ</Button></div>
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><div className="flex items-center gap-2"><Button variant="outline" size="icon" aria-label="Tuần trước" onClick={() => setWeek(moveDate(week, -7))}><ChevronLeft className="size-4" /></Button><span className="min-w-48 text-center font-semibold" aria-live="polite">{format(week)} – {format(days[6])}/{days[6].getFullYear()}</span><Button variant="outline" size="icon" aria-label="Tuần sau" onClick={() => setWeek(moveDate(week, 7))}><ChevronRight className="size-4" /></Button></div><div className="flex items-center gap-4"><span className="text-sm text-slate-500">{count} món đã lên lịch</span><Button variant="outline" onClick={() => setWeek(weekStart())}>Tuần này</Button></div></div>
     {query.isError ? <QueryError title="Không thể tải lịch thực đơn" onRetry={query.refetch} /> : query.isLoading ? <div className="h-96 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" aria-label="Đang tải lịch" /> : <>
       <p className="text-xs text-slate-500 sm:hidden">Vuốt ngang để xem đủ 7 ngày.</p>
@@ -132,6 +121,7 @@ export default function MenuPage() {
         {MEALS.flatMap((meal, mealIndex) => [<div key={meal} className="border-b border-r border-slate-200 bg-slate-50 px-2 py-5 text-center text-sm font-semibold dark:border-slate-800 dark:bg-slate-800/40">{meal}</div>, ...days.map(date => <MealCell key={`${dateKey(date)}-${mealIndex}`} date={date} meal={mealIndex} list={lists.find(list => list.listName === mealListName(date, mealIndex))} onAdd={setSlot} />)])}
       </div></div><p className="text-xs text-slate-500">Thêm món vào từng bữa. Nhập khẩu phần rồi nhấn Enter hoặc rời ô để lưu.</p>
     </>}
+    {shoppingOpen && <ShoppingMealPicker days={days} lists={lists} refreshing={query.isFetching} onClose={() => setShoppingOpen(false)} />}
     {slot && <RecipePicker slot={slot} onClose={() => setSlot(null)} />}
   </div>
 }
