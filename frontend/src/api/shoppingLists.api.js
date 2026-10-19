@@ -1,6 +1,9 @@
 import axiosClient from './axiosClient';
 
 const shoppingListsApi = {
+  deletePurchasedItems(shoppingListId) {
+    return axiosClient.delete(`/shopping-lists/${shoppingListId}/items/purchased`);
+  },
   // --- QUẢN LÝ DANH SÁCH ĐI CHỢ ---
 
   // Lấy các phiên đi chợ
