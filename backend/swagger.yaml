@@ -3200,7 +3200,7 @@ paths:
       tags:
         - Shopping Lists
       summary: "UC-18: Thêm món mua ngoài tự do"
-      description: "Thêm mặt hàng phát sinh. itemName và unit phải là chuỗi không rỗng sau trim, tối đa 255 ký tự. totalQuantity nếu có phải là số JSON hữu hạn (không nhận chuỗi, boolean hoặc null). Đơn vị định lượng bắt buộc có totalQuantity > 0; làm tròn half-up đến 2 chữ số thập phân, kết quả phải từ 0.01 đến 99999999.99, nếu không trả 400. Đơn vị định tính có thể bỏ totalQuantity hoặc gửi số không âm, luôn lưu totalQuantity = 0."
+      description: "Thêm mặt hàng phát sinh. itemName và unit phải là chuỗi không rỗng sau trim, tối đa 255 ký tự. Trong cùng danh sách đi chợ, nếu đã có mặt hàng cùng tên và cùng đơn vị thì trả HTTP 409, EC 2; không tạo thêm và không cộng dồn số lượng. So trùng sau chuẩn hóa Unicode NFC, bỏ khoảng trắng hai đầu và không phân biệt hoa/thường; vẫn phân biệt dấu tiếng Việt. Cùng tên nhưng khác đơn vị hoặc thuộc danh sách khác vẫn được thêm. totalQuantity nếu có phải là số JSON hữu hạn (không nhận chuỗi, boolean hoặc null). Đơn vị định lượng bắt buộc có totalQuantity > 0; làm tròn half-up đến 2 chữ số thập phân, kết quả phải từ 0.01 đến 99999999.99, nếu không trả 400. Đơn vị định tính (vừa đủ, tùy khẩu vị, vừa vừa, nêm nếm) có thể bỏ totalQuantity hoặc gửi số không âm, luôn lưu totalQuantity = 0."
       security:
         - bearerAuth: []
       parameters:
@@ -3251,6 +3251,16 @@ paths:
                   totalQuantity: 1
                   unit: "chai"
                   isPurchased: false
+        "409":
+          description: Đã có nguyên liệu cùng tên và cùng đơn vị trong danh sách đi chợ (TC-18-49)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: "Nguyên liệu đã tồn tại trong danh sách đi chợ!"
+                DT: null
         "400":
           description: Dữ liệu món đồ rỗng, thiếu thông tin hoặc sai định dạng
           content:
@@ -3259,7 +3269,7 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
               examples:
                 missingItemName:
-                  summary: Dữ liệu món thiếu tên
+                  summary: Tên rỗng hoặc chỉ có khoảng trắng; thiếu trường hoặc sai kiểu trả invalidItemNameType
                   value:
                     EC: 1
                     EM: "Tên món phát sinh không được để trống!"
@@ -3271,7 +3281,7 @@ paths:
                     EM: "Số lượng không được để trống!"
                     DT: null
                 missingUnit:
-                  summary: Thiếu đơn vị tính
+                  summary: Đơn vị rỗng hoặc chỉ có khoảng trắng; thiếu trường hoặc sai kiểu trả invalidUnitType
                   value:
                     EC: 1
                     EM: "Đơn vị tính không được để trống!"

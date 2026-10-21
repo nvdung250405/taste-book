@@ -10,7 +10,7 @@ jest.mock("../../src/models/index", () => ({
   RecipeList: { findAll: jest.fn() },
   ShoppingList: { create: jest.fn(), findAll: jest.fn(), findOne: jest.fn(), findByPk: jest.fn() },
   ShoppingListRecipeList: { bulkCreate: jest.fn() },
-  ShoppingListItem: { bulkCreate: jest.fn(), create: jest.fn(), findOne: jest.fn(), destroy: jest.fn() },
+  ShoppingListItem: { bulkCreate: jest.fn(), create: jest.fn(), findOne: jest.fn(), findAll: jest.fn(), destroy: jest.fn() },
 }));
 
 // Real router, JWT middleware, controllers and services; mock database only.
@@ -50,6 +50,7 @@ beforeEach(() => {
   db.ShoppingList.findOne.mockResolvedValue(list);
   db.ShoppingList.create.mockResolvedValue(list);
   db.ShoppingListItem.findOne.mockResolvedValue(item);
+  db.ShoppingListItem.findAll.mockResolvedValue([]);
   db.ShoppingListItem.create.mockImplementation(async data => ({ id: 51, ...data }));
   db.ShoppingListRecipeList.bulkCreate.mockResolvedValue([]);
   db.ShoppingListItem.bulkCreate.mockResolvedValue([]);
@@ -68,6 +69,32 @@ const send = (method, path, body, auth = token) => {
 };
 
 describe("Shopping Lists HTTP (mock DB)", () => {
+  test("TC-18-49: thêm hai lần cùng tên và đơn vị chỉ lưu một mặt hàng", async () => {
+    const records = [];
+    db.ShoppingListItem.findAll.mockImplementation(async ({ where }) =>
+      records.filter(row => row.shoppingListId === where.shoppingListId));
+    db.ShoppingListItem.create.mockImplementation(async data => {
+      const row = { id: 51 + records.length, ...data };
+      records.push(row);
+      return row;
+    });
+    const body = { itemName: "Nước rửa chén", unit: "chai", totalQuantity: 1 };
+    const first = await send("post", "/5/items", body);
+    expect(first.status).toBe(201);
+    expect(first.body.EC).toBe(0);
+    const second = await send("post", "/5/items", body);
+    expect(second.status).toBe(409);
+    expect(second.body).toEqual({
+      EC: 2, EM: "Nguyên liệu đã tồn tại trong danh sách đi chợ!", DT: null,
+    });
+    expect(records).toHaveLength(1);
+    expect(records[0].totalQuantity).toBe(1);
+    expect(db.ShoppingListItem.create).toHaveBeenCalledTimes(1);
+    // The same item can still be added to another shopping list.
+    db.ShoppingList.findByPk.mockResolvedValue({ ...list, id: 6 });
+    expect((await send("post", "/6/items", body)).status).toBe(201);
+    expect(records).toHaveLength(2);
+  });
   const successResponses = {
     "get ": { EC: 0, EM: "Thành công!", DT: [{ shoppingListId: 5, title: "Đi chợ", status: "In_Progress", createdAt: "2026-10-16T08:00:00.000Z" }] },
     "post ": { EC: 0, EM: "Đã tổng hợp danh sách đi chợ thông minh thành công!", DT: { shoppingListId: 5, title: "Đi chợ", status: "In_Progress", totalItems: 1 } },
