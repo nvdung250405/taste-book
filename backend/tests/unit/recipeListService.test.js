@@ -77,6 +77,22 @@ describe("RecipeListService (mock DB only)", () => {
       expect(db.RecipeList.create).not.toHaveBeenCalled();
       expect(list.save).not.toHaveBeenCalled();
     });
+    test.each(["123", "  00123  ", "0", "9".repeat(100)])("rejects digits-only name %p before DB", async (listName) => {
+      expect(await invoke({ listName })).toEqual({
+        EC: 1,
+        EM: "Tên thực đơn không được chỉ chứa số!",
+        DT: null,
+      });
+      expect(db.RecipeList.findOne).not.toHaveBeenCalled();
+      expect(db.RecipeList.findByPk).not.toHaveBeenCalled();
+      expect(db.RecipeList.create).not.toHaveBeenCalled();
+      expect(list.save).not.toHaveBeenCalled();
+    });
+    test.each(["Thực đơn 123", "123 món ngon"])("accepts mixed name %p", async (listName) => {
+      expect((await invoke({ listName })).EC).toBe(0);
+      if (name === "createRecipeList") expect(db.RecipeList.create).toHaveBeenCalledWith({ userId: 1, listName });
+      else expect(list.listName).toBe(listName);
+    });
     test("trims and accepts 100 characters", async () => {
       const result = await invoke({ listName: `  ${"a".repeat(100)}  ` });
       expect(result.EC).toBe(0);

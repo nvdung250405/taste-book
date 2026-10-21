@@ -103,6 +103,24 @@ describe("Recipe Lists HTTP integration (mock DB only)", () => {
     expect(res.body).toMatchObject({ EC: 1, DT: null });
   });
   describe.each([
+    ["post", ""],
+    ["put", "/1"],
+  ])("%s %s list name validation (TC-14-09)", (method, path) => {
+    test.each([123, null, "123", "  00123  "])("rejects %p without writing", async (listName) => {
+      const res = await send(method, path, { listName });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        EC: 1,
+        EM: typeof listName === "string"
+          ? "Tên thực đơn không được chỉ chứa số!"
+          : "Tên thực đơn không được để trống!",
+        DT: null,
+      });
+      expect(db.RecipeList.create).not.toHaveBeenCalled();
+      expect(list.save).not.toHaveBeenCalled();
+    });
+  });
+  describe.each([
     ["post", "/1/items"],
     ["put", "/1/items/10"],
   ])("%s %s servings error response", (method, path) => {
