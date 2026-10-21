@@ -1980,7 +1980,7 @@ paths:
                   type: string
                   minLength: 1
                   pattern: \S
-                  description: Trim khoảng trắng ở hai đầu; tên sau trim dài từ 1 đến 100 ký tự.
+                  description: Trim khoảng trắng ở hai đầu; tên sau trim dài từ 1 đến 100 ký tự và không được chỉ chứa số.
                     Không phân biệt hoa/thường khi kiểm tra trùng trong cùng người
                     dùng.
                   example: Bữa cơm giảm cân
@@ -2009,6 +2009,12 @@ paths:
                   value:
                     EC: 1
                     EM: Tên thực đơn không được để trống!
+                    DT: null
+                numericName:
+                  summary: Tên thực đơn chỉ chứa số
+                  value:
+                    EC: 1
+                    EM: Tên thực đơn không được chỉ chứa số!
                     DT: null
                 tooLongName:
                   summary: Tên thực đơn vượt quá 100 ký tự
@@ -2176,7 +2182,7 @@ paths:
                   type: string
                   minLength: 1
                   pattern: \S
-                  description: Trim khoảng trắng ở hai đầu; tên sau trim dài từ 1 đến 100 ký tự.
+                  description: Trim khoảng trắng ở hai đầu; tên sau trim dài từ 1 đến 100 ký tự và không được chỉ chứa số.
                     Không phân biệt hoa/thường khi kiểm tra trùng trong cùng người
                     dùng.
                   example: Thực đơn Healthy
@@ -2203,6 +2209,12 @@ paths:
                   value:
                     EC: 1
                     EM: Tên thực đơn không được để trống!
+                    DT: null
+                numericName:
+                  summary: Tên thực đơn chỉ chứa số
+                  value:
+                    EC: 1
+                    EM: Tên thực đơn không được chỉ chứa số!
                     DT: null
                 tooLongName:
                   summary: Tên thực đơn vượt quá 100 ký tự

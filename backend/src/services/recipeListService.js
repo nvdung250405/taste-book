@@ -95,6 +95,14 @@ const createRecipeList = async (userId, rawData = {}) => {
 
     const cleanName = listName.trim();
 
+    if (/^\d+$/.test(cleanName)) {
+      return {
+        EC: 1,
+        EM: "Tên thực đơn không được chỉ chứa số!",
+        DT: null,
+      };
+    }
+
     if (cleanName.length > 100) {
       return {
         EC: 1,
@@ -182,6 +190,14 @@ const updateRecipeList = async (userId, listId, rawData = {}) => {
     }
 
     const cleanName = listName.trim();
+
+    if (/^\d+$/.test(cleanName)) {
+      return {
+        EC: 1,
+        EM: "Tên thực đơn không được chỉ chứa số!",
+        DT: null,
+      };
+    }
 
     if (cleanName.length > 100) {
       return {
