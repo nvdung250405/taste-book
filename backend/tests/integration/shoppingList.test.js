@@ -47,7 +47,8 @@ beforeEach(() => {
   list.update = jest.fn(async (data) => Object.assign(list, data));
   db.ShoppingList.findAll.mockResolvedValue([list]);
   db.ShoppingList.findByPk.mockResolvedValue(list);
-  db.ShoppingList.findOne.mockResolvedValue(list);
+  db.ShoppingList.findOne.mockImplementation(async ({ where }) =>
+    where.title === undefined ? list : null);
   db.ShoppingList.create.mockResolvedValue(list);
   db.ShoppingListItem.findOne.mockResolvedValue(item);
   db.ShoppingListItem.findAll.mockResolvedValue([]);
@@ -69,6 +70,29 @@ const send = (method, path, body, auth = token) => {
 };
 
 describe("Shopping Lists HTTP (mock DB)", () => {
+  test("TC-17-12: gửi cùng body hai lần trả 201 rồi 409, chỉ lưu một phiên", async () => {
+    const records = [{ id: 4, userId: 20, title: "TB-AUTO-17-12-Same" }];
+    db.ShoppingList.findOne.mockImplementation(async ({ where }) =>
+      records.find(row => row.userId === where.userId && row.title === where.title) || null);
+    db.ShoppingList.create.mockImplementation(async data => {
+      const row = { id: 5, ...data };
+      records.push(row);
+      return row;
+    });
+    const body = { title: "TB-AUTO-17-12-Same", recipeListIds: [1] };
+    const first = await send("post", "", body);
+    expect(first.status).toBe(201);
+    expect(first.body.EC).toBe(0);
+    const second = await send("post", "", body);
+    expect(second.status).toBe(409);
+    expect(second.body).toEqual({
+      EC: 2, EM: "Tiêu đề danh sách đi chợ này đã tồn tại!", DT: null,
+    });
+    expect(records.filter(row => row.userId === 10)).toHaveLength(1);
+    expect(db.ShoppingList.create).toHaveBeenCalledTimes(1);
+    expect(db.ShoppingListRecipeList.bulkCreate).toHaveBeenCalledTimes(1);
+    expect(db.ShoppingListItem.bulkCreate).toHaveBeenCalledTimes(1);
+  });
   test("TC-18-49: thêm hai lần cùng tên và đơn vị chỉ lưu một mặt hàng", async () => {
     const records = [];
     db.ShoppingListItem.findAll.mockImplementation(async ({ where }) =>

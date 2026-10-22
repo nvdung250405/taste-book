@@ -176,6 +176,26 @@ describe("RSK-01: tổng hợp chính xác và làm tròn half-up", () => {
 });
 
 describe("Validation và transaction khi tổng hợp", () => {
+  test.each(["Đi chợ", "  Đi chợ  "])("TC-17-12: từ chối tiêu đề đã tồn tại %p", async title => {
+    db.ShoppingList.findOne.mockResolvedValue({ id: 5, userId: 10, title: "Đi chợ" });
+    expect(await generate({ title })).toEqual({
+      EC: 2, EM: "Tiêu đề danh sách đi chợ này đã tồn tại!", DT: null,
+    });
+    expect(db.ShoppingList.findOne).toHaveBeenCalledWith({
+      where: { userId: 10, title: "Đi chợ" }, transaction,
+    });
+    expect(db.ShoppingList.create).not.toHaveBeenCalled();
+    expect(db.ShoppingListRecipeList.bulkCreate).not.toHaveBeenCalled();
+    expect(db.ShoppingListItem.bulkCreate).not.toHaveBeenCalled();
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).not.toHaveBeenCalled();
+  });
+  test("lỗi truy vấn tiêu đề thì rollback và không tạo danh sách", async () => {
+    db.ShoppingList.findOne.mockRejectedValue(new Error("offline"));
+    expect((await generate()).EC).toBe(-1);
+    expect(db.ShoppingList.create).not.toHaveBeenCalled();
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+  });
   test.each([undefined, null, true, 123, {}, [], "", "   ", "a".repeat(101)].map(value => [value]))("title không hợp lệ %p", async (title) => {
     expect((await generate({ title })).EC).toBe(1);
     expect(db.ShoppingList.create).not.toHaveBeenCalled();

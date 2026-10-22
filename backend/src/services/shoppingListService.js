@@ -168,6 +168,19 @@ const generateShoppingList = async (userId, rawData = {}) => {
       };
     }
 
+    const existingShoppingList = await db.ShoppingList.findOne({
+      where: { userId: Number(userId), title: cleanTitle },
+      transaction,
+    });
+    if (existingShoppingList) {
+      await transaction.rollback();
+      return {
+        EC: 2,
+        EM: "Tiêu đề danh sách đi chợ này đã tồn tại!",
+        DT: null,
+      };
+    }
+
     const lists = await db.RecipeList.findAll({
       where: {
         id: { [Op.in]: cleanIds },
