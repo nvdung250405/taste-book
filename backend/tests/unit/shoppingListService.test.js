@@ -6,7 +6,7 @@ jest.mock("../../src/models/index", () => ({
   RecipeList: { findAll: jest.fn() },
   ShoppingList: { create: jest.fn(), findAll: jest.fn(), findOne: jest.fn(), findByPk: jest.fn() },
   ShoppingListRecipeList: { bulkCreate: jest.fn() },
-  ShoppingListItem: { bulkCreate: jest.fn(), create: jest.fn(), findOne: jest.fn(), destroy: jest.fn() },
+  ShoppingListItem: { bulkCreate: jest.fn(), create: jest.fn(), findOne: jest.fn(), findAll: jest.fn(), destroy: jest.fn() },
 }));
 
 const ingredient = (quantity = "2.01", unit = "kg", ingredientId = 1) => ({
@@ -33,6 +33,7 @@ beforeEach(() => {
   db.ShoppingListRecipeList.bulkCreate.mockResolvedValue([]);
   db.ShoppingListItem.bulkCreate.mockResolvedValue([]);
   db.ShoppingList.findByPk.mockResolvedValue({ id: 5, userId: 10 });
+  db.ShoppingListItem.findAll.mockResolvedValue([]);
   db.ShoppingListItem.create.mockImplementation(async (data) => ({ id: 50, ...data }));
 });
 
@@ -224,6 +225,33 @@ describe("Validation và transaction khi tổng hợp", () => {
 });
 
 describe("Thêm mặt hàng tự do", () => {
+  test.each([
+    ["Nước rửa chén", "chai"],
+    [" NƯỚC RỬA CHÉN ", " CHAI "],
+    ["Nước rửa chén".normalize("NFD"), "chai"],
+  ])("TC-18-49: từ chối tên và đơn vị trùng %s / %s", async (itemName, unit) => {
+    db.ShoppingListItem.findAll.mockResolvedValue([{ itemName, unit }]);
+    expect(await add({ totalQuantity: 2 })).toEqual({
+      EC: 2, EM: "Nguyên liệu đã tồn tại trong danh sách đi chợ!", DT: null,
+    });
+    expect(db.ShoppingListItem.create).not.toHaveBeenCalled();
+    expect(db.ShoppingListItem.findAll).toHaveBeenCalledWith({
+      where: { shoppingListId: 5 }, attributes: ["itemName", "unit"],
+    });
+  });
+  test.each([
+    { itemName: "Nước rửa chén", unit: "lít" },
+    { itemName: "Nước giặt", unit: "chai" },
+  ])("cho phép tên hoặc đơn vị khác: %p", async (existing) => {
+    db.ShoppingListItem.findAll.mockResolvedValue([existing]);
+    expect((await add()).EC).toBe(0);
+    expect(db.ShoppingListItem.create).toHaveBeenCalledTimes(1);
+  });
+  test("lỗi kiểm tra trùng không được tạo thêm mặt hàng", async () => {
+    db.ShoppingListItem.findAll.mockRejectedValue(new Error("offline"));
+    expect((await add()).EC).toBe(-1);
+    expect(db.ShoppingListItem.create).not.toHaveBeenCalled();
+  });
   test("trim chuỗi, ingredientId null và half-up", async () => {
     const result = await add({ itemName: " Xà phòng ", unit: " chai ", totalQuantity: 1.005 });
     expect(result.EC).toBe(0);

@@ -637,6 +637,23 @@ const addShoppingListItem = async (userId, shoppingListId, rawData = {}) => {
       };
     }
 
+    const existingItems = await db.ShoppingListItem.findAll({
+      where: { shoppingListId: sId },
+      attributes: ["itemName", "unit"],
+    });
+    const normalize = (value) => value.normalize("NFC").trim().toLowerCase();
+    const duplicate = existingItems.some((item) =>
+      normalize(item.itemName) === normalize(cleanItemName) &&
+      normalize(item.unit) === normalize(cleanUnit)
+    );
+    if (duplicate) {
+      return {
+        EC: 2,
+        EM: "Nguyên liệu đã tồn tại trong danh sách đi chợ!",
+        DT: null,
+      };
+    }
+
     const newItem = await db.ShoppingListItem.create({
       shoppingListId: sId,
       ingredientId: null,
