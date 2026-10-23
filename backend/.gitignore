@@ -2,7 +2,7 @@
 .env
 .env.*
 !.env.example
-reports/
+
 
 # Local performance tests
 /tests/performance/
