@@ -3,6 +3,132 @@ import app from "../../src/server";
 import { createJWT } from "../../src/middleware/JWTAction";
 import db from "../../src/models/index";
 
+describe("UC-19/20: quyền Admin và kiểm duyệt công thức", () => {
+  const token = (role = "Admin", userId = 1) => createJWT({ userId, role });
+  let transaction;
+  beforeEach(() => {
+    jest.spyOn(db.User, "findOne").mockResolvedValue({ id: 1, role: "Admin" });
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue({
+      id: 105, isPublic: true, approvalStatus: "Pending", update: jest.fn(),
+    });
+    jest.spyOn(db.Recipe, "findAll").mockResolvedValue([]);
+    transaction = { LOCK: { UPDATE: "UPDATE" }, commit: jest.fn(), rollback: jest.fn() };
+    jest.spyOn(db.sequelize, "transaction").mockImplementation(async (callback) => {
+      try {
+        const result = await callback(transaction);
+        await transaction.commit();
+        return result;
+      } catch (error) {
+        await transaction.rollback();
+        throw error;
+      }
+    });
+  });
+
+  const adminEndpoints = [
+    ["get", "/api/v1/admin/recipes/pending"],
+    ["patch", "/api/v1/admin/recipes/105/moderation"],
+    ["get", "/api/v1/admin/recipes"],
+    ["post", "/api/v1/admin/recipes"],
+    ["put", "/api/v1/admin/recipes/105"],
+    ["delete", "/api/v1/admin/recipes/105"],
+  ];
+  test.each(adminEndpoints)("%s %s: chặn thiếu token, token lỗi, User và Admin không còn tồn tại", async (method, path) => {
+    for (const [authorization, currentUser, expectedStatus] of [
+      [null, { id: 1, role: "User" }, 401],
+      ["Bearer invalid-token", { id: 1, role: "User" }, 401],
+      [`Bearer ${token("User")}`, { id: 1, role: "User" }, 403],
+      [`Bearer ${token()}`, null, 401],
+    ]) {
+      // Lấy quyền hiện tại từ DB thay vì tin quyền trong token.
+      db.User.findOne.mockResolvedValue(currentUser);
+      let call = request(app)[method](path);
+      if (authorization) call = call.set("Authorization", authorization);
+      const res = await call.send({ approvalStatus: "Approved" });
+      expect(res.status).toBe(expectedStatus);
+      expect(res.body.DT).toBeNull();
+    }
+    expect(db.Recipe.findOne).not.toHaveBeenCalled();
+    expect(db.Recipe.findAll).not.toHaveBeenCalled();
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+  });
+
+  test("Admin bị hạ quyền trong DB bị chặn dù token vẫn ghi Admin", async () => {
+    db.User.findOne.mockResolvedValue({ id: 1, role: "User" });
+    const res = await request(app).patch("/api/v1/admin/recipes/105/moderation")
+      .set("Authorization", `Bearer ${token()}`).send({ approvalStatus: "Approved" });
+    expect(res.status).toBe(403);
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+  });
+
+  test("token Admin thiếu ID tài khoản bị chặn", async () => {
+    const res = await request(app).get("/api/v1/admin/recipes/pending")
+      .set("Authorization", `Bearer ${createJWT({ role: "Admin" })}`);
+    expect(res.status).toBe(401);
+    expect(db.User.findOne).not.toHaveBeenCalled();
+  });
+
+  test("token của Admin đã xóa không cho xem công thức riêng tư qua xác thực tùy chọn", async () => {
+    db.User.findOne.mockResolvedValue(null);
+    db.Recipe.findOne.mockResolvedValue({ id: 105, authorId: 99, isPublic: false, approvalStatus: "Approved" });
+    const res = await request(app).get("/api/v1/recipes/105")
+      .set("Authorization", `Bearer ${token()}`);
+    expect(res.status).toBe(404);
+  });
+
+  test("Admin xem danh sách chờ duyệt với đúng bộ lọc", async () => {
+    const res = await request(app).get("/api/v1/admin/recipes/pending")
+      .set("Authorization", `Bearer ${token()}`);
+    expect(res.status).toBe(200);
+    expect(res.body.DT).toEqual([]);
+    expect(db.Recipe.findAll).toHaveBeenCalledWith(expect.objectContaining({
+      where: { isDeleted: false, isPublic: true, approvalStatus: "Pending" },
+    }));
+  });
+
+  test.each(["Approved", "Rejected"])("Admin kiểm duyệt %s thành công", async (approvalStatus) => {
+    jest.spyOn(db.Recipe, "findByPk").mockResolvedValue({ id: 105, author: { role: "Admin" } });
+    const res = await request(app).patch("/api/v1/admin/recipes/105/moderation")
+      .set("Authorization", `Bearer ${token()}`)
+      .send({ approvalStatus, rejectionReason: "  Nội dung chưa phù hợp  " });
+    expect(res.status).toBe(200);
+    expect(res.body.DT).toEqual({
+      recipeId: 105, approvalStatus,
+      rejectionReason: approvalStatus === "Rejected" ? "Nội dung chưa phù hợp" : null,
+    });
+    expect(transaction.commit).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    ["1.5", { approvalStatus: "Approved" }],
+    ["105", { approvalStatus: "Pending" }],
+    ["105", { approvalStatus: ["Approved"] }],
+    ["105", { approvalStatus: "Rejected" }],
+    ["105", { approvalStatus: "Rejected", rejectionReason: {} }],
+  ])("trả 400 cho ID/body không hợp lệ: %s %j", async (id, body) => {
+    const res = await request(app).patch(`/api/v1/admin/recipes/${id}/moderation`)
+      .set("Authorization", `Bearer ${token()}`).send(body);
+    expect(res.status).toBe(400);
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+  });
+
+  test("trả 404 cho công thức không tồn tại", async () => {
+    db.Recipe.findOne.mockResolvedValue(null);
+    const res = await request(app).patch("/api/v1/admin/recipes/105/moderation")
+      .set("Authorization", `Bearer ${token()}`).send({ approvalStatus: "Approved" });
+    expect(res.status).toBe(404);
+  });
+
+  test("trả 500 và rollback nếu gắn danh mục cộng đồng thất bại", async () => {
+    jest.spyOn(db.Recipe, "findByPk").mockRejectedValue(new Error("Category lookup failed"));
+    const res = await request(app).patch("/api/v1/admin/recipes/105/moderation")
+      .set("Authorization", `Bearer ${token()}`).send({ approvalStatus: "Approved" });
+    expect(res.status).toBe(500);
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).not.toHaveBeenCalled();
+  });
+});
+
 describe("Recipe API Integration Tests (Supertest)", () => {
   const userToken = createJWT({ userId: 10, email: "user10@example.com", role: "User" });
   const otherUserToken = createJWT({ userId: 99, email: "user99@example.com", role: "User" });

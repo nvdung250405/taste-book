@@ -820,3 +820,304 @@ describe.each(["createRecipe", "updateRecipe"])("%s: kiểm tra dữ liệu đ�
     expect(transaction.commit).not.toHaveBeenCalled();
   });
 });
+describe("adminDeleteRecipe (UC-19)", () => {
+  test("thành công: Admin xóa mềm công thức chuẩn do Admin tạo (EC: 0)", async () => {
+    const mockRecipe = {
+      id: 1,
+      author: { id: 1, role: "Admin" },
+      isPublic: true,
+      update: jest.fn().mockResolvedValue(true),
+    };
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue(mockRecipe);
+
+    const res = await recipeService.adminDeleteRecipe(1, { id: 1, role: "Admin" });
+    expect(res.EC).toBe(0);
+    expect(mockRecipe.update).toHaveBeenCalledWith({ isDeleted: true });
+    expect(res.EM).toBe("Đã xóa mềm công thức thành công!");
+  });
+
+  test("thành công: Admin xóa mềm công thức công khai của người dùng (EC: 0)", async () => {
+    const mockRecipe = {
+      id: 2,
+      author: { id: 10, role: "User" },
+      isPublic: true,
+      update: jest.fn().mockResolvedValue(true),
+    };
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue(mockRecipe);
+
+    const res = await recipeService.adminDeleteRecipe(2, { id: 1, role: "Admin" });
+    expect(res.EC).toBe(0);
+    expect(mockRecipe.update).toHaveBeenCalledWith({ isDeleted: true });
+    expect(res.EM).toBe("Đã xóa mềm công thức thành công!");
+  });
+
+  test("thất bại: công thức của người dùng đang ở chế độ riêng tư, Admin không thể thao tác (EC: 4)", async () => {
+    const mockRecipe = {
+      id: 3,
+      author: { id: 10, role: "User" },
+      isPublic: false,
+      update: jest.fn(),
+    };
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue(mockRecipe);
+
+    const res = await recipeService.adminDeleteRecipe(3, { id: 1, role: "Admin" });
+    expect(res.EC).toBe(4);
+    expect(mockRecipe.update).not.toHaveBeenCalled();
+    expect(res.EM).toContain("Công thức này đang ở chế độ riêng tư của người dùng");
+  });
+
+  test("thất bại: ID công thức không hợp lệ (EC: 1)", async () => {
+    const res = await recipeService.adminDeleteRecipe("abc", { id: 1, role: "Admin" });
+    expect(res.EC).toBe(1);
+  });
+
+  test("thất bại: không tìm thấy công thức cần xoá (EC: 3)", async () => {
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue(null);
+    const res = await recipeService.adminDeleteRecipe(999, { id: 1, role: "Admin" });
+    expect(res.EC).toBe(3);
+  });
+});
+
+describe("moderateRecipe: bảo vệ công thức đã duyệt", () => {
+  let transaction;
+  beforeEach(() => {
+    transaction = { LOCK: { UPDATE: "UPDATE" }, commit: jest.fn(), rollback: jest.fn() };
+    jest.spyOn(db.sequelize, "transaction").mockImplementation(async (callback) => {
+      try {
+        const result = await callback(transaction);
+        await transaction.commit();
+        return result;
+      } catch (error) {
+        await transaction.rollback();
+        throw error;
+      }
+    });
+  });
+
+  test.each(["Rejected", "rejected"])("chặn từ chối bằng trạng thái %s", async (action) => {
+    const recipe = {
+      id: 105, isPublic: true, approvalStatus: "Approved", update: jest.fn(),
+    };
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue(recipe);
+
+    const result = await recipeService.moderateRecipe(105, {
+      action, rejectionReason: "Lý do từ chối",
+    });
+
+    expect(result).toEqual({
+      EC: 1, EM: "Không thể từ chối công thức đã được phê duyệt!", DT: null,
+    });
+    expect(recipe.update).not.toHaveBeenCalled();
+  });
+
+  test("vẫn cho phép từ chối công thức đang chờ duyệt", async () => {
+    const recipe = {
+      id: 105, isPublic: true, approvalStatus: "Pending", update: jest.fn(),
+    };
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue(recipe);
+
+    const result = await recipeService.moderateRecipe(105, {
+      action: "Rejected", rejectionReason: "  Nội dung chưa phù hợp  ",
+    });
+
+    expect(result.EC).toBe(0);
+    expect(recipe.update).toHaveBeenCalledWith({
+      approvalStatus: "Rejected", rejectionReason: "Nội dung chưa phù hợp", isPublic: false,
+    }, { transaction });
+    expect(result.DT.rejectionReason).toBe("Nội dung chưa phù hợp");
+    expect(transaction.commit).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([0, -1, 1.5, "1.5", "abc", true, null, [], {}, Infinity, 9007199254740992])(
+    "từ chối ID không phải số nguyên dương an toàn: %j", async (id) => {
+      expect((await recipeService.moderateRecipe(id, { approvalStatus: "Approved" })).EC).toBe(1);
+      expect(db.sequelize.transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([null, [], "Approved", 1])("từ chối body không phải object: %j", async (body) => {
+    expect((await recipeService.moderateRecipe(105, body)).EC).toBe(1);
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+  });
+
+  test.each([undefined, null, 1, true, {}, ["Approved"], "Pending", ""])(
+    "từ chối trạng thái sai kiểu hoặc sai giá trị: %j", async (approvalStatus) => {
+      expect((await recipeService.moderateRecipe(105, { approvalStatus })).EC).toBe(1);
+      expect(db.sequelize.transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([undefined, null, "", "  ", 123, true, {}, ["reason"]])(
+    "từ chối lý do không phải chuỗi không rỗng: %j", async (rejectionReason) => {
+      expect((await recipeService.moderateRecipe(105, { approvalStatus: "Rejected", rejectionReason })).EC).toBe(1);
+      expect(db.sequelize.transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([null, { id: 105, isPublic: false, approvalStatus: "Pending" },
+    { id: 105, isPublic: true, approvalStatus: "Rejected" },
+    { id: 105, isPublic: true, approvalStatus: "Unknown" }])(
+    "không duyệt bài không tồn tại hoặc không còn chờ duyệt: %j", async (recipe) => {
+      jest.spyOn(db.Recipe, "findOne").mockResolvedValue(recipe);
+      const result = await recipeService.moderateRecipe(105, { approvalStatus: "Approved" });
+      expect(result.EC).toBe(recipe ? 1 : 3);
+    },
+  );
+
+  const mockApproval = (role = "User") => {
+    const recipe = { id: 105, isPublic: true, approvalStatus: "Pending", update: jest.fn() };
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue(recipe);
+    jest.spyOn(db.Recipe, "findByPk").mockResolvedValue({ id: 105, author: { role } });
+    jest.spyOn(db.Category, "findOne").mockResolvedValue({ id: 8 });
+    jest.spyOn(db.RecipeCategory, "findOrCreate").mockResolvedValue([{}, true]);
+    return recipe;
+  };
+
+  test.each(["User", "Admin"])("duyệt công thức của %s và commit trước khi trả thành công", async (role) => {
+    const recipe = mockApproval(role);
+    const result = await recipeService.moderateRecipe("105", { approvalStatus: "Approved" });
+    expect(result.EC).toBe(0);
+    expect(db.Recipe.findOne).toHaveBeenCalledWith({
+      where: { id: 105, isDeleted: false }, transaction, lock: transaction.LOCK.UPDATE,
+    });
+    expect(recipe.update).toHaveBeenCalledWith({
+      approvalStatus: "Approved", rejectionReason: null, isPublic: true,
+    }, { transaction });
+    if (role === "User") {
+      expect(db.RecipeCategory.findOrCreate).toHaveBeenCalledWith(expect.objectContaining({ transaction }));
+    } else {
+      expect(db.RecipeCategory.findOrCreate).not.toHaveBeenCalled();
+    }
+    expect(transaction.commit).toHaveBeenCalledTimes(1);
+    expect(transaction.rollback).not.toHaveBeenCalled();
+  });
+
+  test("hoàn tác và trả lỗi khi gắn danh mục thất bại", async () => {
+    mockApproval();
+    jest.spyOn(db.RecipeCategory, "findOrCreate").mockRejectedValue(new Error("Category write failed"));
+    const result = await recipeService.moderateRecipe(105, { approvalStatus: "Approved" });
+    expect(result.EC).toBe(-1);
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).not.toHaveBeenCalled();
+  });
+
+  test("hoàn tác khi cập nhật trạng thái thất bại", async () => {
+    const recipe = mockApproval();
+    recipe.update.mockRejectedValue(new Error("Recipe write failed"));
+    expect((await recipeService.moderateRecipe(105, { approvalStatus: "Approved" })).EC).toBe(-1);
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+    expect(db.RecipeCategory.findOrCreate).not.toHaveBeenCalled();
+  });
+
+  test.each(["Approved", "Rejected"])("không ghi đè kết quả %s của lần kiểm duyệt trước", async (status) => {
+    const recipe = mockApproval("Admin");
+    recipe.update.mockImplementation(async (values) => Object.assign(recipe, values));
+    const first = await recipeService.moderateRecipe(105, {
+      approvalStatus: status, rejectionReason: "Nội dung chưa phù hợp",
+    });
+    const second = await recipeService.moderateRecipe(105, {
+      approvalStatus: status === "Approved" ? "Rejected" : "Approved",
+      rejectionReason: "Quyết định khác",
+    });
+    expect(first.EC).toBe(0);
+    expect(second.EC).toBe(1);
+    expect(recipe.approvalStatus).toBe(status);
+    expect(recipe.update).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe.each(["adminCreateRecipe", "adminUpdateRecipe"])("%s: kiểm tra dữ liệu đầu vào", (method) => {
+  const data = {
+    title: "Soup", description: "Cook soup", cookTimeMinutes: 20,
+    defaultServings: 2, difficulty: "Easy", isPublic: false, categories: [1],
+    ingredients: [{ customIngredientName: "Salt", quantity: 1, customUnit: "g" }],
+    steps: [{ stepNumber: 1, instruction: "Prepare" }, { stepNumber: 2, instruction: "Cook" }],
+  };
+  let transaction;
+  const call = (body) => method === "adminUpdateRecipe"
+    ? recipeService[method](105, { id: 10, role: "Admin" }, body)
+    : recipeService[method]({ id: 10, role: "Admin" }, body);
+
+  beforeEach(() => {
+    transaction = { commit: jest.fn(), rollback: jest.fn() };
+    jest.spyOn(db.sequelize, "transaction").mockResolvedValue(transaction);
+    jest.spyOn(db.Recipe, "create").mockResolvedValue({ id: 105, approvalStatus: "Approved" });
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue({
+      id: 105, authorId: 10, author: { role: "Admin" },
+      isPublic: method === "adminUpdateRecipe", approvalStatus: "Approved", update: jest.fn(),
+    });
+    jest.spyOn(db.Category, "findAll").mockResolvedValue([{ id: 1 }]);
+    jest.spyOn(db.Ingredient, "findOne").mockResolvedValue(null);
+    jest.spyOn(db.Unit, "findByPk").mockResolvedValue(null);
+    for (const model of [db.RecipeCategory, db.RecipeIngredient, db.CookingStep]) {
+      jest.spyOn(model, "bulkCreate").mockResolvedValue([]);
+      jest.spyOn(model, "destroy").mockResolvedValue(0);
+    }
+  });
+
+  test.each([
+    ["cookTimeMinutes", 1.5], ["cookTimeMinutes", Infinity], ["cookTimeMinutes", true],
+    ["defaultServings", 2.5], ["defaultServings", Infinity], ["defaultServings", true],
+  ])("từ chối %s = %s trước khi mở giao dịch", async (field, value) => {
+    const result = await call({ ...data, [field]: value });
+    expect(result.EC).toBe(1);
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+  });
+
+  test.each([0, -1, 1.5, null, "", "bad", Infinity, true])("từ chối số thứ tự bước không hợp lệ: %s", async (stepNumber) => {
+    const result = await call({ ...data, steps: [{ stepNumber, instruction: "Cook" }] });
+    expect(result.EC).toBe(1);
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [{ stepNumber: 1, instruction: "A" }, { stepNumber: "1", instruction: "B" }],
+    [{ stepNumber: 2, instruction: "A" }, { instruction: "B" }],
+    [null],
+  ])("từ chối số thứ tự bước trùng nhau hoặc bước có giá trị null (%j)", async (...steps) => {
+    const result = await call({ ...data, steps });
+    expect(result.EC).toBe(1);
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+  });
+
+  test("chấp nhận chuỗi số nguyên và tự gán số thứ tự cho bước chưa có", async () => {
+    const result = await call({ ...data, cookTimeMinutes: "20", defaultServings: "2",
+      steps: [{ stepNumber: "1", instruction: "Prepare" }, { instruction: "Cook" }],
+    });
+    expect(result.EC).toBe(0);
+    expect(db.CookingStep.bulkCreate).toHaveBeenCalledWith([
+      { recipeId: 105, stepNumber: 1, instruction: "Prepare" },
+      { recipeId: 105, stepNumber: 2, instruction: "Cook" },
+    ], { transaction });
+    expect(transaction.commit).toHaveBeenCalledTimes(1);
+  });
+
+  test("hoàn tác giao dịch khi lưu nguyên liệu lỗi sau khi đã lưu công thức và danh mục", async () => {
+    db.RecipeIngredient.bulkCreate.mockRejectedValue(new Error("Ingredient write failed"));
+    const result = await call(data);
+    expect(result).toMatchObject({ EC: -1, DT: null });
+    if (method === "adminCreateRecipe") {
+      expect(db.Recipe.create).toHaveBeenCalledWith(expect.any(Object), { transaction });
+    } else {
+      const recipe = await db.Recipe.findOne.mock.results[0].value;
+      expect(recipe.update).toHaveBeenCalledWith(expect.any(Object), { transaction });
+      expect(db.RecipeIngredient.destroy).toHaveBeenCalledWith({
+        where: { recipeId: 105 }, transaction,
+      });
+    }
+    expect(db.RecipeCategory.bulkCreate).toHaveBeenCalledWith(expect.any(Array), { transaction });
+    expect(db.RecipeIngredient.bulkCreate).toHaveBeenCalledWith(expect.any(Array), { transaction });
+    expect(db.CookingStep.bulkCreate).not.toHaveBeenCalled();
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).not.toHaveBeenCalled();
+  });
+
+  test("hoàn tác giao dịch khi lưu bước làm lỗi sau khi đã lưu nguyên liệu", async () => {
+    db.CookingStep.bulkCreate.mockRejectedValue(new Error("Step write failed"));
+    const result = await call(data);
+    expect(result.EC).toBe(-1);
+    expect(db.RecipeIngredient.bulkCreate).toHaveBeenCalledWith(expect.any(Array), { transaction });
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).not.toHaveBeenCalled();
+  });
+});
