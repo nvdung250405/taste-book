@@ -1027,6 +1027,7 @@ const ensureCommunityCategory = async (recipeId, transaction = null) => {
     }
   } catch (err) {
     console.log("ensureCommunityCategory error:", err);
+    throw err;
   }
 };
 
@@ -1599,29 +1600,23 @@ const deleteRecipe = async (recipeId, user) => {
 // 4.8 GET /api/v1/admin/recipes (UC-19: Admin xem danh sách công thức chuẩn hệ thống)
 const adminGetRecipes = async (query = {}) => {
   try {
-    const { status, keyword, search, scope } = query;
+    const { keyword, search, scope } = query;
 
     // Theo đặc tả UC-19 (Bảng 3.20 - Quản lý công thức chuẩn hệ thống):
-    // Mặc định Admin chỉ xem các công thức chuẩn do hệ thống/Admin tạo lập (author.role = 'Admin').
-    // Nếu truyền scope='all', Admin có thể xem toàn bộ công thức công khai để tra cứu tổng quan.
+    // Công thức chuẩn: tác giả là Admin, công khai và đã được duyệt,
+    // kể cả công thức Admin tạo qua chức năng cá nhân rồi được phê duyệt.
+    // scope='all': công thức công khai đã duyệt của mọi tác giả.
+    // Không dùng query.status để ghi đè Approved; bài chờ duyệt có API riêng.
     const whereClause = {
       isDeleted: false,
+      isPublic: true,
+      approvalStatus: "Approved",
     };
 
-    if (scope === "all") {
-      whereClause[Op.or] = [
-        { isPublic: true },
-        Sequelize.where(Sequelize.col("author.role"), "Admin"),
-      ];
-    } else {
+    if (scope !== "all") {
       whereClause[Op.and] = [
         Sequelize.where(Sequelize.col("author.role"), "Admin"),
       ];
-    }
-
-    // Lọc theo trạng thái duyệt (Pending, Approved, Rejected) nếu có truyền
-    if (status && String(status).trim()) {
-      whereClause.approvalStatus = String(status).trim();
     }
 
     // Lọc theo từ khóa tìm kiếm theo tên món ăn
@@ -1729,11 +1724,17 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
       };
     }
 
-    // 2. Kiểm tra quyền: Chỉ cho phép Admin sửa công thức chuẩn do Admin tạo
-    if (!recipe.author || recipe.author.role !== "Admin") {
+    // 2. Chỉ sửa công thức chuẩn hệ thống qua API quản trị.
+    // Công thức cá nhân hoặc chờ duyệt phải đi qua luồng cá nhân/kiểm duyệt.
+    const isSystemRecipe =
+      recipe.author?.role === "Admin" &&
+      recipe.isPublic &&
+      recipe.approvalStatus === "Approved";
+
+    if (!isSystemRecipe) {
       return {
         EC: 4,
-        EM: "Bạn chỉ có thể chỉnh sửa công thức chuẩn do Admin tạo!",
+        EM: "Bạn chỉ có thể chỉnh sửa công thức chuẩn hệ thống đã được duyệt!",
         DT: null,
       };
     }
@@ -1794,8 +1795,7 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
     if (
       cookTimeMinutes === undefined ||
       cookTimeMinutes === null ||
-      isNaN(Number(cookTimeMinutes)) ||
-      Number(cookTimeMinutes) <= 0
+      !isPositiveInteger(cookTimeMinutes)
     ) {
       return {
         EC: 1,
@@ -1823,8 +1823,7 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
     if (
       defaultServings === undefined ||
       defaultServings === null ||
-      isNaN(Number(defaultServings)) ||
-      Number(defaultServings) <= 0
+      !isPositiveInteger(defaultServings)
     ) {
       return {
         EC: 1,
@@ -1862,22 +1861,20 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
     const processedIngredients = [];
     for (let i = 0; i < ingredients.length; i++) {
       const ing = ingredients[i];
-      if (
-        ing.quantity === undefined ||
-        ing.quantity === null ||
-        isNaN(Number(ing.quantity)) ||
-        Number(ing.quantity) <= 0
-      ) {
-        return {
-          EC: 1,
-          EM: `Định lượng nguyên liệu ở vị trí ${i + 1} phải lớn hơn 0!`,
-          DT: null,
-        };
-      }
-
       // TH 1: Chọn nguyên liệu của hệ thống (có ingredientId)
       if (ing.ingredientId) {
-        const foundIng = await db.Ingredient.findByPk(Number(ing.ingredientId));
+        const foundIng = await db.Ingredient.findByPk(
+          Number(ing.ingredientId),
+          {
+            include: [
+              {
+                model: db.Unit,
+                as: "defaultUnit",
+                attributes: ["id", "unitName"],
+              },
+            ],
+          },
+        );
         if (!foundIng) {
           return {
             EC: 1,
@@ -1886,20 +1883,28 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
           };
         }
 
-        if (ing.unitId && Number(ing.unitId) !== foundIng.defaultUnitId) {
-          return {
-            EC: 1,
-            EM: `Nguyên liệu "${foundIng.ingredientName}" chỉ được sử dụng đơn vị đo mặc định của hệ thống!`,
-            DT: null,
-          };
+        const unitError = systemIngredientUnitError(foundIng, ing);
+        if (unitError) return unitError;
+
+        const unitId = foundIng.defaultUnitId;
+        const customUnit = null;
+        let unitName = foundIng.defaultUnit?.unitName || "";
+        if (Number(ing.quantity) === 0 && !unitName && unitId) {
+          unitName = (await db.Unit.findByPk(unitId))?.unitName || "";
         }
+        const quantityError = ingredientQuantityError(
+          ing.quantity,
+          unitName,
+          i + 1,
+        );
+        if (quantityError) return quantityError;
 
         processedIngredients.push({
           ingredientId: foundIng.id,
           customIngredientName: null,
           quantity: Number(ing.quantity),
-          unitId: foundIng.defaultUnitId,
-          customUnit: null,
+          unitId,
+          customUnit,
         });
       }
       // TH 2: Tự gõ tay nguyên liệu ngoài hệ thống (customIngredientName)
@@ -1910,6 +1915,7 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
         let customIngName = String(ing.customIngredientName).trim();
         let unitId = null;
         let customUnit = null;
+        let unitName = "";
 
         if (ing.unitId) {
           const foundUnit = await db.Unit.findByPk(Number(ing.unitId));
@@ -1921,8 +1927,10 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
             };
           }
           unitId = foundUnit.id;
+          unitName = foundUnit.unitName;
         } else if (ing.customUnit && String(ing.customUnit).trim()) {
           customUnit = String(ing.customUnit).trim();
+          unitName = customUnit;
         } else {
           return {
             EC: 1,
@@ -1930,6 +1938,13 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
             DT: null,
           };
         }
+
+        const quantityError = ingredientQuantityError(
+          ing.quantity,
+          unitName,
+          i + 1,
+        );
+        if (quantityError) return quantityError;
 
         processedIngredients.push({
           ingredientId: null,
@@ -1948,16 +1963,8 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
     }
 
     // 6. Kiểm tra từng bước làm
-    for (let i = 0; i < stepsList.length; i++) {
-      const st = stepsList[i];
-      if (!st.instruction || !String(st.instruction).trim()) {
-        return {
-          EC: 1,
-          EM: `Nội dung bước làm thứ ${st.stepNumber || i + 1} không được để trống!`,
-          DT: null,
-        };
-      }
-    }
+    const stepsError = cookingStepsError(stepsList);
+    if (stepsError) return stepsError;
 
     // 7. Thực hiện cập nhật với Transaction (Công thức chuẩn luôn isPublic = true, approvalStatus = 'Approved')
     const t = await db.sequelize.transaction();
@@ -2018,9 +2025,7 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
       const cookingStepsData = stepsList.map((st, index) => ({
         recipeId: rId,
         stepNumber:
-          st.stepNumber !== undefined && !isNaN(Number(st.stepNumber))
-            ? Number(st.stepNumber)
-            : index + 1,
+          st.stepNumber !== undefined ? Number(st.stepNumber) : index + 1,
         instruction: String(st.instruction).trim(),
       }));
       await db.CookingStep.bulkCreate(cookingStepsData, { transaction: t });
@@ -2096,8 +2101,9 @@ const adminDeleteRecipe = async (recipeId, user) => {
     }
 
     // 2. Xử lý xóa theo loại công thức:
-    // Nếu công thức của người dùng đang ở chế độ riêng tư -> Admin không can thiệp
-    if (!recipe.isPublic && (!recipe.author || recipe.author.role !== "Admin")) {
+    // Công thức riêng tư của cả User và Admin chỉ được xóa qua API cá nhân
+    // với kiểm tra chủ sở hữu. API quản trị vẫn được xóa công thức công khai.
+    if (!recipe.isPublic) {
       return {
         EC: 4,
         EM: "Công thức này đang ở chế độ riêng tư của người dùng, Admin không thể thao tác!",
@@ -2234,7 +2240,7 @@ const adminGetPendingRecipes = async () => {
 const moderateRecipe = async (recipeId, data = {}) => {
   try {
     const rId = Number(recipeId);
-    if (!rId || isNaN(rId) || rId <= 0) {
+    if (!isPositiveInteger(recipeId) || !Number.isSafeInteger(rId)) {
       return {
         EC: 1,
         EM: "ID công thức không hợp lệ!",
@@ -2242,117 +2248,118 @@ const moderateRecipe = async (recipeId, data = {}) => {
       };
     }
 
-    const recipe = await db.Recipe.findOne({
-      where: {
-        id: rId,
-        isDeleted: false,
-      },
-    });
-
-    if (!recipe) {
-      return {
-        EC: 3,
-        EM: "Không tìm thấy công thức cần duyệt!",
-        DT: null,
-      };
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return { EC: 1, EM: "Dữ liệu kiểm duyệt phải là một object!", DT: null };
     }
 
-    // Chỉ kiểm duyệt công thức đang ở chế độ công khai
-    if (!recipe.isPublic) {
-      return {
-        EC: 1,
-        EM: "Công thức không ở trạng thái công khai để kiểm duyệt!",
-        DT: null,
-      };
-    }
-
-    if (recipe.approvalStatus === "Rejected") {
-      return {
-        EC: 1,
-        EM: "Công thức này đã bị từ chối trước đó!",
-        DT: null,
-      };
-    }
-
-    const rawStatus = data.approvalStatus || data.action;
-    if (!rawStatus || !String(rawStatus).trim()) {
+    // Giữ hỗ trợ action cho client cũ; approvalStatus được ưu tiên nếu có.
+    const rawStatus = data.approvalStatus !== undefined ? data.approvalStatus : data.action;
+    if (typeof rawStatus !== "string" || !/^(approved|rejected)$/i.test(rawStatus.trim())) {
       return {
         EC: 1,
         EM: "Trạng thái duyệt không hợp lệ (Chỉ chấp nhận 'Approved' hoặc 'Rejected')!",
         DT: null,
       };
     }
-
-    const normalizedStatus = String(rawStatus).trim();
-    if (
-      normalizedStatus !== "Approved" &&
-      normalizedStatus !== "Rejected" &&
-      normalizedStatus.toLowerCase() !== "approved" &&
-      normalizedStatus.toLowerCase() !== "rejected"
-    ) {
-      return {
-        EC: 1,
-        EM: "Trạng thái duyệt không hợp lệ (Chỉ chấp nhận 'Approved' hoặc 'Rejected')!",
-        DT: null,
-      };
+    const finalStatus = rawStatus.trim().toLowerCase() === "approved" ? "Approved" : "Rejected";
+    if (finalStatus === "Rejected" &&
+        (typeof data.rejectionReason !== "string" || !data.rejectionReason.trim())) {
+      return { EC: 1, EM: "Vui lòng nhập lý do từ chối bài viết là chuỗi không rỗng!", DT: null };
     }
 
-    const finalStatus =
-      normalizedStatus.toLowerCase() === "approved" ? "Approved" : "Rejected";
+    // Khóa bản ghi đến khi commit: yêu cầu duyệt tiếp theo phải đọc trạng thái mới nhất.
+    // Cập nhật trạng thái và danh mục cùng thành công hoặc cùng được hoàn tác.
+    return await db.sequelize.transaction(async (transaction) => {
+      const recipe = await db.Recipe.findOne({
+        where: {
+          id: rId,
+          isDeleted: false,
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
 
-    if (finalStatus === "Approved" && recipe.approvalStatus === "Approved") {
-      return {
-        EC: 1,
-        EM: "Công thức này đã được phê duyệt trước đó!",
-        DT: null,
-      };
-    }
-
-    if (finalStatus === "Rejected") {
-      const reason = data.rejectionReason;
-      if (!reason || !String(reason).trim()) {
+      if (!recipe) {
         return {
-          EC: 1,
-          EM: "Vui lòng nhập lý do từ chối bài viết!",
+          EC: 3,
+          EM: "Không tìm thấy công thức cần duyệt!",
           DT: null,
         };
       }
 
-      await recipe.update({
-        approvalStatus: "Rejected",
-        rejectionReason: String(reason).trim(),
-        isPublic: false,
-      });
+      // Chỉ kiểm duyệt công thức đang ở chế độ công khai
+      if (!recipe.isPublic) {
+        return {
+          EC: 1,
+          EM: "Công thức không ở trạng thái công khai để kiểm duyệt!",
+          DT: null,
+        };
+      }
 
-      return {
-        EC: 0,
-        EM: "Đã từ chối công thức bài viết thành công!",
-        DT: {
-          recipeId: recipe.id,
+      if (recipe.approvalStatus === "Rejected") {
+        return {
+          EC: 1,
+          EM: "Công thức này đã bị từ chối trước đó!",
+          DT: null,
+        };
+      }
+
+      if (finalStatus === "Approved" && recipe.approvalStatus === "Approved") {
+        return {
+          EC: 1,
+          EM: "Công thức này đã được phê duyệt trước đó!",
+          DT: null,
+        };
+      }
+
+      if (recipe.approvalStatus !== "Pending") {
+        return {
+          EC: 1,
+          EM: recipe.approvalStatus === "Approved"
+            ? "Không thể từ chối công thức đã được phê duyệt!"
+            : "Công thức không ở trạng thái chờ duyệt!",
+          DT: null,
+        };
+      }
+
+      if (finalStatus === "Rejected") {
+        const reason = data.rejectionReason.trim();
+        await recipe.update({
           approvalStatus: "Rejected",
-          rejectionReason: recipe.rejectionReason,
-        },
-      };
-    } else {
-      await recipe.update({
-        approvalStatus: "Approved",
-        rejectionReason: null,
-        isPublic: true,
-      });
+          rejectionReason: reason,
+          isPublic: false,
+        }, { transaction });
 
-      // Gắn danh mục cộng đồng nếu tác giả không phải là Admin
-      await ensureCommunityCategory(recipe.id);
-
-      return {
-        EC: 0,
-        EM: "Phê duyệt công thức thành công!",
-        DT: {
-          recipeId: recipe.id,
+        return {
+          EC: 0,
+          EM: "Đã từ chối công thức bài viết thành công!",
+          DT: {
+            recipeId: recipe.id,
+            approvalStatus: "Rejected",
+            rejectionReason: reason,
+          },
+        };
+      } else {
+        await recipe.update({
           approvalStatus: "Approved",
           rejectionReason: null,
-        },
-      };
-    }
+          isPublic: true,
+        }, { transaction });
+
+        // Gắn danh mục cộng đồng nếu tác giả không phải là Admin
+        await ensureCommunityCategory(recipe.id, transaction);
+
+        return {
+          EC: 0,
+          EM: "Phê duyệt công thức thành công!",
+          DT: {
+            recipeId: recipe.id,
+            approvalStatus: "Approved",
+            rejectionReason: null,
+          },
+        };
+      }
+    });
   } catch (e) {
     console.log("moderateRecipe error:", e);
     return {

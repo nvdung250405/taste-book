@@ -1601,6 +1601,694 @@ paths:
                 EC: -1
                 EM: Lỗi kết nối máy chủ!
                 DT: null
+  /admin/recipes:
+    get:
+      tags:
+        - Admin Recipes
+      summary: "UC-19: Admin xem danh sách công thức chuẩn hệ thống"
+      description: "Quản trị viên (Admin) xem công thức công khai, đã duyệt và chưa bị xóa (isPublic = true, approvalStatus = 'Approved', isDeleted = false). Mặc định chỉ lấy công thức có tác giả là Admin, bao gồm công thức Admin tạo qua API cá nhân rồi được duyệt công khai. Hỗ trợ tìm kiếm theo từ khóa; scope='all' lấy công thức công khai đã duyệt của mọi tác giả. Không hỗ trợ lọc theo status; công thức chờ duyệt được lấy qua GET /admin/recipes/pending."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: scope
+          in: query
+          description: "Mặc định (standard) chỉ trả về công thức có tác giả là Admin, công khai và đã duyệt. scope='all' trả về công thức công khai đã duyệt của mọi tác giả. Cả hai phạm vi đều loại công thức đã bị xóa."
+          schema:
+            type: string
+            enum:
+              - standard
+              - all
+        - name: keyword
+          in: query
+          description: "Tìm kiếm theo tên công thức"
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lấy thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Thành công!
+                DT:
+                  total: 50
+                  recipes:
+                    - recipeId: 101
+                      title: Bò lúc lắc
+                      thumbnailUrl: https://res.cloudinary.com/.../bo.jpg
+                      cookTimeMinutes: 25
+                      difficulty: Easy
+                      defaultServings: 2
+                      authorName: System Admin
+                      isPublic: true
+                      approvalStatus: Approved
+        "400":
+          description: Lỗi dữ liệu đầu vào hoặc thiếu tham số bắt buộc
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Dữ liệu đầu vào không hợp lệ!
+                DT: null
+        "401":
+          description: Chưa xác thực hoặc token hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không có quyền thực hiện chức năng này
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng này!
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+    post:
+      tags:
+        - Admin Recipes
+      summary: "UC-19: Admin tạo công thức chuẩn hệ thống"
+      description: "Quản trị viên (Admin) tạo công thức chuẩn hệ thống (tự động thiết lập isPublic = true và approvalStatus = 'Approved'). Nguyên liệu định tính dùng quantity = 0 với đơn vị như 'vừa đủ'; đơn vị định lượng phải có quantity > 0. Nguyên liệu chuẩn chỉ được dùng unitId bằng defaultUnitId; bỏ unitId thì dùng đơn vị mặc định. Không được nhập customUnit cho nguyên liệu chuẩn; vi phạm trả HTTP 400, EC: 1. Không tự quy đổi giữa các đơn vị."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - cookTimeMinutes
+                - difficulty
+                - defaultServings
+                - categories
+                - ingredients
+                - cookingSteps
+              properties:
+                title:
+                  type: string
+                  example: Vịt nấu chao Cần Thơ
+                description:
+                  type: string
+                  example: Món vịt nấu chao đậm đà béo ngậy miền Tây Nam Bộ
+                thumbnailUrl:
+                  type: string
+                  nullable: true
+                  example: https://res.cloudinary.com/.../vitnauchao.jpg
+                cookTimeMinutes:
+                  type: integer
+                  minimum: 1
+                  example: 45
+                difficulty:
+                  type: string
+                  enum:
+                    - Easy
+                    - Medium
+                    - Hard
+                  example: Medium
+                defaultServings:
+                  type: integer
+                  minimum: 1
+                  example: 4
+                categories:
+                  type: array
+                  items:
+                    type: integer
+                  example:
+                    - 1
+                    - 2
+                ingredients:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      ingredientId:
+                        type: integer
+                        nullable: true
+                        example: 1
+                      customIngredientName:
+                        type: string
+                        nullable: true
+                        example: null
+                      quantity:
+                        type: number
+                        minimum: 0
+                        description: "Số dương cho đơn vị định lượng; dùng 0 khi đơn vị là định tính (ví dụ customUnit: 'vừa đủ')."
+                        example: 500
+                      unitId:
+                        type: integer
+                        nullable: true
+                        description: "Với ingredientId chuẩn, phải bằng defaultUnitId; bỏ trường này hoặc gửi null thì dùng mặc định. Với nguyên liệu tự nhập, có thể chọn đơn vị hệ thống bất kỳ."
+                        example: 1
+                      customUnit:
+                        type: string
+                        nullable: true
+                        description: "Chỉ dùng cho nguyên liệu tự nhập (customIngredientName), ví dụ 'trái to' hoặc 'vừa đủ'. Nguyên liệu chuẩn (ingredientId) không được nhập customUnit."
+                        example: null
+                cookingSteps:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - stepNumber
+                      - instruction
+                    properties:
+                      stepNumber:
+                        type: integer
+                        minimum: 1
+                        example: 1
+                      instruction:
+                        type: string
+                        example: Sơ chế thịt vịt sạch sẽ với gừng và rượu trắng...
+      responses:
+        "201":
+          description: Tạo công thức chuẩn thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Tạo công thức chuẩn hệ thống thành công!
+                DT:
+                  recipeId: 110
+                  approvalStatus: Approved
+        "400":
+          description: Lỗi dữ liệu đầu vào, thiếu tham số bắt buộc, quantity = 0 với đơn vị định lượng hoặc nguyên liệu chuẩn sử dụng đơn vị khác mặc định/customUnit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Công thức phải có ít nhất 1 nguyên liệu và 1 bước làm!
+                DT: null
+        "401":
+          description: Chưa xác thực hoặc token hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không có quyền thực hiện chức năng này
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng quản trị!
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  "/admin/recipes/{recipeId}":
+    put:
+      tags:
+        - Admin Recipes
+      summary: "UC-19: Admin sửa công thức chuẩn"
+      description: "Quản trị viên (Admin) chỉ được sửa công thức có tác giả là Admin, công khai và đã duyệt (isPublic = true và approvalStatus = 'Approved'), bao gồm công thức Admin tạo qua API cá nhân rồi được duyệt. Công thức riêng tư, chờ duyệt hoặc có tác giả là User bị từ chối (403). Công thức sau khi sửa luôn duy trì isPublic = true và approvalStatus = 'Approved'. Nguyên liệu định tính dùng quantity = 0 với đơn vị như 'vừa đủ'; đơn vị định lượng phải có quantity > 0. Nguyên liệu chuẩn chỉ được dùng unitId bằng defaultUnitId; bỏ unitId thì dùng đơn vị mặc định. Không được nhập customUnit cho nguyên liệu chuẩn; vi phạm trả HTTP 400, EC: 1. Không tự quy đổi giữa các đơn vị."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 7
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - cookTimeMinutes
+                - difficulty
+                - defaultServings
+                - categories
+                - ingredients
+                - cookingSteps
+              properties:
+                title:
+                  type: string
+                  example: Vịt nấu chao Cần Thơ chuẩn vị
+                description:
+                  type: string
+                  example: Món vịt nấu chao đậm đà béo ngậy chuẩn vị Cần Thơ
+                thumbnailUrl:
+                  type: string
+                  nullable: true
+                  example: https://res.cloudinary.com/.../vitnauchao.jpg
+                cookTimeMinutes:
+                  type: integer
+                  minimum: 1
+                  example: 50
+                difficulty:
+                  type: string
+                  enum:
+                    - Easy
+                    - Medium
+                    - Hard
+                  example: Medium
+                defaultServings:
+                  type: integer
+                  minimum: 1
+                  example: 4
+                categories:
+                  type: array
+                  items:
+                    type: integer
+                  example:
+                    - 1
+                    - 2
+                ingredients:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      ingredientId:
+                        type: integer
+                        nullable: true
+                        example: 1
+                      customIngredientName:
+                        type: string
+                        nullable: true
+                        example: null
+                      quantity:
+                        type: number
+                        minimum: 0
+                        description: "Số dương cho đơn vị định lượng; dùng 0 khi đơn vị là định tính (ví dụ customUnit: 'vừa đủ')."
+                        example: 600
+                      unitId:
+                        type: integer
+                        nullable: true
+                        description: "Với ingredientId chuẩn, phải bằng defaultUnitId; bỏ trường này hoặc gửi null thì dùng mặc định. Với nguyên liệu tự nhập, có thể chọn đơn vị hệ thống bất kỳ."
+                        example: 1
+                      customUnit:
+                        type: string
+                        nullable: true
+                        description: "Chỉ dùng cho nguyên liệu tự nhập (customIngredientName), ví dụ 'trái to' hoặc 'vừa đủ'. Nguyên liệu chuẩn (ingredientId) không được nhập customUnit."
+                        example: null
+                cookingSteps:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - stepNumber
+                      - instruction
+                    properties:
+                      stepNumber:
+                        type: integer
+                        minimum: 1
+                        example: 1
+                      instruction:
+                        type: string
+                        example: Sơ chế thịt vịt sạch sẽ với gừng...
+      responses:
+        "200":
+          description: Cập nhật công thức chuẩn thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Cập nhật công thức chuẩn thành công!
+                DT: null
+        "400":
+          description: Lỗi dữ liệu đầu vào, thiếu tham số bắt buộc, quantity = 0 với đơn vị định lượng hoặc nguyên liệu chuẩn sử dụng đơn vị khác mặc định/customUnit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Công thức phải có ít nhất 1 nguyên liệu và 1 bước làm!
+                DT: null
+        "401":
+          description: Chưa xác thực hoặc token hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không có quyền thực hiện chức năng này
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn chỉ có thể chỉnh sửa công thức chuẩn hệ thống đã được duyệt!
+                DT: null
+        "404":
+          description: Không tìm thấy công thức cần cập nhật
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy công thức cần cập nhật!
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+    delete:
+      tags:
+        - Admin Recipes
+      summary: "UC-19: Admin xóa công thức"
+      description: "Quản trị viên (Admin) xóa mềm công thức công khai (isPublic = true) của User hoặc Admin bằng cách đặt isDeleted = true, kể cả công thức công khai đang chờ duyệt. API quản trị từ chối xóa công thức riêng tư của cả User và Admin (403). Công thức riêng tư phải được xóa qua API cá nhân với kiểm tra chủ sở hữu."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 10
+      responses:
+        "200":
+          description: Xóa mềm công thức thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: "Đã xóa mềm công thức thành công!"
+                DT: null
+        "400":
+          description: ID công thức không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: "ID công thức không hợp lệ!"
+                DT: null
+        "401":
+          description: Chưa xác thực token hoặc token hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "403":
+          description: Không có quyền thao tác (không phải Admin hoặc cố xóa công thức riêng tư của User hoặc Admin)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: "Công thức này đang ở chế độ riêng tư của người dùng, Admin không thể thao tác!"
+                DT: null
+        "404":
+          description: Không tìm thấy công thức cần xóa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: "Không tìm thấy công thức cần xoá!"
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
+  /admin/recipes/pending:
+    get:
+      tags:
+        - Admin Recipes
+      summary: "UC-20: Xem danh sách chờ duyệt"
+      description: "Quản trị viên (Admin) xem danh sách công thức chưa bị xóa, được gửi công khai và đang chờ duyệt (isPublic = true, approvalStatus = 'Pending', isDeleted = false). Bao gồm công thức User hoặc Admin gửi qua API cá nhân. Công thức của Admin sau khi được duyệt công khai sẽ trở thành công thức chuẩn hệ thống."
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lấy danh sách thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: "Thành công!"
+                DT:
+                  - recipeId: 105
+                    title: "Canh chua cá lóc miền Tây"
+                    description: "Món canh chua cá lóc đậm đà vị miền Tây sông nước"
+                    thumbnailUrl: "https://res.cloudinary.com/demo/image/upload/canh_chua.jpg"
+                    cookTimeMinutes: 35
+                    difficulty: "Medium"
+                    defaultServings: 4
+                    isPublic: true
+                    approvalStatus: "Pending"
+                    authorId: 8
+                    authorName: "Nguyễn Văn A"
+                    authorEmail: "vana@gmail.com"
+                    categories:
+                      - categoryId: 1
+                        categoryName: "Món Canh"
+                    ingredients:
+                      - ingredientId: 1
+                        ingredientName: "Cá lóc đồng"
+                        quantity: 500
+                        unitId: 1
+                        unit: "g"
+                    cookingSteps:
+                      - stepNumber: 1
+                        instruction: "Sơ chế cá lóc và các loại rau thơm"
+                      - stepNumber: 2
+                        instruction: "Nấu sôi nước me rồi cho cá vào đun chín kỹ"
+                    createdAt: "2026-08-20T10:00:00.000Z"
+        "401":
+          description: Chưa xác thực token hoặc phiên đăng nhập hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "403":
+          description: Không có quyền truy cập chức năng quản trị
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: "Bạn không có quyền thực hiện chức năng quản trị!"
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
+  "/admin/recipes/{recipeId}/moderation":
+    patch:
+      tags:
+        - Admin Recipes
+      summary: "UC-20: Kiểm duyệt công thức"
+      description: >-
+        Chỉ tài khoản còn tồn tại và có quyền Admin hiện tại trong DB được kiểm duyệt.
+        Chỉ xử lý công thức công khai, đang Pending và chưa bị xóa, bao gồm bài của User hoặc Admin.
+        Khi phê duyệt, lưu isPublic = true, approvalStatus = 'Approved' và xóa rejectionReason;
+        bài có tác giả Admin trở thành công thức chuẩn hệ thống, bài của User được gắn danh mục đóng góp cộng đồng.
+        Khi từ chối, lưu isPublic = false, approvalStatus = 'Rejected' và lý do từ chối đã bỏ khoảng trắng đầu/cuối.
+        Trạng thái và danh mục được lưu trong cùng transaction; chỉ trả thành công sau commit, lỗi thì rollback.
+        Khóa bản ghi khi kiểm duyệt để tránh ghi đè quyết định; yêu cầu sau đọc trạng thái mới và trả 400 nếu không còn Pending.
+        approvalStatus phải là chuỗi Approved hoặc Rejected (chấp nhận khác hoa/thường và khoảng trắng đầu/cuối).
+        Hỗ trợ trường action thay approvalStatus cho client cũ; nếu truyền cả hai thì ưu tiên approvalStatus.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+          example: 6
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - approvalStatus
+              properties:
+                approvalStatus:
+                  type: string
+                  enum:
+                    - Approved
+                    - Rejected
+                  example: Approved
+                rejectionReason:
+                  type: string
+                  nullable: true
+                  description: "Bắt buộc là chuỗi không rỗng, không chỉ có khoảng trắng khi từ chối; không ép số, boolean, array hay object thành chuỗi. Khi duyệt, lý do được xóa."
+                  example: Hình ảnh không đúng quy chuẩn và định lượng chưa rõ ràng.
+      responses:
+        "200":
+          description: Kiểm duyệt thành công (Phê duyệt hoặc Từ chối)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              examples:
+                approved:
+                  summary: Phê duyệt thành công
+                  value:
+                    EC: 0
+                    EM: "Phê duyệt công thức thành công!"
+                    DT:
+                      recipeId: 6
+                      approvalStatus: Approved
+                      rejectionReason: null
+                rejected:
+                  summary: Từ chối bài viết thành công
+                  value:
+                    EC: 0
+                    EM: "Đã từ chối công thức bài viết thành công!"
+                    DT:
+                      recipeId: 6
+                      approvalStatus: Rejected
+                      rejectionReason: "Hình ảnh không đúng quy chuẩn và định lượng chưa rõ ràng."
+        "400":
+          description: ID không phải số nguyên dương an toàn, body/trạng thái/lý do sai kiểu hoặc công thức không còn chờ duyệt công khai
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidStatus:
+                  summary: Trạng thái không hợp lệ
+                  value:
+                    EC: 1
+                    EM: "Trạng thái duyệt không hợp lệ (Chỉ chấp nhận 'Approved' hoặc 'Rejected')!"
+                    DT: null
+                missingReason:
+                  summary: Thiếu lý do, lý do sai kiểu hoặc chỉ có khoảng trắng khi từ chối
+                  value:
+                    EC: 1
+                    EM: "Vui lòng nhập lý do từ chối bài viết là chuỗi không rỗng!"
+                    DT: null
+                notPending:
+                  summary: Công thức không ở trạng thái chờ duyệt
+                  value:
+                    EC: 1
+                    EM: "Công thức này đã được phê duyệt trước đó!"
+                    DT: null
+        "401":
+          description: Thiếu token, token không hợp lệ/hết hạn hoặc tài khoản không còn tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
+                DT: null
+        "403":
+          description: Tài khoản hiện tại trong DB không có quyền Admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: "Bạn không có quyền thực hiện chức năng quản trị!"
+                DT: null
+        "404":
+          description: Không tìm thấy công thức cần duyệt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: "Không tìm thấy công thức cần duyệt!"
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: "Lỗi kết nối máy chủ!"
+                DT: null
   /favorites:
     get:
       tags:

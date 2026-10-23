@@ -2,8 +2,6 @@ require("dotenv").config();
 import jwt from "jsonwebtoken";
 import db from "../models/index";
 
-const nonSecurePaths = ["/login", "/register"];
-
 const createJWT = (payload) => {
   let key = process.env.JWT_SECRET;
   let token = null;
@@ -39,8 +37,6 @@ const extractToken = (req) => {
 
 const checkUserJWT = async (req, res, next) => {
   try {
-    if (nonSecurePaths.some((path) => req.path.endsWith(path))) return next();
-
     let token = extractToken(req);
 
     if (token) {
@@ -61,11 +57,9 @@ const checkUserJWT = async (req, res, next) => {
             phone: user.phone,
             role: user.role,
           };
-        } else {
-          req.user = decoded;
+          req.token = token;
+          return next();
         }
-        req.token = token;
-        return next();
       }
     }
 
@@ -116,10 +110,8 @@ const checkUserJWTOptional = async (req, res, next) => {
             phone: user.phone,
             role: user.role,
           };
-        } else {
-          req.user = decoded;
+          req.token = token;
         }
-        req.token = token;
       }
     }
     return next();
