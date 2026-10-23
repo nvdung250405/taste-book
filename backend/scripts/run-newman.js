@@ -28,8 +28,14 @@ const COLLECTIONS = {
   recipes: "tastebook_recipes_postman_collection.json",
   categories: "tastebook_categories_postman_collection.json",
   uc08: "tastebook_uc08_recipe_postman_collection.json",
-  uc09_11:"tastebook_uc09_11_recipe_postman_collection.json",
-  uc12_favorites:"tastebook_uc12_favorites_postman_collection.json"
+  uc09_11: "tastebook_uc09_11_recipe_postman_collection.json",
+  uc12_favorites: "tastebook_uc12_favorites_postman_collection.json",
+  uc13: "tastebook_uc13_recipe_list_postman_collection.json",
+  uc14: "tastebook_uc14_create_recipe_list_postman_collection.json",
+  uc15: "tastebook_uc15_delete_recipe_list_postman_collection.json",
+  uc16: "tastebook_uc16_recipe_list_items_postman_collection.json",
+  uc17: "tastebook_uc17_shopping_list_postman_collection.json",
+  uc18: "tastebook_uc18_shopping_list_postman_collection.json",
 };
 
 const ENVIRONMENTS = {
