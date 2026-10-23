@@ -2798,6 +2798,7 @@ paths:
       tags:
         - Shopping Lists
       summary: "UC-17/18: Tổng hợp danh sách đi chợ"
+      # TC-17-12: Tiêu đề sau trim phải duy nhất trong cùng người dùng.
       description: "Gom một hoặc nhiều thực đơn, loại bỏ ID thực đơn trùng. targetServings và defaultServings phải là số nguyên dương. Định lượng được nhân targetServings/defaultServings bằng số học chính xác, cộng dồn theo mã nguyên liệu và đơn vị (trim, không phân biệt hoa thường); nguyên liệu tự nhập gộp theo tên và đơn vị. Khác đơn vị thì tách dòng, không quy đổi. Chỉ làm tròn half-up một lần sau khi cộng tổng, đến 2 chữ số thập phân; kết quả định lượng phải từ 0.01 đến 99999999.99, nếu không trả 400. Nguyên liệu định tính giữ unit và totalQuantity = 0, không nhân hoặc cộng số lượng."
       security:
         - bearerAuth: []
@@ -2815,7 +2816,7 @@ paths:
                   type: string
                   minLength: 1
                   maxLength: 100
-                  description: "Chuỗi không rỗng sau khi trim."
+                  description: "Chuỗi không rỗng sau khi trim. Trong cùng người dùng, tiêu đề đã tồn tại trả HTTP 409, EC 2 và không tạo thêm phiên đi chợ. Người dùng khác vẫn được dùng cùng tiêu đề."
                   example: "Đi siêu thị BigC"
                 recipeListIds:
                   type: array
@@ -2922,6 +2923,16 @@ paths:
               example:
                 EC: 3
                 EM: "Một hoặc nhiều thực đơn được chọn không tồn tại!"
+                DT: null
+        "409":
+          description: Tiêu đề danh sách đi chợ đã tồn tại trong cùng người dùng (so sánh sau trim)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: "Tiêu đề danh sách đi chợ này đã tồn tại!"
                 DT: null
         "500":
           description: Lỗi hệ thống server hoặc CSDL
