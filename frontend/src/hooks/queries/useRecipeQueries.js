@@ -97,6 +97,7 @@ export const usePendingRecipes = () => {
   return useQuery({
     queryKey: ['pending-recipes'],
     queryFn: () => recipesApi.getPendingRecipes(),
+    refetchInterval: 30000,
   });
 };
 
@@ -143,11 +144,17 @@ export const useModerateRecipe = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ recipeId, data }) => recipesApi.moderateRecipe(recipeId, data),
-    onSuccess: () => {
+    onSuccess: (_, { recipeId }) => {
+      queryClient.setQueryData(['pending-recipes'], current => current ? {
+        ...current, DT: current.DT.filter(recipe => String(recipe.recipeId) !== String(recipeId)),
+      } : current);
       queryClient.invalidateQueries({ queryKey: ['pending-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['admin-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
       queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe', String(recipeId)] });
+      queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+      queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
     },
   });
 };

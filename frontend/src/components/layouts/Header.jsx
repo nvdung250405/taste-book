@@ -10,6 +10,7 @@ import {
   Menu,
   UserCircle,
   FolderHeart,
+  ShieldCheck,
   LogOut
 } from 'lucide-react'
 import { Button } from '../ui/button'
@@ -128,6 +129,12 @@ export default function Header({ isAuthenticated, user, profileLoading, handleLo
                   {isAuthenticated && (
                     <>
                       <div className="h-px bg-slate-200 dark:bg-slate-700 my-2" />
+                      {!profileLoading && user?.role === 'Admin' && (
+                        <Link to="/admin" onClick={closeMobileMenu} className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20">
+                          <ShieldCheck className="w-5 h-5" />
+                          <span>Quản lý Admin</span>
+                        </Link>
+                      )}
                       <Link to="/my-categories" onClick={closeMobileMenu} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"><FolderHeart className="w-5 h-5" /><span className="font-medium">Danh mục của tôi</span></Link>
                       <Link to="/profile" onClick={closeMobileMenu} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors">
                         <UserCircle className="w-5 h-5" />
