@@ -1,142 +1,116 @@
-import {
-  BookOpenCheck,
-  CheckCircle,
-  XCircle,
-  Loader2,
-  Eye,
-  Clock,
-  User
-} from 'lucide-react'
-import { Button } from '../../components/ui/button'
-import { Card, CardContent } from '../../components/ui/card'
-import { Badge } from '../../components/ui/badge'
-import {
-  usePendingRecipes,
-  useModerateRecipe
-} from '../../hooks/queries/useRecipeQueries'
+﻿import { useRef, useState } from 'react'
+import { BookOpenCheck, CheckCircle, Eye, Loader2, RefreshCw, Search, Star, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import { Link } from 'react-router-dom'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Badge } from '../../components/ui/badge'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog'
 import QueryError from '../../components/ui/QueryError'
+import { usePendingRecipes, useModerateRecipe } from '../../hooks/queries/useRecipeQueries'
 import { recipeImageProps, handleRecipeImageError } from '../../lib/recipeImages'
+import { formatIngredientQuantity } from '../../lib/recipeQuantities'
 
-export default function AdminApprovalsPage() {
-  const { data: pendingRes, isLoading, isError, isFetching, refetch } = usePendingRecipes()
-  const { mutate: moderateRecipe, isPending: isModerating } = useModerateRecipe()
+const difficulty = { Easy: 'Dễ', Medium: 'Trung bình', Hard: 'Khó' }
 
-  const pendingRecipes = pendingRes?.DT || []
+function ReviewDialog({ recipe, onClose }) {
+  const mutation = useModerateRecipe()
+  const sending = useRef(false)
+  const [reason, setReason] = useState('')
+  const [rejecting, setRejecting] = useState(false)
+  const [error, setError] = useState('')
+  const busy = mutation.isPending
 
-  const handleModerate = (recipeId, status) => {
-    if (status === 'REJECTED') {
-      const reason = window.prompt('Nhập lý do từ chối (bắt buộc):')
-      if (reason === null) return // User cancelled
-      if (!reason.trim()) return toast.error('Vui lòng nhập lý do từ chối')
-
-      moderateRecipe({ recipeId, data: { approvalStatus: 'Rejected', rejectionReason: reason.trim() } }, {
-        onSuccess: () => toast.success('Đã từ chối công thức'),
-        onError: (error) => toast.error(error?.EM || 'Có lỗi xảy ra')
-      })
-    } else {
-      moderateRecipe({ recipeId, data: { approvalStatus: 'Approved' } }, {
-        onSuccess: () => toast.success('Đã duyệt công thức thành công'),
-        onError: (error) => toast.error(error?.EM || 'Có lỗi xảy ra')
-      })
+  const submit = async status => {
+    if (sending.current) return
+    if (status === 'Rejected' && !reason.trim()) {
+      setError('Vui lòng nhập lý do từ chối.'); return
     }
+    sending.current = true
+    setError('')
+    try {
+      await mutation.mutateAsync({ recipeId: recipe.recipeId, data: status === 'Approved'
+        ? { approvalStatus: status }
+        : { approvalStatus: status, rejectionReason: reason.trim() } })
+      toast.success(status === 'Rejected' ? 'Đã từ chối công thức' : 'Đã duyệt công thức')
+      onClose()
+    } catch (err) {
+      setError(err?.EM || 'Không thể xử lý công thức. Vui lòng thử lại.')
+    } finally { sending.current = false }
   }
 
-  return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-            <BookOpenCheck className="w-6 h-6 text-orange-500" />
-            Kiểm duyệt công thức
-          </h1>
-          <p className="text-slate-500 mt-1">Quản lý và phê duyệt các công thức do người dùng đóng góp.</p>
-        </div>
-        <Badge variant="secondary" className="px-4 py-1.5 text-sm">
-          <span className="font-bold text-orange-500 mr-1">{pendingRecipes.length}</span> chờ duyệt
-        </Badge>
+  return <Dialog open onOpenChange={open => { if (!open && !busy) onClose() }}>
+    <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl" showCloseButton={!busy}
+      onEscapeKeyDown={e => { if (busy) e.preventDefault() }} onInteractOutside={e => { if (busy) e.preventDefault() }}>
+      <DialogHeader>
+        <DialogTitle className="pr-6 text-xl break-words">{recipe.title}</DialogTitle>
+        <DialogDescription>Xem trước công thức đóng góp bởi {recipe.authorName || 'Ẩn danh'} · Chờ duyệt</DialogDescription>
+      </DialogHeader>
+      <img {...recipeImageProps(recipe.thumbnailUrl)} onError={handleRecipeImageError} alt={recipe.title} className="max-h-64 w-full rounded-xl object-cover" />
+      <div className="flex flex-wrap gap-2 text-sm">
+        <Badge variant="secondary">{recipe.cookTimeMinutes} phút</Badge>
+        <Badge variant="secondary">{recipe.defaultServings} khẩu phần</Badge>
+        <Badge variant="secondary">{difficulty[recipe.difficulty] || recipe.difficulty}</Badge>
+        {(recipe.categories || []).map(cat => <Badge key={cat.categoryId} variant="outline">{cat.categoryName}</Badge>)}
       </div>
+      <p className="whitespace-pre-wrap break-words text-sm text-slate-600 dark:text-slate-300">{recipe.description || 'Chưa có mô tả.'}</p>
+      <section className="space-y-2"><h2 className="font-semibold">Nguyên liệu</h2>
+        <ul className="grid gap-2 sm:grid-cols-2">{(recipe.ingredients || []).map((ing, index) => <li key={index} className="rounded-lg bg-slate-100 p-3 text-sm break-words dark:bg-slate-800">{ing.ingredientName} — {formatIngredientQuantity(ing.quantity, 1)} {ing.unit}</li>)}</ul>
+      </section>
+      <section className="space-y-2"><h2 className="font-semibold">Các bước thực hiện</h2>
+        <ol className="space-y-3">{(recipe.cookingSteps || recipe.steps || []).map((step, index) => <li key={step.stepNumber || index} className="rounded-lg border p-3 text-sm whitespace-pre-wrap break-words"><span className="font-semibold text-orange-600">Bước {step.stepNumber || index + 1}. </span>{step.instruction}</li>)}</ol>
+      </section>
+      <div className="space-y-4 border-t pt-4" aria-busy={busy}>
+        {!rejecting ? <>
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+            <input type="checkbox" checked={false} disabled className="mt-1 size-4" />
+            <span><span className="flex items-center gap-1 font-semibold"><Star className="size-4" />Gán cờ Món chính thức</span><span>Chưa khả dụng: API hiện tại chưa hỗ trợ gán cờ.</span></span>
+          </label>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="outline" disabled={busy} onClick={onClose}>Đóng</Button>
+            <Button variant="destructive" disabled={busy} onClick={() => { setRejecting(true); setError('') }}><XCircle className="size-4" />Từ chối</Button>
+            <Button disabled={busy} onClick={() => submit('Approved')} className="bg-green-600 text-white hover:bg-green-700">{busy ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle className="size-4" />}{busy ? 'Đang xử lý…' : 'Duyệt công thức'}</Button>
+          </div>
+        </> : <form onSubmit={e => { e.preventDefault(); submit('Rejected') }} className="space-y-3">
+          <label htmlFor="rejection-reason" className="block text-sm font-semibold">Lý do từ chối <span className="text-red-600">(bắt buộc)</span></label>
+          <textarea id="rejection-reason" autoFocus required disabled={busy} value={reason} onChange={e => setReason(e.target.value)} rows={3} className="w-full rounded-lg border bg-transparent p-3 text-sm" placeholder="Nêu rõ nội dung cần chỉnh sửa để tác giả bổ sung…" />
+          <div className="flex justify-end gap-2"><Button type="button" variant="outline" disabled={busy} onClick={() => { setRejecting(false); setError('') }}>Quay lại</Button><Button type="submit" variant="destructive" disabled={busy || !reason.trim()}>{busy && <Loader2 className="size-4 animate-spin" />}{busy ? 'Đang xử lý…' : 'Xác nhận từ chối'}</Button></div>
+        </form>}
+        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      </div>
+    </DialogContent>
+  </Dialog>
+}
 
-      {isError ? <QueryError title="Không thể tải công thức chờ duyệt" onRetry={refetch} isRetrying={isFetching} /> : isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-          <p className="text-slate-500">Đang tải danh sách chờ duyệt...</p>
-        </div>
-      ) : pendingRecipes.length === 0 ? (
-        <Card className="border-dashed border-2 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-          <CardContent className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
-              <CheckCircle className="w-8 h-8 text-green-500" />
-            </div>
-            <h2 className="text-xl font-bold text-slate-700 dark:text-slate-300 mb-2">Không có công thức nào chờ duyệt</h2>
-            <p className="text-slate-500">Tất cả các công thức đóng góp đã được xử lý xong.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {pendingRecipes.map((recipe) => (
-            <Card key={recipe.recipeId} className="overflow-hidden border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow group flex flex-col">
-              <div className="relative h-48 bg-slate-100 dark:bg-slate-800">
-                <img
-                  {...recipeImageProps(recipe.thumbnailUrl)} loading="lazy" decoding="async" onError={handleRecipeImageError}
-                  alt={recipe.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-3 left-3 flex gap-2">
-                  <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white border-none shadow-sm flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> Chờ duyệt
-                  </Badge>
-                </div>
-              </div>
+export default function AdminApprovalsPage() {
+  const query = usePendingRecipes()
+  const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState(null)
+  const recipes = query.data?.DT || []
+  const keyword = search.trim().toLocaleLowerCase('vi')
+  const filtered = recipes.filter(recipe => `${recipe.title} ${recipe.authorName || ''}`.toLocaleLowerCase('vi').includes(keyword))
 
-              <CardContent className="p-5 flex-1 flex flex-col">
-                <h2 className="font-bold text-lg text-slate-900 dark:text-slate-50 line-clamp-1 mb-2">
-                  {recipe.title}
-                </h2>
-
-                <div className="flex flex-col gap-2 mt-auto text-sm text-slate-500">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span className="truncate">Bởi: <span className="font-medium text-slate-700 dark:text-slate-300">{recipe.authorName || 'Ẩn danh'}</span></span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span>Thời gian nấu: {recipe.cookTimeMinutes ?? '—'}</span>
-                  </div>
-                </div>
-
-                <div className="border-t border-slate-100 dark:border-slate-800 mt-5 pt-4 grid grid-cols-3 gap-2">
-                  <Button
-                    variant="outline"
-                    className="col-span-1 rounded-xl text-slate-500 hover:text-blue-500 hover:bg-blue-50"
-                    asChild
-                  >
-                    <Link to={`/recipe/${recipe.recipeId}`} target="_blank" rel="noopener noreferrer" aria-label={`Xem ${recipe.title}`}>
-                      <Eye className="w-4 h-4" />
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="col-span-1 rounded-xl text-slate-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50"
-                    aria-label={`Từ chối ${recipe.title}`} onClick={() => handleModerate(recipe.recipeId, 'REJECTED')}
-                    disabled={isModerating}
-                  >
-                    <XCircle className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    className="col-span-1 rounded-xl bg-green-500 hover:bg-green-600 text-white"
-                    aria-label={`Duyệt ${recipe.title}`} onClick={() => handleModerate(recipe.recipeId, 'APPROVED')}
-                    disabled={isModerating}
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+  return <div className="mx-auto max-w-6xl space-y-6">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div><h1 className="flex items-center gap-2 text-2xl font-bold"><BookOpenCheck className="size-6 text-orange-500" />Kiểm duyệt công thức</h1><p className="mt-1 text-sm text-slate-500">Xem nội dung, duyệt và tuyển chọn công thức từ cộng đồng.</p></div>
+      <Badge variant="secondary" className="px-3 py-2">{recipes.length} chờ duyệt</Badge>
     </div>
-  )
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="relative min-w-0 flex-1"><Search className="absolute top-3 left-3 size-4 text-slate-400" /><Input aria-label="Tìm công thức hoặc tác giả" placeholder="Tìm theo tên món hoặc tác giả…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" /></div>
+      <Button variant="outline" disabled={query.isFetching} onClick={() => query.refetch()}><RefreshCw className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`} />Làm mới</Button>
+    </div>
+    <p role="status" className="text-sm text-slate-500">{query.isFetching ? 'Đang cập nhật danh sách…' : 'Danh sách tự cập nhật mỗi 30 giây và sau khi kiểm duyệt.'}</p>
+    {query.isError ? <QueryError title="Không thể tải công thức chờ duyệt" onRetry={query.refetch} isRetrying={query.isFetching} /> : query.isLoading ? <div role="status" className="flex justify-center gap-2 py-16"><Loader2 className="size-5 animate-spin" />Đang tải công thức…</div> : !filtered.length ? <div className="rounded-xl border border-dashed p-12 text-center"><CheckCircle className="mx-auto mb-3 size-10 text-green-500" /><h2 className="font-semibold">{recipes.length ? 'Không tìm thấy công thức phù hợp' : 'Không có công thức chờ duyệt'}</h2><p className="mt-2 text-sm text-slate-500">{recipes.length ? 'Thử tìm theo tên món hoặc tác giả khác.' : 'Các công thức mới gửi sẽ tự động xuất hiện tại đây.'}</p></div> :
+      <div className="overflow-x-auto rounded-xl border bg-white dark:bg-slate-950"><table className="w-full min-w-[650px] text-left text-sm">
+        <caption className="sr-only">Danh sách công thức đang chờ kiểm duyệt</caption>
+        <thead className="bg-slate-50 text-slate-500 dark:bg-slate-900"><tr>{['Công thức', 'Tác giả', 'Ngày gửi', 'Trạng thái', 'Thao tác'].map(label => <th key={label} scope="col" className="p-4 font-medium">{label}</th>)}</tr></thead>
+        <tbody>{filtered.map(recipe => <tr key={recipe.recipeId} className="border-t">
+          <td className="p-4"><div className="flex items-center gap-3"><img {...recipeImageProps(recipe.thumbnailUrl)} loading="lazy" onError={handleRecipeImageError} alt="" className="size-14 shrink-0 rounded-lg object-cover" /><div><p className="max-w-72 break-words font-semibold">{recipe.title}</p><p className="mt-1 text-xs text-slate-500">{recipe.cookTimeMinutes} phút · {difficulty[recipe.difficulty] || recipe.difficulty}</p></div></div></td>
+          <td className="p-4 break-words">{recipe.authorName || 'Ẩn danh'}</td>
+          <td className="p-4 whitespace-nowrap">{recipe.createdAt ? new Date(recipe.createdAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : '—'}</td>
+          <td className="p-4"><Badge variant="secondary">Chờ duyệt</Badge></td>
+          <td className="p-4"><Button variant="outline" onClick={() => setSelected(recipe)} aria-label={`Xem và kiểm duyệt ${recipe.title}`}><Eye className="size-4" />Xem chi tiết</Button></td>
+        </tr>)}</tbody>
+      </table></div>}
+    {selected && <ReviewDialog key={selected.recipeId} recipe={selected} onClose={() => setSelected(null)} />}
+  </div>
 }
