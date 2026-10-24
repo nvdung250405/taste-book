@@ -110,6 +110,10 @@ export default function AdminLayout() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
+        <header className="hidden h-16 shrink-0 items-center justify-between border-b bg-white px-6 dark:bg-slate-950 md:flex">
+          <span className="font-semibold">Không gian quản trị</span>
+          <Link to="/" className="text-sm text-slate-500 hover:text-orange-500">Về trang chính</Link>
+        </header>
         {/* Mobile Header */}
         <header className="h-16 bg-white dark:bg-slate-950 border-b flex items-center justify-between px-4 md:hidden">
           <span className="text-xl font-bold text-orange-500">

@@ -64,13 +64,19 @@ const recipesApi = {
 
   // Xem danh sách chờ duyệt
   getPendingRecipes() {
-    return axiosClient.get('/admin/recipes/pending');
+    return axiosClient.get('/admin/recipes/pending').then(result => {
+      if (result.EC !== 0) throw result;
+      return result;
+    });
   },
 
   // Kiểm duyệt công thức
   moderateRecipe(recipeId, data) {
     // data: { approvalStatus, rejectionReason }
-    return axiosClient.patch(`/admin/recipes/${recipeId}/moderation`, data);
+    return axiosClient.patch(`/admin/recipes/${recipeId}/moderation`, data).then(result => {
+      if (result.EC !== 0) throw result;
+      return result;
+    });
   }
 };
 
