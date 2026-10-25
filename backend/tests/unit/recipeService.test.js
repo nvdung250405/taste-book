@@ -1,10 +1,68 @@
 import recipeService from "../../src/services/recipeService";
 import db from "../../src/models/index";
+import { Op } from "sequelize";
 
 beforeEach(() => {
-  jest.spyOn(db.sequelize, "query").mockResolvedValue([[], {}]);
   jest.spyOn(db.Unit, "findByPk").mockResolvedValue({ id: 1, unitName: "g" });
+  jest.spyOn(db.sequelize, "query").mockResolvedValue([[], {}]);
 });
+
+describe.each(["createRecipe", "updateRecipe", "adminCreateRecipe", "adminUpdateRecipe"])(
+  "%s: kiểm tra lại dữ liệu sau khi lấy khóa", method => {
+    let transaction;
+    let data;
+    let invoke;
+    beforeEach(() => {
+      transaction = { commit: jest.fn(), rollback: jest.fn() };
+      data = {
+        title: "Món kho", description: "Món kho gia đình", cookTimeMinutes: 15,
+        difficulty: "Easy", defaultServings: 2, categories: [1],
+        ingredients: [{ ingredientId: 1, quantity: 10 }],
+        steps: [{ instruction: "Kho chín" }],
+      };
+      jest.spyOn(db.sequelize, "transaction").mockResolvedValue(transaction);
+      jest.spyOn(db.Category, "findAll").mockResolvedValue([{ id: 1 }]);
+      jest.spyOn(db.Ingredient, "findByPk").mockResolvedValue({
+        id: 1, defaultUnitId: 1, defaultUnit: { id: 1, unitName: "g" },
+      });
+      jest.spyOn(db.Recipe, "findOne").mockResolvedValue({
+        id: 7, authorId: 1, author: { role: "Admin" }, isPublic: method !== "updateRecipe",
+        approvalStatus: "Approved", update: jest.fn(),
+      });
+      jest.spyOn(db.Recipe, "create").mockResolvedValue({ id: 7 });
+      for (const model of [db.RecipeCategory, db.RecipeIngredient, db.CookingStep]) {
+        jest.spyOn(model, "bulkCreate").mockResolvedValue([]);
+        jest.spyOn(model, "destroy").mockResolvedValue(0);
+      }
+      const user = { id: 1, role: "Admin" };
+      invoke = () => method.includes("Update") || method === "updateRecipe"
+        ? recipeService[method](7, user, data) : recipeService[method](user, data);
+    });
+
+    test.each(["category", "ingredient", "defaultUnit", "unit"])("%s thay đổi khi chờ khóa: rollback, không ghi công thức", async kind => {
+      db.sequelize.query.mockImplementationOnce(async () => {
+        if (kind === "category") db.Category.findAll.mockResolvedValue([]);
+        if (kind === "ingredient") db.Ingredient.findByPk.mockResolvedValue(null);
+        if (kind === "defaultUnit") db.Ingredient.findByPk.mockResolvedValue({ id: 1, defaultUnitId: 2 });
+        if (kind === "unit") db.Unit.findByPk.mockResolvedValue(null);
+        return [[], {}];
+      });
+      expect((await invoke()).EC).toBe(1);
+      expect(transaction.rollback).toHaveBeenCalledTimes(1);
+      expect(transaction.commit).not.toHaveBeenCalled();
+      expect(db.Recipe.create).not.toHaveBeenCalled();
+      expect(db.RecipeIngredient.bulkCreate).not.toHaveBeenCalled();
+      expect(db.RecipeCategory.destroy).not.toHaveBeenCalled();
+    });
+
+    test("lấy cùng khóa trước khi ghi và commit", async () => {
+      expect((await invoke()).EC).toBe(0);
+      expect(db.sequelize.query).toHaveBeenCalledWith("SELECT pg_advisory_xact_lock(2102223)", { transaction });
+      expect(db.sequelize.query.mock.invocationCallOrder[0]).toBeLessThan(db.RecipeIngredient.bulkCreate.mock.invocationCallOrder[0]);
+      expect(transaction.commit).toHaveBeenCalledTimes(1);
+    });
+  },
+);
 
 // ==================== TEST CÔNG THỨC CHO USER ====================
 describe("Kiểm thử đơn vị dịch vụ công thức", () => {
@@ -203,6 +261,44 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
   });
 
   describe("getRecipes (UC-06 - Tìm kiếm và lọc công thức)", () => {
+    test.each(["bò", "bo", "x' OR 1=1 --", "100%_", "$recipeSearchKeyword"])(
+      "lọc tại database, không tải danh sách ID trung gian: %s (#72)", async (keyword) => {
+        const ingredientLookup = jest.spyOn(db.RecipeIngredient, "findAll").mockResolvedValue([]);
+        const categoryLookup = jest.spyOn(db.RecipeCategory, "findAll").mockResolvedValue([]);
+        const query = jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({ count: 25, rows: [] });
+
+        const result = await recipeService.getRecipes({ keyword, categoryId: "2", ingredientId: "3", page: "2", limit: "10" });
+
+        expect(result.EC).toBe(0);
+        expect(result.DT).toMatchObject({ page: 2, limit: 10, total: 25, totalPages: 3 });
+        expect(ingredientLookup).not.toHaveBeenCalled();
+        expect(categoryLookup).not.toHaveBeenCalled();
+        expect(query).toHaveBeenCalledTimes(1);
+        const options = query.mock.calls[0][0];
+        expect(options).toMatchObject({
+          where: { isPublic: true, approvalStatus: "Approved", isDeleted: false },
+          bind: { recipeSearchKeyword: `%${keyword}%`, recipeSearchCategoryId: 2, recipeSearchIngredientId: 3 },
+          limit: 10, offset: 10, distinct: true,
+          order: [["createdAt", "DESC"], ["id", "DESC"]],
+        });
+        const conditions = options.where[Op.and];
+        const ingredientSql = conditions[0][Op.or][1].val;
+        expect(ingredientSql).toContain("EXISTS");
+        expect(ingredientSql).toContain('$recipeSearchKeyword');
+        expect(ingredientSql).not.toContain(`%${keyword}%`);
+        expect(ingredientSql.includes("unaccent(")).toBe(keyword !== "bò");
+        expect(conditions[1].val).toContain('$recipeSearchCategoryId');
+        expect(conditions[2].val).toContain('$recipeSearchIngredientId');
+      },
+    );
+
+    test.each([{}, { keyword: "" }])("không tìm kiếm vẫn giữ phân trang mặc định: %j (#72)", async (params) => {
+      const query = jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({ count: 0, rows: [] });
+      expect((await recipeService.getRecipes(params)).DT).toMatchObject({ recipes: [], total: 0, totalPages: 0 });
+      expect(query.mock.calls[0][0]).toMatchObject({ bind: {}, limit: 10, offset: 0 });
+      expect(query.mock.calls[0][0].where[Op.and]).toBeUndefined();
+    });
+
     test("thành công: tìm kiếm công thức với phân trang và độ khó hợp lệ (EC: 0)", async () => {
       jest.spyOn(db.RecipeIngredient, "findAll").mockResolvedValue([
         { recipeId: 101 },
@@ -826,19 +922,170 @@ describe.each(["createRecipe", "updateRecipe"])("%s: kiểm tra dữ liệu đ�
     expect(transaction.commit).not.toHaveBeenCalled();
   });
 });
+
+// ==================== TEST CÔNG THỨC CHO ADMIN ====================
+describe.each([
+  ["adminCreateRecipe", false, { id: 1, role: "Admin" }],
+  ["adminUpdateRecipe", true, { id: 1, role: "Admin" }],
+])("%s: đơn vị mặc định của nguyên liệu hệ thống", (method, isUpdate, user) => {
+  let invoke;
+  let recipeUpdate;
+  beforeEach(() => {
+    recipeUpdate = jest.fn();
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue({
+      id: 105, authorId: user.id, author: { role: "Admin" },
+      isPublic: true, approvalStatus: "Approved", update: recipeUpdate,
+    });
+    jest.spyOn(db.Category, "findAll").mockResolvedValue([{ id: 1 }]);
+    jest.spyOn(db.Ingredient, "findByPk").mockResolvedValue({
+      id: 1, ingredientName: "Thịt ba chỉ heo", defaultUnitId: 1,
+      defaultUnit: { id: 1, unitName: "g" },
+    });
+    jest.spyOn(db.sequelize, "transaction").mockResolvedValue({ commit: jest.fn(), rollback: jest.fn() });
+    jest.spyOn(db.Recipe, "create").mockResolvedValue({ id: 105, approvalStatus: "Approved" });
+    for (const model of [db.RecipeCategory, db.RecipeIngredient, db.CookingStep]) {
+      jest.spyOn(model, "bulkCreate").mockResolvedValue([]);
+      jest.spyOn(model, "destroy").mockResolvedValue(0);
+    }
+    invoke = (ingredient) => {
+      const data = {
+        title: "Thịt kho", description: "Thịt kho gia đình", cookTimeMinutes: 30, difficulty: "Medium",
+        defaultServings: 4, isPublic: false, categories: [1],
+        ingredients: [{ ingredientId: 1, quantity: 500, ...ingredient }],
+        steps: [{ stepNumber: 1, instruction: "Kho thịt" }],
+      };
+      return isUpdate ? recipeService[method](105, user, data) : recipeService[method](user, data);
+    };
+  });
+
+  test.each([
+    { unitId: 2 }, { unitId: 999 }, { unitId: 0 }, { unitId: -1 },
+    { unitId: "abc" }, { unitId: "" }, { unitId: true },
+    { customUnit: "g" }, { customUnit: "vừa đủ", quantity: 0 },
+    { customUnit: "vừa đủ", quantity: 1 },
+    { customUnit: "vừa vừa", quantity: 0 }, { customUnit: "vừa vừa", quantity: 1 },
+    { unitId: 1, customUnit: "kg" }, { unitId: 2, customUnit: "g" },
+  ])("từ chối đơn vị không hợp lệ %j trước khi ghi DB", async (ingredient) => {
+    const result = await invoke(ingredient);
+    expect(result).toEqual({
+      EC: 1, EM: "Nguyên liệu hệ thống chỉ được sử dụng đơn vị đo mặc định của hệ thống!", DT: null,
+    });
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+    expect(db.Recipe.create).not.toHaveBeenCalled();
+    expect(recipeUpdate).not.toHaveBeenCalled();
+    expect(db.RecipeIngredient.bulkCreate).not.toHaveBeenCalled();
+    expect(db.RecipeIngredient.destroy).not.toHaveBeenCalled();
+  });
+
+  test.each([0, 1])("từ chối unitId vừa đủ có tồn tại khi mặc định là g, quantity = %i", async (quantity) => {
+    jest.spyOn(db.Unit, "findByPk").mockResolvedValue({ id: 23, unitName: "vừa đủ" });
+
+    const result = await invoke({ unitId: 23, quantity });
+
+    expect(result).toEqual({
+      EC: 1, EM: "Nguyên liệu hệ thống chỉ được sử dụng đơn vị đo mặc định của hệ thống!", DT: null,
+    });
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+    expect(db.Recipe.create).not.toHaveBeenCalled();
+    expect(recipeUpdate).not.toHaveBeenCalled();
+    expect(db.RecipeIngredient.bulkCreate).not.toHaveBeenCalled();
+    expect(db.RecipeIngredient.destroy).not.toHaveBeenCalled();
+  });
+
+  test.each([{}, { unitId: null }, { unitId: 1 }, { unitId: "1" }, { customUnit: " " }])(
+    "lưu đơn vị mặc định, giữ nguyên định lượng với %j", async (ingredient) => {
+      const result = await invoke(ingredient);
+      expect(result.EC).toBe(0);
+      expect(db.RecipeIngredient.bulkCreate.mock.calls[0][0][0]).toMatchObject({
+        ingredientId: 1, quantity: 500, unitId: 1, customUnit: null,
+      });
+    },
+  );
+
+  test("từ chối quantity = 0 nếu đơn vị mặc định là định lượng", async () => {
+    const result = await invoke({ quantity: 0 });
+    expect(result.EC).toBe(1);
+    expect(result.EM).toContain("chỉ đơn vị định tính mới được dùng 0");
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+  });
+
+  test("chấp nhận quantity = 0 nếu đơn vị mặc định là định tính", async () => {
+    db.Unit.findByPk.mockResolvedValue({ id: 23, unitName: "vừa đủ" });
+    db.Ingredient.findByPk.mockResolvedValue({
+      id: 1, defaultUnitId: 23, defaultUnit: { id: 23, unitName: "vừa đủ" },
+    });
+    const result = await invoke({ quantity: 0 });
+    expect(result.EC).toBe(0);
+    expect(db.RecipeIngredient.bulkCreate.mock.calls[0][0][0]).toMatchObject({
+      ingredientId: 1, quantity: 0, unitId: 23, customUnit: null,
+    });
+  });
+});
+
+describe("đơn vị định tính trong các API sửa công thức", () => {
+  const data = {
+    title: "Canh rau",
+    description: "Canh rau nấu nhanh",
+    cookTimeMinutes: 20,
+    difficulty: "Easy",
+    defaultServings: 2,
+    isPublic: false,
+    categories: [1],
+    ingredients: [
+      { customIngredientName: "Muối", quantity: 0, customUnit: "vừa đủ" },
+      { ingredientId: 8, quantity: 3, unitId: 1 },
+    ],
+    steps: [{ stepNumber: 1, instruction: "Nấu canh" }],
+  };
+
+  test.each([
+    ["chuẩn hệ thống", "adminUpdateRecipe", { id: 1, role: "Admin" }, { author: { role: "Admin" }, isPublic: true, approvalStatus: "Approved" }],
+  ])("chấp nhận quantity = 0 khi sửa công thức %s", async (_label, method, user, recipeFields) => {
+    const transaction = { commit: jest.fn(), rollback: jest.fn() };
+    jest.spyOn(db.sequelize, "transaction").mockResolvedValue(transaction);
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue({ id: 105, ...recipeFields, update: jest.fn() });
+    jest.spyOn(db.Category, "findAll").mockResolvedValue([{ id: 1 }]);
+    jest.spyOn(db.Ingredient, "findByPk").mockResolvedValue({
+      id: 8, ingredientName: "Cà chua", defaultUnitId: 1,
+      defaultUnit: { id: 1, unitName: "gam" },
+    });
+    jest.spyOn(db.RecipeCategory, "destroy").mockResolvedValue(0);
+    jest.spyOn(db.RecipeCategory, "bulkCreate").mockResolvedValue([]);
+    jest.spyOn(db.RecipeIngredient, "destroy").mockResolvedValue(0);
+    jest.spyOn(db.RecipeIngredient, "bulkCreate").mockResolvedValue([]);
+    jest.spyOn(db.CookingStep, "destroy").mockResolvedValue(0);
+    jest.spyOn(db.CookingStep, "bulkCreate").mockResolvedValue([]);
+
+    const res = await recipeService[method](105, user, data);
+
+    expect(res.EC).toBe(0);
+    expect(db.RecipeIngredient.bulkCreate.mock.calls[0][0][0]).toMatchObject({ quantity: 0, customUnit: "vừa đủ" });
+    expect(db.RecipeIngredient.bulkCreate.mock.calls[0][0][1]).toMatchObject({
+      ingredientId: 8, quantity: 3, unitId: 1, customUnit: null,
+    });
+    expect(transaction.commit).toHaveBeenCalled();
+  });
+});
+
 describe("adminDeleteRecipe (UC-19)", () => {
+  let transaction;
+  beforeEach(() => {
+    transaction = { commit: jest.fn(), rollback: jest.fn() };
+    jest.spyOn(db.sequelize, "transaction").mockResolvedValue(transaction);
+  });
   test("thành công: Admin xóa mềm công thức chuẩn do Admin tạo (EC: 0)", async () => {
     const mockRecipe = {
       id: 1,
       author: { id: 1, role: "Admin" },
       isPublic: true,
+      approvalStatus: "Approved",
       update: jest.fn().mockResolvedValue(true),
     };
     jest.spyOn(db.Recipe, "findOne").mockResolvedValue(mockRecipe);
 
     const res = await recipeService.adminDeleteRecipe(1, { id: 1, role: "Admin" });
     expect(res.EC).toBe(0);
-    expect(mockRecipe.update).toHaveBeenCalledWith({ isDeleted: true });
+    expect(mockRecipe.update).toHaveBeenCalledWith({ isDeleted: true }, { transaction });
     expect(res.EM).toBe("Đã xóa mềm công thức thành công!");
   });
 
@@ -847,14 +1094,31 @@ describe("adminDeleteRecipe (UC-19)", () => {
       id: 2,
       author: { id: 10, role: "User" },
       isPublic: true,
+      approvalStatus: "Approved",
       update: jest.fn().mockResolvedValue(true),
     };
     jest.spyOn(db.Recipe, "findOne").mockResolvedValue(mockRecipe);
 
     const res = await recipeService.adminDeleteRecipe(2, { id: 1, role: "Admin" });
     expect(res.EC).toBe(0);
-    expect(mockRecipe.update).toHaveBeenCalledWith({ isDeleted: true });
+    expect(mockRecipe.update).toHaveBeenCalledWith({ isDeleted: true }, { transaction });
     expect(res.EM).toBe("Đã xóa mềm công thức thành công!");
+  });
+
+  test.each([
+    ["User", "Pending"], ["Admin", "Pending"],
+    ["User", "Rejected"], ["Admin", "Rejected"],
+  ])("chặn xóa công thức công khai của %s có trạng thái %s", async (role, approvalStatus) => {
+    const update = jest.fn();
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue({
+      id: 3, author: { role }, isPublic: true, approvalStatus, update,
+    });
+
+    const result = await recipeService.adminDeleteRecipe(3, { id: 1, role: "Admin" });
+
+    expect(result).toMatchObject({ EC: 4, DT: null });
+    expect(result.EM).toContain("chỉ được xóa công thức đã duyệt");
+    expect(update).not.toHaveBeenCalled();
   });
 
   test("thất bại: công thức của người dùng đang ở chế độ riêng tư, Admin không thể thao tác (EC: 4)", async () => {
@@ -1125,5 +1389,17 @@ describe.each(["adminCreateRecipe", "adminUpdateRecipe"])("%s: kiểm tra dữ l
     expect(db.RecipeIngredient.bulkCreate).toHaveBeenCalledWith(expect.any(Array), { transaction });
     expect(transaction.rollback).toHaveBeenCalledTimes(1);
     expect(transaction.commit).not.toHaveBeenCalled();
+  });
+});
+
+describe("scaleRecipeIngredients: quyền xem của Admin", () => {
+  test("cho phép Admin đổi khẩu phần công thức riêng tư của người khác", async () => {
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue({
+      id: 101, authorId: 10, isPublic: false, approvalStatus: "Pending",
+      defaultServings: 2, ingredients: [],
+    });
+    const result = await recipeService.scaleRecipeIngredients(101, { servings: 4 }, 99, "Admin");
+    expect(result.EC).toBe(0);
+    expect(result.DT.scaleFactor).toBe(2);
   });
 });

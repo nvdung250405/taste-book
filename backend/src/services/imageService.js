@@ -34,9 +34,17 @@ const uploadImage = (file) => {
   }
 };
 
-const deleteImageByPublicId = async (publicId) => {
+const deleteImageByPublicId = async (publicId, user) => {
   try {
-    if (!publicId || !publicId.trim()) {
+    if (!user || user.role !== "Admin") {
+      return {
+        EC: 4,
+        EM: "Chỉ Admin được phép xóa hình ảnh!",
+        DT: null,
+      };
+    }
+
+    if (typeof publicId !== "string" || !publicId.trim()) {
       return {
         EC: 1,
         EM: "Mã định danh ảnh (publicId) không hợp lệ!",
@@ -44,9 +52,22 @@ const deleteImageByPublicId = async (publicId) => {
       };
     }
 
-    let cleanPublicId = decodeURIComponent(publicId.trim());
+    let cleanPublicId;
+    try {
+      cleanPublicId = decodeURIComponent(publicId.trim());
+    } catch {
+      return { EC: 1, EM: "Mã định danh ảnh (publicId) không hợp lệ!", DT: null };
+    }
     if (cleanPublicId.startsWith("http://") || cleanPublicId.startsWith("https://")) {
       cleanPublicId = getPublicIdFromUrl(cleanPublicId) || cleanPublicId;
+    }
+
+    if (cleanPublicId === "tastebook_uploads/f1plgomkateq3nufqchm") {
+      return {
+        EC: 4,
+        EM: "Không được phép xóa ảnh mặc định của hệ thống!",
+        DT: null,
+      };
     }
 
     let result = await cloudinary.uploader.destroy(cleanPublicId, {

@@ -1,10 +1,43 @@
 import request from "supertest";
+import { Op } from "sequelize";
 import app from "../../src/server";
 import { createJWT } from "../../src/middleware/JWTAction";
 import db from "../../src/models/index";
 
 beforeEach(() => {
   jest.spyOn(db.sequelize, "query").mockResolvedValue([[], {}]);
+});
+
+describe("UC-06: tìm kiếm công thức tại database (#72)", () => {
+  test.each(["keyword", "search"])("GET nhận %s và bộ lọc kết hợp, giữ response phân trang", async (name) => {
+    const ingredientLookup = jest.spyOn(db.RecipeIngredient, "findAll").mockResolvedValue([]);
+    const categoryLookup = jest.spyOn(db.RecipeCategory, "findAll").mockResolvedValue([]);
+    const find = jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({
+      count: 21, rows: [{ id: 101, title: "Bò kho", categories: [{ id: 2, categoryName: "Món kho" }] }],
+    });
+    const response = await request(app).get("/api/v1/recipes").query({
+      [name]: "bo", categoryId: 2, ingredientId: 3, page: 2, limit: 10,
+    });
+    expect(response.status).toBe(200);
+    expect(response.body.DT).toMatchObject({
+      page: 2, limit: 10, total: 21, totalPages: 3,
+      recipes: [{ recipeId: 101, title: "Bò kho", categories: [{ categoryId: 2, categoryName: "Món kho" }] }],
+    });
+    expect(find).toHaveBeenCalledWith(expect.objectContaining({
+      bind: { recipeSearchKeyword: "%bo%", recipeSearchCategoryId: 2, recipeSearchIngredientId: 3 },
+      limit: 10, offset: 10, distinct: true,
+    }));
+    expect(ingredientLookup).not.toHaveBeenCalled();
+    expect(categoryLookup).not.toHaveBeenCalled();
+  });
+
+  test.each([{ categoryId: "invalid" }, { ingredientId: -1 }])("GET từ chối bộ lọc sai trước truy vấn: %j", async (params) => {
+    const find = jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({ count: 0, rows: [] });
+    const response = await request(app).get("/api/v1/recipes").query(params);
+    expect(response.status).toBe(400);
+    expect(response.body.EC).toBe(1);
+    expect(find).not.toHaveBeenCalled();
+  });
 });
 
 describe("UC-19/20: quyền Admin và kiểm duyệt công thức", () => {
@@ -18,6 +51,7 @@ describe("UC-19/20: quyền Admin và kiểm duyệt công thức", () => {
     jest.spyOn(db.Recipe, "findAll").mockResolvedValue([]);
     transaction = { LOCK: { UPDATE: "UPDATE" }, commit: jest.fn(), rollback: jest.fn() };
     jest.spyOn(db.sequelize, "transaction").mockImplementation(async (callback) => {
+      if (typeof callback !== "function") return transaction;
       try {
         const result = await callback(transaction);
         await transaction.commit();
@@ -55,6 +89,28 @@ describe("UC-19/20: quyền Admin và kiểm duyệt công thức", () => {
     expect(db.Recipe.findOne).not.toHaveBeenCalled();
     expect(db.Recipe.findAll).not.toHaveBeenCalled();
     expect(db.sequelize.transaction).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["User", "Pending", 403], ["Admin", "Pending", 403],
+    ["User", "Rejected", 403], ["Admin", "Rejected", 403],
+    ["User", "Approved", 200], ["Admin", "Approved", 200],
+  ])("DELETE công thức công khai của %s, %s trả %s", async (role, approvalStatus, status) => {
+    const update = jest.fn().mockResolvedValue();
+    db.Recipe.findOne.mockResolvedValue({
+      id: 105, author: { role }, isPublic: true, approvalStatus, update,
+    });
+
+    const res = await request(app).delete("/api/v1/admin/recipes/105")
+      .set("Authorization", `Bearer ${token()}`);
+
+    expect(res.status).toBe(status);
+    expect(res.body).toMatchObject({ EC: status === 200 ? 0 : 4, DT: null });
+    if (status === 200) {
+      expect(update).toHaveBeenCalledWith({ isDeleted: true }, { transaction });
+    } else {
+      expect(update).not.toHaveBeenCalled();
+    }
   });
 
   test("Admin bị hạ quyền trong DB bị chặn dù token vẫn ghi Admin", async () => {
@@ -529,4 +585,215 @@ describe("SP4-TASK-05: Recipe API transactions and author permissions", () => {
       expect(model.bulkCreate).not.toHaveBeenCalled();
     }
   });
+});
+
+describe("UC-19: Admin CRUD, validation và khóa công thức", () => {
+  const base = "/api/v1/admin/recipes";
+  const body = {
+    title: "Canh rau", description: "Canh rau gia đình", cookTimeMinutes: 20,
+    difficulty: "Easy", defaultServings: 2, categories: [1],
+    ingredients: [{ customIngredientName: "Rau", quantity: 100, customUnit: "g" }],
+    steps: [{ instruction: "Rửa rau" }, { instruction: "Nấu chín" }],
+  };
+  let token;
+  let transaction;
+  let recipe;
+  let update;
+  const send = (method, path = base, data) => request(app)[method](path)
+    .set("Authorization", `Bearer ${token}`).send(data);
+
+  beforeEach(() => {
+    token = createJWT({ userId: 1, role: "Admin" });
+    transaction = { commit: jest.fn(), rollback: jest.fn() };
+    recipe = {
+      id: 105, ...body, authorId: 1, author: { id: 1, role: "Admin", username: "admin" },
+      isPublic: true, approvalStatus: "Approved", isDeleted: false,
+      updatedAt: new Date("2026-01-01T00:00:00.001Z"),
+    };
+    update = jest.fn(async (values) => {
+      Object.assign(recipe, values, { updatedAt: new Date("2026-01-01T00:00:01.002Z") });
+    });
+    const snapshot = () => ({ ...recipe, update });
+    jest.spyOn(db.User, "findOne").mockResolvedValue({ id: 1, role: "Admin" });
+    jest.spyOn(db.sequelize, "transaction").mockResolvedValue(transaction);
+    jest.spyOn(db.sequelize, "query").mockResolvedValue([[], {}]);
+    jest.spyOn(db.Category, "findAll").mockResolvedValue([{ id: 1 }]);
+    jest.spyOn(db.Unit, "findByPk").mockResolvedValue(null);
+    jest.spyOn(db.Ingredient, "findOne").mockResolvedValue(null);
+    jest.spyOn(db.Recipe, "findOne").mockImplementation(async () => recipe.isDeleted ? null : snapshot());
+    jest.spyOn(db.Recipe, "findAll").mockImplementation(async () => recipe.isDeleted ? [] : [snapshot()]);
+    jest.spyOn(db.Recipe, "create").mockImplementation(async (values) => {
+      Object.assign(recipe, values);
+      return snapshot();
+    });
+    for (const model of [db.RecipeCategory, db.RecipeIngredient, db.CookingStep]) {
+      jest.spyOn(model, "bulkCreate").mockResolvedValue([]);
+      jest.spyOn(model, "destroy").mockResolvedValue(0);
+    }
+  });
+
+  test("POST → GET → PUT → DELETE → GET qua HTTP", async () => {
+    const created = await send("post", base, { ...body, isPublic: false, approvalStatus: "Pending", authorId: 99 });
+    expect(created.status).toBe(201);
+    expect(created.body.DT).toEqual({ recipeId: 105, approvalStatus: "Approved" });
+    expect(db.Recipe.create).toHaveBeenCalledWith(expect.objectContaining({
+      authorId: 1, isPublic: true, approvalStatus: "Approved", isDeleted: false,
+    }), { transaction });
+
+    const listed = await send("get");
+    expect(listed.status).toBe(200);
+    expect(listed.body.DT).toMatchObject({ total: 1, recipes: [{ recipeId: 105, title: body.title }] });
+
+    const edited = await send("put", `${base}/105`, { ...body, title: "Canh rau mới" });
+    expect(edited.status).toBe(200);
+    expect(recipe.title).toBe("Canh rau mới");
+    expect(db.RecipeIngredient.destroy).toHaveBeenCalledWith({ where: { recipeId: 105 }, transaction });
+    expect(db.CookingStep.bulkCreate).toHaveBeenCalledWith([
+      { recipeId: 105, stepNumber: 1, instruction: "Rửa rau" },
+      { recipeId: 105, stepNumber: 2, instruction: "Nấu chín" },
+    ], { transaction });
+
+    const deleted = await send("delete", `${base}/105`);
+    expect(deleted.status).toBe(200);
+    expect(update).toHaveBeenLastCalledWith({ isDeleted: true }, { transaction });
+    expect((await send("get")).body.DT).toEqual({ total: 0, recipes: [] });
+    expect((await send("delete", `${base}/105`)).status).toBe(404);
+    expect(transaction.commit).toHaveBeenCalledTimes(3);
+    expect(transaction.rollback).not.toHaveBeenCalled();
+  });
+
+  test.each(["keyword", "search"])("GET từ chối %s dạng mảng/object", async (name) => {
+    for (const query of [`${name}=a&${name}=b`, `${name}[text]=a`]) {
+      const res = await send("get", `${base}?${query}`);
+      expect(res.status).toBe(400);
+      expect(res.body.EC).toBe(1);
+    }
+    expect(db.Recipe.findAll).not.toHaveBeenCalled();
+  });
+
+  test.each(["keyword", "search"])("GET nhận %s hợp lệ và giữ bộ lọc công thức chuẩn", async (name) => {
+    const res = await send("get", `${base}?${name}=${encodeURIComponent("  Canh rau  ")}`);
+    expect(res.status).toBe(200);
+    const options = db.Recipe.findAll.mock.calls[0][0];
+    expect(options.where).toMatchObject({ isDeleted: false, isPublic: true, approvalStatus: "Approved" });
+    expect(options.where[Op.and]).toHaveLength(2);
+    expect(options.where[Op.and][0]).toMatchObject({ attribute: expect.objectContaining({ col: "author.role" }), logic: "Admin" });
+  });
+
+  test("GET scope=all bỏ lọc tác giả, vẫn chỉ lấy công khai đã duyệt", async () => {
+    expect((await send("get", `${base}?scope=all`)).status).toBe(200);
+    expect(db.Recipe.findAll.mock.calls[0][0].where).toEqual({ isDeleted: false, isPublic: true, approvalStatus: "Approved" });
+  });
+
+  describe.each(["put", "delete"])("%s validation và transaction", (method) => {
+    test.each(["0", "-1", "1.5", "Infinity", "NaN", "9007199254740992", "1e2", "abc"])(
+      "ID không hợp lệ %s trả 400 trước khi đọc DB", async (id) => {
+        expect((await send(method, `${base}/${id}`, body)).status).toBe(400);
+        expect(db.Recipe.findOne).not.toHaveBeenCalled();
+        expect(db.sequelize.transaction).not.toHaveBeenCalled();
+      },
+    );
+
+    test("khóa dòng Recipes sau khóa dữ liệu chuẩn, trước khi ghi", async () => {
+      expect((await send(method, `${base}/105`, body)).status).toBe(200);
+      expect(db.Recipe.findOne).toHaveBeenLastCalledWith(expect.objectContaining({
+        where: { id: 105, isDeleted: false }, transaction,
+        lock: { level: "UPDATE", of: db.Recipe },
+      }));
+      expect(db.sequelize.query.mock.invocationCallOrder[0]).toBeLessThan(db.Recipe.findOne.mock.invocationCallOrder[1]);
+      expect(db.Recipe.findOne.mock.invocationCallOrder[1]).toBeLessThan(update.mock.invocationCallOrder[0]);
+    });
+
+    test("công thức đã bị xóa khi chờ khóa: 404, rollback và không ghi bảng con", async () => {
+      db.Recipe.findOne.mockResolvedValueOnce({ ...recipe, update }).mockResolvedValueOnce(null);
+      expect((await send(method, `${base}/105`, body)).status).toBe(404);
+      expect(update).not.toHaveBeenCalled();
+      expect(db.RecipeIngredient.destroy).not.toHaveBeenCalled();
+      expect(transaction.rollback).toHaveBeenCalledTimes(1);
+      expect(transaction.commit).not.toHaveBeenCalled();
+    });
+
+    test.each([{ isPublic: false }, { approvalStatus: "Pending" }, { approvalStatus: "Rejected" }])(
+      "kiểm tra lại điều kiện sau khóa: %j", async (changed) => {
+        db.Recipe.findOne.mockResolvedValueOnce({ ...recipe, update })
+          .mockResolvedValueOnce({ ...recipe, ...changed, update });
+        expect((await send(method, `${base}/105`, body)).status).toBe(403);
+        expect(update).not.toHaveBeenCalled();
+        expect(transaction.rollback).toHaveBeenCalledTimes(1);
+        expect(transaction.commit).not.toHaveBeenCalled();
+      },
+    );
+
+    test("thay đổi cùng giây khi chờ khóa: 409, không ghi đè", async () => {
+      db.Recipe.findOne.mockResolvedValueOnce({ ...recipe, update }).mockResolvedValueOnce({
+        ...recipe, updatedAt: new Date("2026-01-01T00:00:00.002Z"), update,
+      });
+      expect((await send(method, `${base}/105`, body)).status).toBe(409);
+      expect(update).not.toHaveBeenCalled();
+      expect(db.CookingStep.destroy).not.toHaveBeenCalled();
+      expect(transaction.rollback).toHaveBeenCalledTimes(1);
+      expect(transaction.commit).not.toHaveBeenCalled();
+    });
+
+    test("lỗi ghi công thức trả 500 và rollback", async () => {
+      update.mockRejectedValue(new Error("Recipe write failed"));
+      expect((await send(method, `${base}/105`, body)).status).toBe(500);
+      expect(transaction.rollback).toHaveBeenCalledTimes(1);
+      expect(transaction.commit).not.toHaveBeenCalled();
+    });
+  });
+
+  test("PUT kiểm tra lại tác giả sau khi lấy khóa", async () => {
+    db.Recipe.findOne.mockResolvedValueOnce({ ...recipe, update })
+      .mockResolvedValueOnce({ ...recipe, author: { role: "User" }, update });
+    expect((await send("put", `${base}/105`, body)).status).toBe(403);
+    expect(update).not.toHaveBeenCalled();
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([["put", "put"], ["put", "delete"], ["delete", "put"], ["delete", "delete"]])(
+    "hai HTTP request %s/%s cùng đọc bản cũ: chỉ một lần ghi thành công", async (first, second) => {
+      // Mô phỏng hàng đợi khóa DB để ép cả hai request đọc trước khi một request ghi.
+      // Test này kiểm tra xử lý xung đột của API, không thay thế test PostgreSQL thật.
+      let preflightReads = 0;
+      let releaseReaders;
+      const bothReading = new Promise(resolve => { releaseReaders = resolve; });
+      db.Recipe.findOne.mockImplementation(async (options) => {
+        const snapshot = recipe.isDeleted ? null : { ...recipe, update };
+        if (!options.transaction) {
+          preflightReads += 1;
+          if (preflightReads === 2) releaseReaders();
+          await bothReading;
+        }
+        return snapshot;
+      });
+      let queue = Promise.resolve();
+      const releases = new Map();
+      const transactions = [];
+      db.sequelize.transaction.mockImplementation(async () => {
+        const current = {
+          commit: jest.fn(async () => releases.get(current)?.()),
+          rollback: jest.fn(async () => releases.get(current)?.()),
+        };
+        transactions.push(current);
+        return current;
+      });
+      db.sequelize.query.mockImplementation(async (_sql, options) => {
+        const preceding = queue;
+        queue = new Promise(resolve => { releases.set(options.transaction, resolve); });
+        await preceding;
+        return [[], {}];
+      });
+
+      const results = await Promise.all([
+        send(first, `${base}/105`, body), send(second, `${base}/105`, body),
+      ]);
+
+      expect(results.filter(res => res.status === 200)).toHaveLength(1);
+      expect(results.filter(res => [404, 409].includes(res.status))).toHaveLength(1);
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(transactions.reduce((sum, t) => sum + t.commit.mock.calls.length, 0)).toBe(1);
+      expect(transactions.reduce((sum, t) => sum + t.rollback.mock.calls.length, 0)).toBe(1);
+    },
+  );
 });

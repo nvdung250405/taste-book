@@ -7,6 +7,22 @@ describe("AuthService Unit Tests", () => {
     jest.clearAllMocks();
   });
 
+  describe("hashUserPassword (#68)", () => {
+    test("cùng mật khẩu tạo hash và salt khác nhau với cost factor 10", () => {
+      const password = "password123";
+      const firstHash = authService.hashUserPassword(password);
+      const secondHash = authService.hashUserPassword(password);
+
+      expect(firstHash).not.toBe(secondHash);
+      expect(bcrypt.getSalt(firstHash)).not.toBe(bcrypt.getSalt(secondHash));
+      for (const hash of [firstHash, secondHash]) {
+        expect(bcrypt.getRounds(hash)).toBe(10);
+        expect(bcrypt.compareSync(password, hash)).toBe(true);
+        expect(bcrypt.compareSync("wrongpassword", hash)).toBe(false);
+      }
+    });
+  });
+
   describe("registerNewUser", () => {
     test("thành công: đăng ký người dùng mới với thông tin hợp lệ (EC: 0)", async () => {
       const userData = {
@@ -31,6 +47,8 @@ describe("AuthService Unit Tests", () => {
       expect(res.DT).toBeDefined();
       expect(res.DT.userId).toBe(1);
       expect(res.DT.email).toBe("nguyenvana@example.com");
+      const savedPassword = db.User.create.mock.calls[0][0].password;
+      expect(bcrypt.compareSync(userData.password, savedPassword)).toBe(true);
     });
 
     test("thất bại: thiếu trường bắt buộc (EC: 1)", async () => {

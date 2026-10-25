@@ -1,6 +1,7 @@
 import userService from "../../src/services/userService";
 import db from "../../src/models/index";
 import bcrypt from "bcryptjs";
+import { cloudinary } from "../../src/config/cloudinary";
 
 describe("UserService Unit Tests", () => {
   beforeEach(() => {
@@ -42,6 +43,116 @@ describe("UserService Unit Tests", () => {
   });
 
   describe("updateUserProfile (UC-05)", () => {
+    beforeEach(() => {
+      jest.replaceProperty(process, "env", { ...process.env, CLOUDINARY_CLOUD_NAME: "demo" });
+    });
+
+    describe("avatar URL validation (#70)", () => {
+      let user;
+      let resource;
+      let fetchSpy;
+      const validUrl = "https://res.cloudinary.com/demo/image/upload/v123/tastebook_uploads/avatar.png";
+
+      beforeEach(() => {
+        user = { id: 10, avatarUrl: "old-avatar.png", update: jest.fn().mockResolvedValue(true) };
+        jest.spyOn(db.User, "findOne").mockResolvedValue(user);
+        resource = jest.spyOn(cloudinary.api, "resource").mockResolvedValue({ bytes: 1024 });
+        fetchSpy = jest.spyOn(global, "fetch").mockRejectedValue(new Error("Unexpected fetch"));
+      });
+
+      test.each([
+        "http://169.254.169.254/latest/meta-data/",
+        "http://localhost:5432/",
+        "http://127.0.0.1/",
+        "http://10.0.0.8/",
+        "http://[::1]/",
+        "https://example.com/demo/image/upload/v123/avatar.png",
+        "https://res.cloudinary.com.evil.test/demo/image/upload/v123/avatar.png",
+        "https://res.cloudinary.com@evil.test/demo/image/upload/v123/avatar.png",
+        "https://evil.test@res.cloudinary.com/demo/image/upload/v123/avatar.png",
+        "https://res.cloudinary.com/another-cloud/image/upload/v123/avatar.png",
+        "https://res.cloudinary.com/demo-other/image/upload/v123/avatar.png",
+        "http://res.cloudinary.com/demo/image/upload/v123/avatar.png",
+        "https://res.cloudinary.com:8443/demo/image/upload/v123/avatar.png",
+        "https://res.cloudinary.com/demo/video/upload/v123/avatar.png",
+        "https://res.cloudinary.com/demo/image/fetch/https://example.com/avatar.png",
+        "https://res.cloudinary.com/demo/image/upload/",
+        "not-a-url",
+        123,
+        {},
+      ])("từ chối avatar không tin cậy mà không gọi mạng: %j", async (avatarUrl) => {
+        // Kiểm tra cả URL mới và URL không hợp lệ đã có sẵn trong hồ sơ.
+        for (const oldUrl of ["old-avatar.png", avatarUrl]) {
+          user.avatarUrl = oldUrl;
+          const result = await userService.updateUserProfile(10, { username: "user", avatarUrl });
+          expect(result.EC).toBe(1);
+        }
+        expect(user.update).not.toHaveBeenCalled();
+        expect(resource).not.toHaveBeenCalled();
+        expect(fetchSpy).not.toHaveBeenCalled();
+      });
+
+      test.each([validUrl, validUrl.replace("v123/", "") + "?version=1#avatar"])(
+        "chấp nhận ảnh đúng cloud và lấy dung lượng bằng SDK: %s", async (avatarUrl) => {
+          const result = await userService.updateUserProfile(10, { username: "user", avatarUrl });
+          expect(result.EC).toBe(0);
+          expect(resource).toHaveBeenCalledWith("tastebook_uploads/avatar");
+          expect(user.update).toHaveBeenCalledWith({ username: "user", avatarUrl });
+          expect(fetchSpy).not.toHaveBeenCalled();
+        },
+      );
+
+      test("SDK lỗi không fallback sang fetch và không lưu avatar", async () => {
+        resource.mockRejectedValue(new Error("Cloudinary unavailable"));
+        const result = await userService.updateUserProfile(10, { username: "user", avatarUrl: validUrl });
+        expect(result.EC).not.toBe(0);
+        expect(user.update).not.toHaveBeenCalled();
+        expect(fetchSpy).not.toHaveBeenCalled();
+      });
+
+      test.each([undefined, null, 0, -1, "1024", NaN])("từ chối metadata dung lượng không hợp lệ: %j", async (bytes) => {
+        resource.mockResolvedValue({ bytes });
+        const result = await userService.updateUserProfile(10, { username: "user", avatarUrl: validUrl });
+        expect(result.EC).toBe(1);
+        expect(user.update).not.toHaveBeenCalled();
+        expect(fetchSpy).not.toHaveBeenCalled();
+      });
+
+      test.each([[5 * 1024 * 1024, 0], [5 * 1024 * 1024 + 1, 1]])(
+        "kiểm tra giới hạn 5MB: %i bytes trả EC %i", async (bytes, expectedEc) => {
+          resource.mockResolvedValue({ bytes });
+          const result = await userService.updateUserProfile(10, { username: "user", avatarUrl: validUrl });
+          expect(result.EC).toBe(expectedEc);
+          expect(user.update).toHaveBeenCalledTimes(expectedEc === 0 ? 1 : 0);
+          expect(fetchSpy).not.toHaveBeenCalled();
+        },
+      );
+
+      test("thiếu cấu hình cloud name thì từ chối trước khi gọi SDK", async () => {
+        delete process.env.CLOUDINARY_CLOUD_NAME;
+        const result = await userService.updateUserProfile(10, { username: "user", avatarUrl: validUrl });
+        expect(result.EC).toBe(1);
+        expect(resource).not.toHaveBeenCalled();
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(user.update).not.toHaveBeenCalled();
+      });
+    });
+
+    test("đổi avatar không tự xóa ảnh cũ chưa xác minh quyền sở hữu (#69)", async () => {
+      const oldAvatarUrl = "https://res.cloudinary.com/demo/image/upload/v1/tastebook_uploads/another-user.png";
+      const avatarUrl = "https://res.cloudinary.com/demo/image/upload/v2/tastebook_uploads/new-avatar.png";
+      const user = { id: 10, avatarUrl: oldAvatarUrl, update: jest.fn().mockResolvedValue(true) };
+      jest.spyOn(db.User, "findOne").mockResolvedValue(user);
+      jest.spyOn(cloudinary.api, "resource").mockResolvedValue({ bytes: 1024 });
+      const destroy = jest.spyOn(cloudinary.uploader, "destroy").mockResolvedValue({ result: "ok" });
+
+      const result = await userService.updateUserProfile(10, { username: "user", avatarUrl });
+
+      expect(result.EC).toBe(0);
+      expect(user.update).toHaveBeenCalledWith({ username: "user", avatarUrl });
+      expect(destroy).not.toHaveBeenCalled();
+    });
+
     test("thành công: cập nhật tên hiển thị và số điện thoại hợp lệ (EC: 0)", async () => {
       const mockUser = {
         id: 10,
@@ -117,6 +228,40 @@ describe("UserService Unit Tests", () => {
   });
 
   describe("changeUserPassword (UC-05)", () => {
+    test("hai người dùng đổi sang cùng mật khẩu nhận salt riêng (#68)", async () => {
+      // Mô phỏng các hash cũ được tạo bằng một salt dùng chung.
+      const legacySalt = bcrypt.genSaltSync(10);
+      const oldPassword = "oldPassword123";
+      const newPassword = "newPassword456";
+      const users = [10, 20].map((id) => ({
+        id,
+        password: bcrypt.hashSync(oldPassword, legacySalt),
+        update: jest.fn().mockResolvedValue(true),
+      }));
+      jest.spyOn(db.User, "findOne")
+        .mockResolvedValueOnce(users[0])
+        .mockResolvedValueOnce(users[1]);
+
+      for (const user of users) {
+        const result = await userService.changeUserPassword(user.id, {
+          oldPassword,
+          newPassword,
+          confirmNewPassword: newPassword,
+        });
+        expect(result.EC).toBe(0);
+        expect(user.update).toHaveBeenCalledTimes(1);
+      }
+
+      const hashes = users.map((user) => user.update.mock.calls[0][0].password);
+      expect(hashes[0]).not.toBe(hashes[1]);
+      expect(bcrypt.getSalt(hashes[0])).not.toBe(bcrypt.getSalt(hashes[1]));
+      for (const hash of hashes) {
+        expect(bcrypt.getRounds(hash)).toBe(10);
+        expect(bcrypt.compareSync(newPassword, hash)).toBe(true);
+        expect(bcrypt.compareSync(oldPassword, hash)).toBe(false);
+      }
+    });
+
     test("thành công: đổi mật khẩu khi nhập đúng mật khẩu cũ và xác nhận khớp (EC: 0)", async () => {
       const oldPasswordHash = bcrypt.hashSync("oldPassword123", 10);
       const mockUser = {

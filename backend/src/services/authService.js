@@ -4,11 +4,8 @@ import bcrypt from "bcryptjs";
 import { Op } from "sequelize";
 import { createJWT } from "../middleware/JWTAction";
 
-const salt = bcrypt.genSaltSync(10);
-
 const hashUserPassword = (userPassword) => {
-  let hashPassword = bcrypt.hashSync(userPassword, salt);
-  return hashPassword;
+  return bcrypt.hashSync(userPassword, 10);
 };
 
 const isEmailValid = (email) => {

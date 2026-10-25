@@ -7,7 +7,7 @@ info:
 
     Toàn bộ các API tuân thủ cấu trúc phản hồi chuẩn 3 trường: { EC, EM, DT }.
 
-    - EC (Error Code): 0 (Thành công), 1 (Tham số không hợp lệ), 2 (Trùng lặp dữ liệu), 3 (Không tìm thấy tài nguyên), 4 (Không có quyền), 5 (Chưa đăng nhập/Hết hạn token), 6 (Sai thông tin đăng nhập), -1 (Lỗi máy chủ).
+    - EC (Error Code): 0 (Thành công), 1 (Tham số không hợp lệ), 2 (Trùng lặp dữ liệu), 3 (Không tìm thấy tài nguyên), 4 (Không có quyền), 5 (Chưa đăng nhập/Hết hạn token), 6 (Sai thông tin đăng nhập), 7 (Vượt giới hạn tần suất, HTTP 429), -1 (Lỗi máy chủ).
 
     - EM (Error Message): Thông điệp phản hồi chi tiết.
 
@@ -50,6 +50,26 @@ tags:
   - name: Images
     description: Tải lên và xóa hình ảnh qua dịch vụ Cloudinary
 components:
+  responses:
+    TooManyRequests:
+      description: Vượt giới hạn tần suất; thử lại sau số giây trong Retry-After
+      headers:
+        Retry-After:
+          description: Số giây còn lại trước khi được thử lại
+          schema:
+            type: integer
+        RateLimit:
+          description: Hạn mức, số lượt còn lại và thời gian đặt lại (draft-7)
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            EC: 7
+            EM: Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau!
+            DT: null
   securitySchemes:
     bearerAuth:
       type: http
@@ -154,7 +174,8 @@ paths:
         - Authentication
       summary: "UC-02: Đăng ký tài khoản người dùng mới"
       description: Tiếp nhận thông tin đăng ký, kiểm tra trùng lặp email/SĐT, mã hóa
-        Bcrypt mật khẩu và tạo tài khoản với vai trò User.
+        Bcrypt mật khẩu và tạo tài khoản với vai trò User. Tối đa 5 yêu cầu mỗi giờ/IP,
+        tính cả yêu cầu thành công và thất bại; vượt ngưỡng trả HTTP 429.
       requestBody:
         required: true
         content:
@@ -201,6 +222,8 @@ paths:
                   email: vana@gmail.com
                   phone: "0912345678"
                   role: User
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "400":
           description: Lỗi dữ liệu đầu vào hoặc thiếu tham số bắt buộc
           content:
@@ -237,7 +260,8 @@ paths:
         - Authentication
       summary: "UC-03: Đăng nhập vào hệ thống"
       description: Xác thực người dùng bằng Email/SĐT và mật khẩu; trả về Access Token
-        JWT và thông tin tài khoản.
+        JWT và thông tin tài khoản. Tối đa 10 yêu cầu đăng nhập không thành công trong
+        15 phút/IP; đăng nhập thành công không tính vào hạn mức. Vượt ngưỡng trả HTTP 429.
       requestBody:
         required: true
         content:
@@ -256,6 +280,8 @@ paths:
                   type: string
                   example: "123456"
       responses:
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "200":
           description: Đăng nhập thành công!
           content:
@@ -420,6 +446,7 @@ paths:
                   example: "0987654321"
                 avatarUrl:
                   type: string
+                  description: "Chỉ chấp nhận URL HTTPS https://res.cloudinary.com/<CLOUDINARY_CLOUD_NAME>/image/upload/... thuộc cloud của dự án, định dạng jpg/jpeg/png/webp, tối đa 5MB. Ảnh mới phải xác minh được dung lượng qua Cloudinary; không nhận URL bên ngoài."
                   example: https://res.cloudinary.com/...
       responses:
         "200":
@@ -481,6 +508,8 @@ paths:
       tags:
         - User Profile
       summary: "UC-05: Đổi mật khẩu tài khoản"
+      description: Tối đa 5 yêu cầu trong 15 phút/tài khoản đã xác thực, tính cả thành công
+        và thất bại; vượt ngưỡng trả HTTP 429. Yêu cầu chưa xác thực trả HTTP 401.
       security:
         - bearerAuth: []
       requestBody:
@@ -515,6 +544,8 @@ paths:
                 EC: 0
                 EM: Đổi mật khẩu thành công!
                 DT: null
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "400":
           description: Mật khẩu mới trùng mật khẩu cũ hoặc không khớp xác nhận
           content:
@@ -2640,6 +2671,11 @@ paths:
           description: "Tìm kiếm theo tên công thức"
           schema:
             type: string
+        - name: search
+          in: query
+          description: "Tên thay thế cho keyword; keyword/search phải là chuỗi, không nhận mảng hoặc object."
+          schema:
+            type: string
       responses:
         "200":
           description: Lấy thành công!
@@ -2857,7 +2893,7 @@ paths:
       tags:
         - Admin Recipes
       summary: "UC-19: Admin sửa công thức chuẩn"
-      description: "Quản trị viên (Admin) chỉ được sửa công thức có tác giả là Admin, công khai và đã duyệt (isPublic = true và approvalStatus = 'Approved'), bao gồm công thức Admin tạo qua API cá nhân rồi được duyệt. Công thức riêng tư, chờ duyệt hoặc có tác giả là User bị từ chối (403). Công thức sau khi sửa luôn duy trì isPublic = true và approvalStatus = 'Approved'. Nguyên liệu định tính dùng quantity = 0 với đơn vị như 'vừa đủ'; đơn vị định lượng phải có quantity > 0. Nguyên liệu chuẩn chỉ được dùng unitId bằng defaultUnitId; bỏ unitId thì dùng đơn vị mặc định. Không được nhập customUnit cho nguyên liệu chuẩn; vi phạm trả HTTP 400, EC: 1. Không tự quy đổi giữa các đơn vị."
+      description: "Quản trị viên (Admin) chỉ được sửa công thức có tác giả là Admin, công khai và đã duyệt (isPublic = true và approvalStatus = 'Approved'), bao gồm công thức Admin tạo qua API cá nhân rồi được duyệt. Công thức riêng tư, chờ duyệt hoặc có tác giả là User bị từ chối (403). Công thức sau khi sửa luôn duy trì isPublic = true và approvalStatus = 'Approved'. Nguyên liệu định tính dùng quantity = 0 với đơn vị như 'vừa đủ'; đơn vị định lượng phải có quantity > 0. Nguyên liệu chuẩn chỉ được dùng unitId bằng defaultUnitId; bỏ unitId thì dùng đơn vị mặc định. Không được nhập customUnit cho nguyên liệu chuẩn; vi phạm trả HTTP 400, EC: 1. Không tự quy đổi giữa các đơn vị. ID phải là số nguyên dương an toàn. API khóa dòng Recipes và kiểm tra lại điều kiện trong transaction; trả 409 nếu updatedAt thay đổi trong lúc xử lý, cần tải lại trước khi thử lại."
       security:
         - bearerAuth: []
       parameters:
@@ -3008,6 +3044,16 @@ paths:
                 EC: 3
                 EM: Không tìm thấy công thức cần cập nhật!
                 DT: null
+        "409":
+          description: Công thức đã thay đổi trong lúc xử lý; tải lại trước khi thử lại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: "Công thức đã thay đổi trong lúc xử lý, vui lòng tải lại và thử lại!"
+                DT: null
         "500":
           description: Lỗi kết nối máy chủ
           content:
@@ -3022,7 +3068,7 @@ paths:
       tags:
         - Admin Recipes
       summary: "UC-19: Admin xóa công thức"
-      description: "Quản trị viên (Admin) xóa mềm công thức công khai (isPublic = true) của User hoặc Admin bằng cách đặt isDeleted = true, kể cả công thức công khai đang chờ duyệt. API quản trị từ chối xóa công thức riêng tư của cả User và Admin (403). Công thức riêng tư phải được xóa qua API cá nhân với kiểm tra chủ sở hữu."
+      description: "Quản trị viên (Admin) chỉ xóa mềm công thức công khai (isPublic = true) đã duyệt (approvalStatus = 'Approved') của User hoặc Admin bằng cách đặt isDeleted = true. Công thức Pending hoặc Rejected không được xóa qua API quản trị (403); công thức chờ duyệt phải được xử lý qua chức năng kiểm duyệt. API quản trị từ chối xóa công thức riêng tư của cả User và Admin (403). Công thức riêng tư phải được xóa qua API cá nhân với kiểm tra chủ sở hữu. ID phải là số nguyên dương an toàn. API khóa dòng Recipes và kiểm tra lại điều kiện trong transaction; trả 409 nếu updatedAt thay đổi trong lúc xử lý, cần tải lại trước khi thử lại."
       security:
         - bearerAuth: []
       parameters:
@@ -3064,7 +3110,7 @@ paths:
                 EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
                 DT: null
         "403":
-          description: Không có quyền thao tác (không phải Admin hoặc cố xóa công thức riêng tư của User hoặc Admin)
+          description: Không có quyền thao tác (không phải Admin, công thức riêng tư hoặc chưa được duyệt)
           content:
             application/json:
               schema:
@@ -3082,6 +3128,16 @@ paths:
               example:
                 EC: 3
                 EM: "Không tìm thấy công thức cần xoá!"
+                DT: null
+        "409":
+          description: Công thức đã thay đổi trong lúc xử lý; tải lại trước khi thử lại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: "Công thức đã thay đổi trong lúc xử lý, vui lòng tải lại và thử lại!"
                 DT: null
         "500":
           description: Lỗi kết nối máy chủ
@@ -5373,8 +5429,8 @@ paths:
     delete:
       tags:
         - Images
-      summary: "8.2: Xóa hình ảnh trên Cloudinary theo publicId"
-      description: "Xóa vĩnh viễn hình ảnh lưu trữ trên Cloudinary thông qua mã định danh publicId được truyền trên URI (Lưu ý: Nếu publicId chứa tiền tố thư mục dạng folder/image_id, client cần mã hóa URL Encode trước khi truyền vào đường dẫn)."
+      summary: "8.2: Xóa hình ảnh trên Cloudinary theo publicId (Admin)"
+      description: "Chỉ Admin được xóa vĩnh viễn hình ảnh trên Cloudinary. Không được xóa avatar mặc định của hệ thống. Nếu publicId chứa tiền tố thư mục dạng folder/image_id, client cần mã hóa URL Encode trước khi truyền vào đường dẫn."
       security:
         - bearerAuth: []
       parameters:
@@ -5415,6 +5471,16 @@ paths:
               example:
                 EC: 5
                 EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Tài khoản không phải Admin hoặc ảnh mặc định được bảo vệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Không được phép xóa ảnh này!
                 DT: null
         "404":
           description: Ảnh không tồn tại hoặc sai mã định danh publicId
