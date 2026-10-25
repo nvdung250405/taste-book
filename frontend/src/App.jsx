@@ -5,7 +5,8 @@ import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-ro
 import { clearAuthSession } from './lib/authSession'
 
 function AppBehaviorHandler() {
-  const { pathname } = useLocation()
+  const location = useLocation()
+  const { pathname } = location
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -20,13 +21,13 @@ function AppBehaviorHandler() {
       clearAuthSession(queryClient)
       if (pathname !== '/login' && pathname !== '/register') {
         toast.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại')
-        navigate('/login', { replace: true })
+        navigate('/login', { replace: true, state: { from: location } })
       }
     }
 
     window.addEventListener('unauthorized', handleUnauthorized)
     return () => window.removeEventListener('unauthorized', handleUnauthorized)
-  }, [navigate, pathname, queryClient])
+  }, [navigate, pathname, location, queryClient])
 
   // Auto-check token expiration every 10 seconds
   useEffect(() => {
@@ -61,6 +62,7 @@ import { Suspense, lazy } from 'react'
 import MainLayout from './components/layouts/MainLayout'
 import AdminLayout from './components/layouts/AdminLayout'
 import AdminRoute from './components/auth/AdminRoute'
+import ProtectedRoute from './components/auth/ProtectedRoute'
 
 // Pages (Lazy loaded for better performance, except HomePage)
 import HomePage from './pages/HomePage'
@@ -99,6 +101,8 @@ function App() {
               <Route path="/register" element={<RegisterPage />} />
               {/* User routes */}
               <Route path="/search" element={<RecipeSearchPage />} />
+              <Route path="/recipe/:id" element={<RecipeDetailPage />} />
+              <Route element={<ProtectedRoute />}>
               <Route path="/my-recipes" element={<MyRecipesPage />} />
               <Route path="/my-categories" element={<MyCategoriesPage />} />
               <Route path="/menu" element={<MenuPage />} />
@@ -106,9 +110,9 @@ function App() {
               <Route path="/shopping-list" element={<ShoppingListPage />} />
               <Route path="/recipe/create" element={<RecipeFormPage />} />
               <Route path="/recipe/:id/edit" element={<RecipeFormPage />} />
-              <Route path="/recipe/:id" element={<RecipeDetailPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/profile/settings" element={<ProfilePage />} />
+              </Route>
             </Route>
 
             {/* Admin Routes with AdminLayout */}

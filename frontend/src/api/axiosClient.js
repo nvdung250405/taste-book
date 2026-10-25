@@ -33,6 +33,9 @@ axiosClient.interceptors.request.use(
 axiosClient.interceptors.response.use(
   (response) => {
     // API Spec says all responses have: { EC: 0, EM: "...", DT: ... }
+    if (typeof response.data?.EC === 'number' && response.data.EC !== 0) {
+      return Promise.reject(response.data);
+    }
     return response.data;
   },
   (error) => {

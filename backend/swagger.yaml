@@ -2133,6 +2133,23 @@ paths:
         - bearerAuth: []
       parameters:
         - in: query
+          name: search
+          schema:
+            type: string
+          description: Tìm theo tên công thức trước khi phân trang
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [all, approved, pending, rejected, draft]
+          description: Draft là công thức riêng tư, các trạng thái khác chỉ gồm công thức công khai
+        - in: query
+          name: includeCounts
+          schema:
+            type: boolean
+            default: false
+          description: Trả thêm DT.counts theo trạng thái trên toàn bộ công thức của người dùng
+        - in: query
           name: page
           schema:
             type: integer
@@ -3315,6 +3332,17 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Tìm theo tên món, tác giả hoặc ghi chú trước khi phân trang
+        - in: query
+          name: recipeIds
+          schema:
+            type: string
+          example: "111,120"
+          description: Lọc tối đa 100 ID nguyên dương phân cách bằng dấu phẩy để kiểm tra trạng thái yêu thích; dùng limit=100 để lấy đủ kết quả
         - name: page
           in: query
           description: "Số trang cần lấy (mặc định: 1)"

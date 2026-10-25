@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ChefHat } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { useRecipeDetail } from '../hooks/queries/useRecipeQueries'
-import { useAddFavorite, useRemoveFavorite, useFavorites } from '../hooks/queries/useFavoriteQueries'
+import { useAddFavorite, useRemoveFavorite, useFavoriteIds } from '../hooks/queries/useFavoriteQueries'
 import { useProfile } from '../hooks/queries/useAuthQueries'
 import { toast } from 'sonner'
 import QueryError from '../components/ui/QueryError'
@@ -32,7 +32,7 @@ function RecipeDetail({ id }) {
 
   const { data: recipeRes, isLoading, error, refetch, isFetching } = useRecipeDetail(id)
   const { data: profileRes } = useProfile()
-  const { data: favRes } = useFavorites()
+  const { data: favoriteIds, isPending: favoritesPending, isError: favoritesError } = useFavoriteIds([id])
   const { mutate: addFav, isPending: adding } = useAddFavorite()
   const { mutate: removeFav, isPending: removing } = useRemoveFavorite()
 
@@ -43,11 +43,7 @@ function RecipeDetail({ id }) {
   const isLoggedIn = !!profileRes?.DT
 
   // Check if recipe is favorited
-  const favorites = Array.isArray(favRes?.DT) ? favRes.DT : (favRes?.DT?.items || [])
-  const isFavorited = favorites.some(f => {
-    const rid = f.recipe?._id || f.recipe?.id || f.recipeId || f._id || f.id
-    return String(rid) === String(id)
-  })
+  const isFavorited = favoriteIds?.has(String(id)) || false
 
   const actualServings = servings || recipe?.defaultServings || recipe?.servings || 4
   const originalServings = recipe?.defaultServings || recipe?.servings || 4
@@ -57,6 +53,7 @@ function RecipeDetail({ id }) {
 
   const handleFavorite = () => {
     if (!isLoggedIn) { toast.error('Vui lòng đăng nhập để thêm yêu thích'); return }
+    if (favoritesPending || favoritesError) { toast.error('Chưa thể kiểm tra trạng thái yêu thích. Vui lòng thử lại!'); return }
     if (isFavorited) {
       removeFav(id, {
         onSuccess: () => toast.success('Đã xóa khỏi yêu thích'),

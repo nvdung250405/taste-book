@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import recipesApi from '../../api/recipes.api';
 import axiosClient from '../../api/axiosClient';
-import { fetchCollection } from '../../api/fetchCollection';
 
 export const useHomeRecipes = () => useQuery({
   queryKey: ['home-recipes'],
@@ -40,9 +39,7 @@ export const useScaledRecipe = (recipeId, servings, options = {}) => {
 export const useMyRecipes = (params = {}, options = {}) => {
   return useQuery({
     queryKey: ['my-recipes', params],
-    queryFn: ({ signal }) => params.page !== undefined
-      ? recipesApi.getMyRecipes(params, { signal })
-      : fetchCollection(page => recipesApi.getMyRecipes({ ...params, page, limit: 100 }, { signal }), signal),
+    queryFn: ({ signal }) => recipesApi.getMyRecipes({ page: 1, limit: 12, ...params }, { signal }),
     ...options,
   });
 };
