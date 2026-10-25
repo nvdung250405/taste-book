@@ -2671,6 +2671,11 @@ paths:
           description: "Tìm kiếm theo tên công thức"
           schema:
             type: string
+        - name: search
+          in: query
+          description: "Tên thay thế cho keyword; keyword/search phải là chuỗi, không nhận mảng hoặc object."
+          schema:
+            type: string
       responses:
         "200":
           description: Lấy thành công!
@@ -2888,7 +2893,7 @@ paths:
       tags:
         - Admin Recipes
       summary: "UC-19: Admin sửa công thức chuẩn"
-      description: "Quản trị viên (Admin) chỉ được sửa công thức có tác giả là Admin, công khai và đã duyệt (isPublic = true và approvalStatus = 'Approved'), bao gồm công thức Admin tạo qua API cá nhân rồi được duyệt. Công thức riêng tư, chờ duyệt hoặc có tác giả là User bị từ chối (403). Công thức sau khi sửa luôn duy trì isPublic = true và approvalStatus = 'Approved'. Nguyên liệu định tính dùng quantity = 0 với đơn vị như 'vừa đủ'; đơn vị định lượng phải có quantity > 0. Nguyên liệu chuẩn chỉ được dùng unitId bằng defaultUnitId; bỏ unitId thì dùng đơn vị mặc định. Không được nhập customUnit cho nguyên liệu chuẩn; vi phạm trả HTTP 400, EC: 1. Không tự quy đổi giữa các đơn vị."
+      description: "Quản trị viên (Admin) chỉ được sửa công thức có tác giả là Admin, công khai và đã duyệt (isPublic = true và approvalStatus = 'Approved'), bao gồm công thức Admin tạo qua API cá nhân rồi được duyệt. Công thức riêng tư, chờ duyệt hoặc có tác giả là User bị từ chối (403). Công thức sau khi sửa luôn duy trì isPublic = true và approvalStatus = 'Approved'. Nguyên liệu định tính dùng quantity = 0 với đơn vị như 'vừa đủ'; đơn vị định lượng phải có quantity > 0. Nguyên liệu chuẩn chỉ được dùng unitId bằng defaultUnitId; bỏ unitId thì dùng đơn vị mặc định. Không được nhập customUnit cho nguyên liệu chuẩn; vi phạm trả HTTP 400, EC: 1. Không tự quy đổi giữa các đơn vị. ID phải là số nguyên dương an toàn. API khóa dòng Recipes và kiểm tra lại điều kiện trong transaction; trả 409 nếu updatedAt thay đổi trong lúc xử lý, cần tải lại trước khi thử lại."
       security:
         - bearerAuth: []
       parameters:
@@ -3039,6 +3044,16 @@ paths:
                 EC: 3
                 EM: Không tìm thấy công thức cần cập nhật!
                 DT: null
+        "409":
+          description: Công thức đã thay đổi trong lúc xử lý; tải lại trước khi thử lại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: "Công thức đã thay đổi trong lúc xử lý, vui lòng tải lại và thử lại!"
+                DT: null
         "500":
           description: Lỗi kết nối máy chủ
           content:
@@ -3053,7 +3068,7 @@ paths:
       tags:
         - Admin Recipes
       summary: "UC-19: Admin xóa công thức"
-      description: "Quản trị viên (Admin) xóa mềm công thức công khai (isPublic = true) của User hoặc Admin bằng cách đặt isDeleted = true, kể cả công thức công khai đang chờ duyệt. API quản trị từ chối xóa công thức riêng tư của cả User và Admin (403). Công thức riêng tư phải được xóa qua API cá nhân với kiểm tra chủ sở hữu."
+      description: "Quản trị viên (Admin) chỉ xóa mềm công thức công khai (isPublic = true) đã duyệt (approvalStatus = 'Approved') của User hoặc Admin bằng cách đặt isDeleted = true. Công thức Pending hoặc Rejected không được xóa qua API quản trị (403); công thức chờ duyệt phải được xử lý qua chức năng kiểm duyệt. API quản trị từ chối xóa công thức riêng tư của cả User và Admin (403). Công thức riêng tư phải được xóa qua API cá nhân với kiểm tra chủ sở hữu. ID phải là số nguyên dương an toàn. API khóa dòng Recipes và kiểm tra lại điều kiện trong transaction; trả 409 nếu updatedAt thay đổi trong lúc xử lý, cần tải lại trước khi thử lại."
       security:
         - bearerAuth: []
       parameters:
@@ -3095,7 +3110,7 @@ paths:
                 EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
                 DT: null
         "403":
-          description: Không có quyền thao tác (không phải Admin hoặc cố xóa công thức riêng tư của User hoặc Admin)
+          description: Không có quyền thao tác (không phải Admin, công thức riêng tư hoặc chưa được duyệt)
           content:
             application/json:
               schema:
@@ -3113,6 +3128,16 @@ paths:
               example:
                 EC: 3
                 EM: "Không tìm thấy công thức cần xoá!"
+                DT: null
+        "409":
+          description: Công thức đã thay đổi trong lúc xử lý; tải lại trước khi thử lại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: "Công thức đã thay đổi trong lúc xử lý, vui lòng tải lại và thử lại!"
                 DT: null
         "500":
           description: Lỗi kết nối máy chủ
