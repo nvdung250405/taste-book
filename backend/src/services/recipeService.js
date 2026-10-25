@@ -1,6 +1,35 @@
 import db from "../models/index";
 import { Op, Sequelize } from "sequelize";
-import { isQualitativeUnit } from "./unitService";
+import { isQualitativeUnit, lockMasterData } from "./unitService";
+
+// Kiểm tra trước giao dịch chỉ giúp báo lỗi sớm. Kiểm tra lại sau khi lấy khóa
+// dùng chung để tránh ghi tham chiếu vừa bị xóa hoặc đổi đơn vị mặc định đồng thời.
+const validateLockedReferences = async (transaction, categoryIds, ingredients) => {
+  await lockMasterData(transaction);
+  const categories = await db.Category.findAll({
+    where: { id: { [Op.in]: categoryIds } }, transaction,
+  });
+  if (categories.length !== categoryIds.length) {
+    return { EC: 1, EM: "Danh mục đã thay đổi hoặc không còn tồn tại!", DT: null };
+  }
+  for (const [index, item] of ingredients.entries()) {
+    if (item.ingredientId) {
+      const ingredient = await db.Ingredient.findByPk(item.ingredientId, { transaction });
+      if (!ingredient || Number(ingredient.defaultUnitId) !== Number(item.unitId)) {
+        return { EC: 1, EM: "Nguyên liệu hoặc đơn vị mặc định đã thay đổi, vui lòng tải lại dữ liệu!", DT: null };
+      }
+    }
+    let unitName = item.customUnit || "";
+    if (item.unitId) {
+      const unit = await db.Unit.findByPk(item.unitId, { transaction });
+      if (!unit) return { EC: 1, EM: "Đơn vị đo không còn tồn tại!", DT: null };
+      unitName = unit.unitName;
+    }
+    const error = ingredientQuantityError(item.quantity, unitName, index + 1);
+    if (error) return error;
+  }
+  return null;
+};
 
 const isPositiveInteger = (value) =>
   (Number.isInteger(value) || value === String(value)) &&
@@ -893,8 +922,13 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
         : "Approved";
 
     // 3. Thực hiện lưu vào CSDL với transaction
-    const t = await db.sequelize.transaction();
+    const t = await db.sequelize.transaction({ isolationLevel: "READ COMMITTED" });
     try {
+      const referenceError = await validateLockedReferences(t, catList, processedIngredients);
+      if (referenceError) {
+        await t.rollback();
+        return referenceError;
+      }
       const newRecipe = await db.Recipe.create(
         {
           authorId: authorId,
@@ -1433,8 +1467,13 @@ const updateRecipe = async (recipeId, user, data) => {
       : "Cập nhật công thức riêng tư thành công!";
 
     // Thực hiện cập nhật vào CSDL với transaction
-    const t = await db.sequelize.transaction();
+    const t = await db.sequelize.transaction({ isolationLevel: "READ COMMITTED" });
     try {
+      const referenceError = await validateLockedReferences(t, catList, processedIngredients);
+      if (referenceError) {
+        await t.rollback();
+        return referenceError;
+      }
       await recipe.update(
         {
           title: String(title).trim(),
@@ -1967,8 +2006,13 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
     if (stepsError) return stepsError;
 
     // 7. Thực hiện cập nhật với Transaction (Công thức chuẩn luôn isPublic = true, approvalStatus = 'Approved')
-    const t = await db.sequelize.transaction();
+    const t = await db.sequelize.transaction({ isolationLevel: "READ COMMITTED" });
     try {
+      const referenceError = await validateLockedReferences(t, catList, processedIngredients);
+      if (referenceError) {
+        await t.rollback();
+        return referenceError;
+      }
       await recipe.update(
         {
           title: String(title).trim(),
@@ -2270,6 +2314,7 @@ const moderateRecipe = async (recipeId, data = {}) => {
     // Khóa bản ghi đến khi commit: yêu cầu duyệt tiếp theo phải đọc trạng thái mới nhất.
     // Cập nhật trạng thái và danh mục cùng thành công hoặc cùng được hoàn tác.
     return await db.sequelize.transaction(async (transaction) => {
+      await lockMasterData(transaction);
       const recipe = await db.Recipe.findOne({
         where: {
           id: rId,
