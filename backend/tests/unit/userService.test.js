@@ -117,6 +117,40 @@ describe("UserService Unit Tests", () => {
   });
 
   describe("changeUserPassword (UC-05)", () => {
+    test("hai người dùng đổi sang cùng mật khẩu nhận salt riêng (#68)", async () => {
+      // Mô phỏng các hash cũ được tạo bằng một salt dùng chung.
+      const legacySalt = bcrypt.genSaltSync(10);
+      const oldPassword = "oldPassword123";
+      const newPassword = "newPassword456";
+      const users = [10, 20].map((id) => ({
+        id,
+        password: bcrypt.hashSync(oldPassword, legacySalt),
+        update: jest.fn().mockResolvedValue(true),
+      }));
+      jest.spyOn(db.User, "findOne")
+        .mockResolvedValueOnce(users[0])
+        .mockResolvedValueOnce(users[1]);
+
+      for (const user of users) {
+        const result = await userService.changeUserPassword(user.id, {
+          oldPassword,
+          newPassword,
+          confirmNewPassword: newPassword,
+        });
+        expect(result.EC).toBe(0);
+        expect(user.update).toHaveBeenCalledTimes(1);
+      }
+
+      const hashes = users.map((user) => user.update.mock.calls[0][0].password);
+      expect(hashes[0]).not.toBe(hashes[1]);
+      expect(bcrypt.getSalt(hashes[0])).not.toBe(bcrypt.getSalt(hashes[1]));
+      for (const hash of hashes) {
+        expect(bcrypt.getRounds(hash)).toBe(10);
+        expect(bcrypt.compareSync(newPassword, hash)).toBe(true);
+        expect(bcrypt.compareSync(oldPassword, hash)).toBe(false);
+      }
+    });
+
     test("thành công: đổi mật khẩu khi nhập đúng mật khẩu cũ và xác nhận khớp (EC: 0)", async () => {
       const oldPasswordHash = bcrypt.hashSync("oldPassword123", 10);
       const mockUser = {

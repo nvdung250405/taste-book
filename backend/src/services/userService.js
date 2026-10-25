@@ -3,9 +3,8 @@ import bcrypt from "bcryptjs";
 import { Op } from "sequelize";
 import { cloudinary } from "../config/cloudinary";
 
-const salt = bcrypt.genSaltSync(10);
 const hashUserPassword = (userPassword) => {
-  return bcrypt.hashSync(userPassword, salt);
+  return bcrypt.hashSync(userPassword, 10);
 };
 
 const isPhoneValid = (phone) => {
