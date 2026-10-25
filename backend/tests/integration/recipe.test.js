@@ -7,6 +7,38 @@ beforeEach(() => {
   jest.spyOn(db.sequelize, "query").mockResolvedValue([[], {}]);
 });
 
+describe("UC-06: tìm kiếm công thức tại database (#72)", () => {
+  test.each(["keyword", "search"])("GET nhận %s và bộ lọc kết hợp, giữ response phân trang", async (name) => {
+    const ingredientLookup = jest.spyOn(db.RecipeIngredient, "findAll").mockResolvedValue([]);
+    const categoryLookup = jest.spyOn(db.RecipeCategory, "findAll").mockResolvedValue([]);
+    const find = jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({
+      count: 21, rows: [{ id: 101, title: "Bò kho", categories: [{ id: 2, categoryName: "Món kho" }] }],
+    });
+    const response = await request(app).get("/api/v1/recipes").query({
+      [name]: "bo", categoryId: 2, ingredientId: 3, page: 2, limit: 10,
+    });
+    expect(response.status).toBe(200);
+    expect(response.body.DT).toMatchObject({
+      page: 2, limit: 10, total: 21, totalPages: 3,
+      recipes: [{ recipeId: 101, title: "Bò kho", categories: [{ categoryId: 2, categoryName: "Món kho" }] }],
+    });
+    expect(find).toHaveBeenCalledWith(expect.objectContaining({
+      bind: { recipeSearchKeyword: "%bo%", recipeSearchCategoryId: 2, recipeSearchIngredientId: 3 },
+      limit: 10, offset: 10, distinct: true,
+    }));
+    expect(ingredientLookup).not.toHaveBeenCalled();
+    expect(categoryLookup).not.toHaveBeenCalled();
+  });
+
+  test.each([{ categoryId: "invalid" }, { ingredientId: -1 }])("GET từ chối bộ lọc sai trước truy vấn: %j", async (params) => {
+    const find = jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({ count: 0, rows: [] });
+    const response = await request(app).get("/api/v1/recipes").query(params);
+    expect(response.status).toBe(400);
+    expect(response.body.EC).toBe(1);
+    expect(find).not.toHaveBeenCalled();
+  });
+});
+
 describe("UC-19/20: quyền Admin và kiểm duyệt công thức", () => {
   const token = (role = "Admin", userId = 1) => createJWT({ userId, role });
   let transaction;

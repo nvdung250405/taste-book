@@ -236,6 +236,9 @@ const getRecipes = async (query = {}) => {
       whereClause.cookTimeMinutes = { [Op.lte]: parsedTime };
     }
 
+    // Giá trị người dùng được bind riêng, không nối trực tiếp vào SQL literal.
+    const bind = {};
+
     // 5. Lọc theo từ khóa tìm kiếm (Tên món ăn hoặc Tên nguyên liệu)
     let kw = (keyword || search || "").trim();
     if (kw) {
@@ -247,47 +250,23 @@ const getRecipes = async (query = {}) => {
             { [Op.iLike]: Sequelize.fn("unaccent", `%${kw}%`) },
           );
 
-      // Tìm các công thức có nguyên liệu chứa từ khóa
-      let matchingIngs = await db.RecipeIngredient.findAll({
-        attributes: ["recipeId"],
-        include: [
-          {
-            model: db.Ingredient,
-            as: "ingredient",
-            required: false,
-            attributes: ["ingredientName"],
-          },
-        ],
-        where: {
-          [Op.or]: [
-            isAccented
-              ? { customIngredientName: { [Op.iLike]: `%${kw}%` } }
-              : Sequelize.where(
-                  Sequelize.fn(
-                    "unaccent",
-                    Sequelize.col("RecipeIngredient.customIngredientName"),
-                  ),
-                  { [Op.iLike]: Sequelize.fn("unaccent", `%${kw}%`) },
-                ),
-            isAccented
-              ? { "$ingredient.ingredientName$": { [Op.iLike]: `%${kw}%` } }
-              : Sequelize.where(
-                  Sequelize.fn(
-                    "unaccent",
-                    Sequelize.col("ingredient.ingredientName"),
-                  ),
-                  { [Op.iLike]: Sequelize.fn("unaccent", `%${kw}%`) },
-                ),
-          ],
-        },
-        raw: true,
-      });
-
-      let ingRecipeIds = matchingIngs.map((r) => r.recipeId);
+      bind.recipeSearchKeyword = `%${kw}%`;
+      const ingredientMatch = isAccented
+        ? `"searchIngredient"."customIngredientName" ILIKE $recipeSearchKeyword
+           OR "searchIngredientName"."ingredientName" ILIKE $recipeSearchKeyword`
+        : `unaccent("searchIngredient"."customIngredientName") ILIKE unaccent($recipeSearchKeyword)
+           OR unaccent("searchIngredientName"."ingredientName") ILIKE unaccent($recipeSearchKeyword)`;
+      const ingredientCondition = Sequelize.literal(`EXISTS (
+        SELECT 1 FROM "RecipeIngredients" AS "searchIngredient"
+        LEFT JOIN "Ingredients" AS "searchIngredientName"
+          ON "searchIngredientName"."id" = "searchIngredient"."ingredientId"
+        WHERE "searchIngredient"."recipeId" = "Recipe"."id"
+          AND (${ingredientMatch})
+      )`);
 
       whereClause[Op.and] = whereClause[Op.and] || [];
       whereClause[Op.and].push({
-        [Op.or]: [titleCondition, { id: { [Op.in]: ingRecipeIds } }],
+        [Op.or]: [titleCondition, ingredientCondition],
       });
     }
 
@@ -301,14 +280,13 @@ const getRecipes = async (query = {}) => {
           DT: null,
         };
       }
-      let matchingCatRecipes = await db.RecipeCategory.findAll({
-        where: { categoryId: catId },
-        attributes: ["recipeId"],
-        raw: true,
-      });
-      let catRecipeIds = matchingCatRecipes.map((r) => r.recipeId);
+      bind.recipeSearchCategoryId = catId;
       whereClause[Op.and] = whereClause[Op.and] || [];
-      whereClause[Op.and].push({ id: { [Op.in]: catRecipeIds } });
+      whereClause[Op.and].push(Sequelize.literal(`EXISTS (
+        SELECT 1 FROM "RecipeCategories" AS "searchCategory"
+        WHERE "searchCategory"."recipeId" = "Recipe"."id"
+          AND "searchCategory"."categoryId" = $recipeSearchCategoryId
+      )`));
     }
 
     // 7. Lọc theo nguyên liệu (ingredientId)
@@ -325,20 +303,20 @@ const getRecipes = async (query = {}) => {
           DT: null,
         };
       }
-      let matchingIngRecipes = await db.RecipeIngredient.findAll({
-        where: { ingredientId: ingId },
-        attributes: ["recipeId"],
-        raw: true,
-      });
-      let ingRecipeIds = matchingIngRecipes.map((r) => r.recipeId);
+      bind.recipeSearchIngredientId = ingId;
       whereClause[Op.and] = whereClause[Op.and] || [];
-      whereClause[Op.and].push({ id: { [Op.in]: ingRecipeIds } });
+      whereClause[Op.and].push(Sequelize.literal(`EXISTS (
+        SELECT 1 FROM "RecipeIngredients" AS "filterIngredient"
+        WHERE "filterIngredient"."recipeId" = "Recipe"."id"
+          AND "filterIngredient"."ingredientId" = $recipeSearchIngredientId
+      )`));
     }
 
     // 8. Truy vấn cơ sở dữ liệu có phân trang và sắp xếp
     const offset = (pageNumber - 1) * limitNumber;
     const { count, rows: recipes } = await db.Recipe.findAndCountAll({
       where: whereClause,
+      bind,
       include: [
         {
           model: db.User,
@@ -352,7 +330,7 @@ const getRecipes = async (query = {}) => {
           through: { attributes: [] },
         },
       ],
-      order: [[orderCol, orderDir]],
+      order: [[orderCol, orderDir], ["id", orderDir]],
       limit: limitNumber,
       offset: offset,
       distinct: true,
