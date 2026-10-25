@@ -7,7 +7,7 @@ info:
 
     Toàn bộ các API tuân thủ cấu trúc phản hồi chuẩn 3 trường: { EC, EM, DT }.
 
-    - EC (Error Code): 0 (Thành công), 1 (Tham số không hợp lệ), 2 (Trùng lặp dữ liệu), 3 (Không tìm thấy tài nguyên), 4 (Không có quyền), 5 (Chưa đăng nhập/Hết hạn token), 6 (Sai thông tin đăng nhập), -1 (Lỗi máy chủ).
+    - EC (Error Code): 0 (Thành công), 1 (Tham số không hợp lệ), 2 (Trùng lặp dữ liệu), 3 (Không tìm thấy tài nguyên), 4 (Không có quyền), 5 (Chưa đăng nhập/Hết hạn token), 6 (Sai thông tin đăng nhập), 7 (Vượt giới hạn tần suất, HTTP 429), -1 (Lỗi máy chủ).
 
     - EM (Error Message): Thông điệp phản hồi chi tiết.
 
@@ -50,6 +50,26 @@ tags:
   - name: Images
     description: Tải lên và xóa hình ảnh qua dịch vụ Cloudinary
 components:
+  responses:
+    TooManyRequests:
+      description: Vượt giới hạn tần suất; thử lại sau số giây trong Retry-After
+      headers:
+        Retry-After:
+          description: Số giây còn lại trước khi được thử lại
+          schema:
+            type: integer
+        RateLimit:
+          description: Hạn mức, số lượt còn lại và thời gian đặt lại (draft-7)
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            EC: 7
+            EM: Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau!
+            DT: null
   securitySchemes:
     bearerAuth:
       type: http
@@ -154,7 +174,8 @@ paths:
         - Authentication
       summary: "UC-02: Đăng ký tài khoản người dùng mới"
       description: Tiếp nhận thông tin đăng ký, kiểm tra trùng lặp email/SĐT, mã hóa
-        Bcrypt mật khẩu và tạo tài khoản với vai trò User.
+        Bcrypt mật khẩu và tạo tài khoản với vai trò User. Tối đa 5 yêu cầu mỗi giờ/IP,
+        tính cả yêu cầu thành công và thất bại; vượt ngưỡng trả HTTP 429.
       requestBody:
         required: true
         content:
@@ -201,6 +222,8 @@ paths:
                   email: vana@gmail.com
                   phone: "0912345678"
                   role: User
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "400":
           description: Lỗi dữ liệu đầu vào hoặc thiếu tham số bắt buộc
           content:
@@ -237,7 +260,8 @@ paths:
         - Authentication
       summary: "UC-03: Đăng nhập vào hệ thống"
       description: Xác thực người dùng bằng Email/SĐT và mật khẩu; trả về Access Token
-        JWT và thông tin tài khoản.
+        JWT và thông tin tài khoản. Tối đa 10 yêu cầu đăng nhập không thành công trong
+        15 phút/IP; đăng nhập thành công không tính vào hạn mức. Vượt ngưỡng trả HTTP 429.
       requestBody:
         required: true
         content:
@@ -256,6 +280,8 @@ paths:
                   type: string
                   example: "123456"
       responses:
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "200":
           description: Đăng nhập thành công!
           content:
@@ -482,6 +508,8 @@ paths:
       tags:
         - User Profile
       summary: "UC-05: Đổi mật khẩu tài khoản"
+      description: Tối đa 5 yêu cầu trong 15 phút/tài khoản đã xác thực, tính cả thành công
+        và thất bại; vượt ngưỡng trả HTTP 429. Yêu cầu chưa xác thực trả HTTP 401.
       security:
         - bearerAuth: []
       requestBody:
@@ -516,6 +544,8 @@ paths:
                 EC: 0
                 EM: Đổi mật khẩu thành công!
                 DT: null
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "400":
           description: Mật khẩu mới trùng mật khẩu cũ hoặc không khớp xác nhận
           content:

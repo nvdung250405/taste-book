@@ -1,14 +1,15 @@
 import express from "express";
 import authController from "../controllers/authController";
 import { checkUserJWT } from "../middleware/JWTAction";
+import { loginLimiter, registerLimiter } from "../middleware/authRateLimit";
 
 const router = express.Router();
 
 // 1.1 POST /api/v1/auth/register
-router.post("/register", authController.handleRegister);
+router.post("/register", registerLimiter, authController.handleRegister);
 
 // 1.2 POST /api/v1/auth/login
-router.post("/login", authController.handleLogin);
+router.post("/login", loginLimiter, authController.handleLogin);
 
 // 1.3 POST /api/v1/auth/logout
 router.post("/logout", checkUserJWT, authController.handleLogout);
