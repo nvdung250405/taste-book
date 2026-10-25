@@ -3,6 +3,11 @@ import app from "../../src/server";
 import { createJWT } from "../../src/middleware/JWTAction";
 import db from "../../src/models/index";
 
+beforeEach(() => {
+  jest.spyOn(db.sequelize, "query").mockResolvedValue([[], {}]);
+  jest.spyOn(db.sequelize, "transaction").mockResolvedValue({ commit: jest.fn(), rollback: jest.fn() });
+});
+
 describe("Category API Integration Tests (UC-25)", () => {
   const userToken = createJWT({ userId: 10, email: "user10@example.com", role: "User" });
   const otherUserToken = createJWT({ userId: 99, email: "user99@example.com", role: "User" });
