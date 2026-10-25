@@ -1,6 +1,7 @@
 import userService from "../../src/services/userService";
 import db from "../../src/models/index";
 import bcrypt from "bcryptjs";
+import { cloudinary } from "../../src/config/cloudinary";
 
 describe("UserService Unit Tests", () => {
   beforeEach(() => {
@@ -42,6 +43,21 @@ describe("UserService Unit Tests", () => {
   });
 
   describe("updateUserProfile (UC-05)", () => {
+    test("đổi avatar không tự xóa ảnh cũ chưa xác minh quyền sở hữu (#69)", async () => {
+      const oldAvatarUrl = "https://res.cloudinary.com/demo/image/upload/v1/tastebook_uploads/another-user.png";
+      const avatarUrl = "https://res.cloudinary.com/demo/image/upload/v2/tastebook_uploads/new-avatar.png";
+      const user = { id: 10, avatarUrl: oldAvatarUrl, update: jest.fn().mockResolvedValue(true) };
+      jest.spyOn(db.User, "findOne").mockResolvedValue(user);
+      jest.spyOn(cloudinary.api, "resource").mockResolvedValue({ bytes: 1024 });
+      const destroy = jest.spyOn(cloudinary.uploader, "destroy").mockResolvedValue({ result: "ok" });
+
+      const result = await userService.updateUserProfile(10, { username: "user", avatarUrl });
+
+      expect(result.EC).toBe(0);
+      expect(user.update).toHaveBeenCalledWith({ username: "user", avatarUrl });
+      expect(destroy).not.toHaveBeenCalled();
+    });
+
     test("thành công: cập nhật tên hiển thị và số điện thoại hợp lệ (EC: 0)", async () => {
       const mockUser = {
         id: 10,

@@ -102,10 +102,6 @@ const updateUserProfile = async (userId, data) => {
       };
     }
 
-    const oldAvatarUrl = user.avatarUrl;
-    const DEFAULT_AVATAR_URL =
-      "https://res.cloudinary.com/sf4yjct9/image/upload/v1788611681/tastebook_uploads/f1plgomkateq3nufqchm.png";
-
     const updateData = {
       username: data.username.trim(),
     };
@@ -153,21 +149,8 @@ const updateUserProfile = async (userId, data) => {
 
     await user.update(updateData);
 
-    // Tự động dọn dẹp ảnh cũ trên Cloudinary (nếu đổi ảnh mới và ảnh cũ không phải ảnh mặc định)
-    if (
-      data.avatarUrl &&
-      oldAvatarUrl &&
-      oldAvatarUrl !== data.avatarUrl &&
-      oldAvatarUrl !== DEFAULT_AVATAR_URL &&
-      !oldAvatarUrl.includes("f1plgomkateq3nufqchm")
-    ) {
-      const oldPublicId = getPublicIdFromUrl(oldAvatarUrl);
-      if (oldPublicId) {
-        cloudinary.uploader.destroy(oldPublicId).catch((err) => {
-          console.log("Lỗi khi dọn dẹp ảnh đại diện cũ trên Cloudinary:", err);
-        });
-      }
-    }
+    // Không tự xóa ảnh cũ: avatarUrl không chứng minh quyền sở hữu ảnh.
+    // Việc xóa tài nguyên Cloudinary được thực hiện qua endpoint dành cho Admin.
 
     return {
       EC: 0,

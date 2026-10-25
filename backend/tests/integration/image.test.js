@@ -123,6 +123,43 @@ describe("Image API Integration Tests (Upload & Delete)", () => {
   });
 
   describe("DELETE /api/v1/images/:publicId (Xóa hình ảnh)", () => {
+    const adminToken = createJWT({ userId: 1, role: "Admin" });
+
+    const mockAdmin = () => db.User.findOne.mockResolvedValue({ id: 1, role: "Admin" });
+
+    test("User bị chặn 403 và không gọi Cloudinary (#69)", async () => {
+      const destroy = jest.spyOn(cloudinary.uploader, "destroy").mockResolvedValue({ result: "ok" });
+      const res = await request(app)
+        .delete("/api/v1/images/tastebook_uploads/example")
+        .set("Authorization", `Bearer ${userToken}`);
+      expect(res.status).toBe(403);
+      expect(res.body.EC).toBe(4);
+      expect(destroy).not.toHaveBeenCalled();
+    });
+
+    test("quyền lấy từ DB: token Admin nhưng tài khoản đã bị hạ quyền vẫn nhận 403 (#69)", async () => {
+      const destroy = jest.spyOn(cloudinary.uploader, "destroy").mockResolvedValue({ result: "ok" });
+      const res = await request(app)
+        .delete("/api/v1/images/tastebook_uploads/example")
+        .set("Authorization", `Bearer ${adminToken}`);
+      expect(res.status).toBe(403);
+      expect(destroy).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      "tastebook_uploads/f1plgomkateq3nufqchm",
+      "https://res.cloudinary.com/sf4yjct9/image/upload/v1788611681/tastebook_uploads/f1plgomkateq3nufqchm.png",
+    ])("Admin không được xóa avatar mặc định: %s (#69)", async (publicId) => {
+      mockAdmin();
+      const destroy = jest.spyOn(cloudinary.uploader, "destroy").mockResolvedValue({ result: "ok" });
+      const res = await request(app)
+        .delete(`/api/v1/images/${encodeURIComponent(publicId)}`)
+        .set("Authorization", `Bearer ${adminToken}`);
+      expect(res.status).toBe(403);
+      expect(res.body.EC).toBe(4);
+      expect(destroy).not.toHaveBeenCalled();
+    });
+
     test("chặn 401 khi không có token JWT", async () => {
       const res = await request(app).delete(
         "/api/v1/images/tastebook_uploads/example",
@@ -133,27 +170,30 @@ describe("Image API Integration Tests (Upload & Delete)", () => {
     });
 
     test("trả về 200 khi xóa ảnh thành công khỏi Cloudinary", async () => {
+      mockAdmin();
       jest.spyOn(cloudinary.uploader, "destroy").mockResolvedValue({
         result: "ok",
       });
 
       const res = await request(app)
         .delete("/api/v1/images/tastebook_uploads/example")
-        .set("Authorization", `Bearer ${userToken}`);
+        .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body.EC).toBe(0);
       expect(res.body.EM).toContain("Đã xóa ảnh thành công");
+      expect(cloudinary.uploader.destroy).toHaveBeenCalledWith("tastebook_uploads/example", { invalidate: true });
     });
 
     test("báo lỗi 404 khi không tìm thấy ảnh cần xóa trên Cloudinary", async () => {
+      mockAdmin();
       jest.spyOn(cloudinary.uploader, "destroy").mockResolvedValue({
         result: "not found",
       });
 
       const res = await request(app)
         .delete("/api/v1/images/tastebook_uploads/not_found_file")
-        .set("Authorization", `Bearer ${userToken}`);
+        .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(404);
       expect(res.body.EC).toBe(3);

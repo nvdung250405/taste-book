@@ -2,6 +2,7 @@ import imageService from "../../src/services/imageService";
 const { cloudinary } = require("../../src/config/cloudinary");
 
 describe("ImageService Unit Tests (Cloudinary Upload / Delete)", () => {
+  const admin = { userId: 1, role: "Admin" };
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -40,12 +41,40 @@ describe("ImageService Unit Tests (Cloudinary Upload / Delete)", () => {
   });
 
   describe("deleteImageByPublicId", () => {
+    test.each([undefined, { userId: 10, role: "User" }])(
+      "từ chối caller không phải Admin (%j) trước khi gọi Cloudinary (#69)",
+      async (user) => {
+        const destroy = jest.spyOn(cloudinary.uploader, "destroy").mockResolvedValue({ result: "ok" });
+        const res = await imageService.deleteImageByPublicId("tastebook_uploads/sample", user);
+        expect(res).toMatchObject({ EC: 4, DT: null });
+        expect(destroy).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each([
+      "tastebook_uploads/f1plgomkateq3nufqchm",
+      "tastebook_uploads%2Ff1plgomkateq3nufqchm",
+      "https://res.cloudinary.com/sf4yjct9/image/upload/v1788611681/tastebook_uploads/f1plgomkateq3nufqchm.png?version=1#avatar",
+    ])("Admin cũng không được xóa avatar mặc định: %s (#69)", async (publicId) => {
+      const destroy = jest.spyOn(cloudinary.uploader, "destroy").mockResolvedValue({ result: "ok" });
+      const res = await imageService.deleteImageByPublicId(publicId, admin);
+      expect(res).toMatchObject({ EC: 4, DT: null });
+      expect(destroy).not.toHaveBeenCalled();
+    });
+
+    test.each([null, 123, {}, "%invalid"])("từ chối publicId không hợp lệ: %j", async (publicId) => {
+      const destroy = jest.spyOn(cloudinary.uploader, "destroy").mockResolvedValue({ result: "ok" });
+      const res = await imageService.deleteImageByPublicId(publicId, admin);
+      expect(res.EC).toBe(1);
+      expect(destroy).not.toHaveBeenCalled();
+    });
+
     test("thành công: xóa ảnh bằng publicId trực tiếp (EC: 0)", async () => {
       jest.spyOn(cloudinary.uploader, "destroy").mockResolvedValue({
         result: "ok",
       });
 
-      const res = await imageService.deleteImageByPublicId("tastebook_uploads/sample");
+      const res = await imageService.deleteImageByPublicId("tastebook_uploads/sample", admin);
 
       expect(res.EC).toBe(0);
       expect(res.EM).toContain("xóa ảnh thành công");
@@ -60,7 +89,7 @@ describe("ImageService Unit Tests (Cloudinary Upload / Delete)", () => {
       });
 
       const fullUrl = "https://res.cloudinary.com/demo/image/upload/v12345/tastebook_uploads/photo_123.jpg";
-      const res = await imageService.deleteImageByPublicId(fullUrl);
+      const res = await imageService.deleteImageByPublicId(fullUrl, admin);
 
       expect(res.EC).toBe(0);
       expect(cloudinary.uploader.destroy).toHaveBeenCalledWith("tastebook_uploads/photo_123", {
@@ -69,7 +98,7 @@ describe("ImageService Unit Tests (Cloudinary Upload / Delete)", () => {
     });
 
     test("thất bại: mã publicId rỗng (EC: 1)", async () => {
-      const res = await imageService.deleteImageByPublicId("   ");
+      const res = await imageService.deleteImageByPublicId("   ", admin);
 
       expect(res.EC).toBe(1);
       expect(res.EM).toContain("không hợp lệ");
@@ -80,7 +109,7 @@ describe("ImageService Unit Tests (Cloudinary Upload / Delete)", () => {
         result: "not found",
       });
 
-      const res = await imageService.deleteImageByPublicId("tastebook_uploads/non_existing");
+      const res = await imageService.deleteImageByPublicId("tastebook_uploads/non_existing", admin);
 
       expect(res.EC).toBe(3);
       expect(res.EM).toContain("Không tìm thấy file ảnh");
@@ -91,7 +120,7 @@ describe("ImageService Unit Tests (Cloudinary Upload / Delete)", () => {
         result: "error",
       });
 
-      const res = await imageService.deleteImageByPublicId("invalid-id");
+      const res = await imageService.deleteImageByPublicId("invalid-id", admin);
 
       expect(res.EC).toBe(1);
       expect(res.EM).toContain("không hợp lệ");
@@ -100,7 +129,7 @@ describe("ImageService Unit Tests (Cloudinary Upload / Delete)", () => {
     test("thất bại: lỗi kết nối khi gọi Cloudinary SDK (EC: -1)", async () => {
       jest.spyOn(cloudinary.uploader, "destroy").mockRejectedValue(new Error("Cloudinary Error"));
 
-      const res = await imageService.deleteImageByPublicId("tastebook_uploads/sample");
+      const res = await imageService.deleteImageByPublicId("tastebook_uploads/sample", admin);
 
       expect(res.EC).toBe(-1);
       expect(res.EM).toContain("Lỗi kết nối máy chủ");

@@ -5373,8 +5373,8 @@ paths:
     delete:
       tags:
         - Images
-      summary: "8.2: Xóa hình ảnh trên Cloudinary theo publicId"
-      description: "Xóa vĩnh viễn hình ảnh lưu trữ trên Cloudinary thông qua mã định danh publicId được truyền trên URI (Lưu ý: Nếu publicId chứa tiền tố thư mục dạng folder/image_id, client cần mã hóa URL Encode trước khi truyền vào đường dẫn)."
+      summary: "8.2: Xóa hình ảnh trên Cloudinary theo publicId (Admin)"
+      description: "Chỉ Admin được xóa vĩnh viễn hình ảnh trên Cloudinary. Không được xóa avatar mặc định của hệ thống. Nếu publicId chứa tiền tố thư mục dạng folder/image_id, client cần mã hóa URL Encode trước khi truyền vào đường dẫn."
       security:
         - bearerAuth: []
       parameters:
@@ -5415,6 +5415,16 @@ paths:
               example:
                 EC: 5
                 EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Tài khoản không phải Admin hoặc ảnh mặc định được bảo vệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Không được phép xóa ảnh này!
                 DT: null
         "404":
           description: Ảnh không tồn tại hoặc sai mã định danh publicId
