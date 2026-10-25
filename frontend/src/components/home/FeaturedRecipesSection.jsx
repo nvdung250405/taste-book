@@ -14,7 +14,7 @@ import { Card, CardContent } from '../ui/card'
 import { Badge } from '../ui/badge'
 import { Skeleton } from '../ui/skeleton'
 import { toast } from 'sonner'
-import { useFavorites, useAddFavorite, useRemoveFavorite } from '../../hooks/queries/useFavoriteQueries'
+import { useFavoriteIds, useAddFavorite, useRemoveFavorite } from '../../hooks/queries/useFavoriteQueries'
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
@@ -59,16 +59,12 @@ const DIFFICULTY_MAP = {
 
 function RecipeCard({ recipe, rank }) {
   const hasToken = !!localStorage.getItem('token')
-  const { data: favRes } = useFavorites({ enabled: hasToken })
+  const recipeId = recipe.recipeId || recipe.id || recipe._id
+  const { data: favoriteIds, isPending: favoritesPending, isError: favoritesError } = useFavoriteIds([recipeId])
   const { mutate: addFav, isPending: adding } = useAddFavorite()
   const { mutate: removeFav, isPending: removing } = useRemoveFavorite()
 
-  const favorites = Array.isArray(favRes?.DT) ? favRes.DT : (favRes?.DT?.items || [])
-  const recipeId = recipe.recipeId || recipe.id || recipe._id
-  const isFavorited = favorites.some(f => {
-    const fid = f.recipe?.id || f.recipe?._id || f.recipeId
-    return String(fid) === String(recipeId)
-  })
+  const isFavorited = favoriteIds?.has(String(recipeId)) || false
 
   const handleToggleFavorite = (e) => {
     e.preventDefault()
@@ -129,7 +125,7 @@ function RecipeCard({ recipe, rank }) {
               size="icon"
               variant="secondary"
               onClick={handleToggleFavorite}
-              disabled={adding || removing}
+              disabled={adding || removing || (hasToken && (favoritesPending || favoritesError))}
               className={`rounded-full w-8 h-8 backdrop-blur-sm relative z-10 transition-all hover:scale-110 active:scale-95 ${
                 isFavorited
                   ? 'bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-500/30'

@@ -12,11 +12,21 @@ export const useFavorites = (params = {}, options = {}) => {
   return useQuery({
     queryKey: ['favorites', queryParams],
     queryFn: ({ signal }) => queryParams.page !== undefined
-      ? favoritesApi.getFavorites({ limit: 100, ...queryParams }, { signal })
+      ? favoritesApi.getFavorites({ limit: 12, ...queryParams }, { signal })
       : fetchCollection(page => favoritesApi.getFavorites({ ...queryParams, page, limit: 100 }, { signal }), signal),
     enabled: hasToken,
     retry: false,
     ...queryOptions,
+  });
+};
+
+// The existing API has no ID lookup. Share the complete favorites cache so status
+// remains correct beyond the first page without requiring backend changes.
+export const useFavoriteIds = (recipeIds) => {
+  return useFavorites({}, {
+    enabled: !!localStorage.getItem('token') && recipeIds.some(Boolean),
+    staleTime: 60 * 1000,
+    select: response => new Set((response.DT?.items || []).map(item => String(item.recipeId))),
   });
 };
 

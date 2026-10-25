@@ -1,25 +1,32 @@
 import useRecipeGridColumns from '../hooks/useRecipeGridColumns'
 import { recipeImageProps, handleRecipeImageError } from '../lib/recipeImages'
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Link, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import {
+  Link,
+  useSearchParams,
+  useNavigate,
+  useLocation,
+} from 'react-router-dom'
 import {
   Search,
   Clock,
   ChefHat,
   Heart,
-  X,
-  Filter,
   ChevronLeft,
   ChevronRight,
   Users,
 } from 'lucide-react'
 import { Button } from '../components/ui/button'
-import { Input } from '../components/ui/input'
+import RecipeSearchFilters from '../components/recipe/RecipeSearchFilters'
 import { Card, CardContent } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { useRecipes } from '../hooks/queries/useRecipeQueries'
 import { useCategories } from '../hooks/queries/useCategoryQueries'
-import { useFavorites, useAddFavorite, useRemoveFavorite } from '../hooks/queries/useFavoriteQueries'
+import {
+  useFavoriteIds,
+  useAddFavorite,
+  useRemoveFavorite,
+} from '../hooks/queries/useFavoriteQueries'
 import { toast } from 'sonner'
 import RecipeCardSkeleton from '../components/recipe/RecipeCardSkeleton'
 import QueryError from '../components/ui/QueryError'
@@ -38,8 +45,6 @@ const DIFFICULTY_LABELS = {
   Hard: 'Khó',
 }
 
-
-
 export default function RecipeSearchPage() {
   const gridColumns = useRecipeGridColumns()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -54,7 +59,8 @@ export default function RecipeSearchPage() {
   const page = Number(searchParams.get('page'))
   const currentPage = Number.isInteger(page) && page > 0 ? page : 1
   const [searchDraft, setSearchDraft] = useState(null)
-  const inputValue = searchDraft?.locationKey === location.key ? searchDraft.value : search
+  const inputValue =
+    searchDraft?.locationKey === location.key ? searchDraft.value : search
 
   if (searchDraft && searchDraft.locationKey !== location.key) {
     setSearchDraft(null)
@@ -65,13 +71,16 @@ export default function RecipeSearchPage() {
     if (inputValue === search) return
 
     const timer = setTimeout(() => {
-      setSearchParams(previous => {
-        const next = new URLSearchParams(previous)
-        if (inputValue) next.set('search', inputValue)
-        else next.delete('search')
-        next.delete('page')
-        return next
-      }, { replace: true })
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous)
+          if (inputValue) next.set('search', inputValue)
+          else next.delete('search')
+          next.delete('page')
+          return next
+        },
+        { replace: true },
+      )
     }, 500)
 
     return () => clearTimeout(timer)
@@ -109,46 +118,62 @@ export default function RecipeSearchPage() {
   }
 
   // Fetch data
-  const { data: recipesRes, isLoading, isError, isFetching, refetch } = useRecipes(params)
-  const { data: categoriesRes, isError: categoriesError, isFetching: categoriesFetching, refetch: retryCategories } = useCategories()
+  const {
+    data: recipesRes,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useRecipes(params)
+  const {
+    data: categoriesRes,
+    isError: categoriesError,
+    isFetching: categoriesFetching,
+    refetch: retryCategories,
+  } = useCategories()
 
   // Favorites
   const hasToken = !!localStorage.getItem('token')
-  const { data: favRes } = useFavorites({ enabled: hasToken })
+  const visibleRecipeIds = (recipesRes?.DT?.recipes || []).map(
+    (recipe) => recipe.recipeId || recipe.id || recipe._id,
+  )
+  const {
+    data: favoriteIds,
+    isPending: favoritesPending,
+    isError: favoritesError,
+  } = useFavoriteIds(visibleRecipeIds)
   const { mutate: addFav, isPending: adding } = useAddFavorite()
   const { mutate: removeFav, isPending: removing } = useRemoveFavorite()
+  const isFavorited = useCallback(
+    (recipeId) => favoriteIds?.has(String(recipeId)) || false,
+    [favoriteIds],
+  )
 
-  const favorites = useMemo(() => {
-    return Array.isArray(favRes?.DT) ? favRes.DT : (favRes?.DT?.items || [])
-  }, [favRes])
-
-  const isFavorited = useCallback((recipeId) => {
-    return favorites.some(f => {
-      const fid = f.recipe?.id || f.recipe?._id || f.recipeId
-      return String(fid) === String(recipeId)
-    })
-  }, [favorites])
-
-  const handleToggleFavorite = useCallback((e, recipeId) => {
-    e.stopPropagation()
-    e.preventDefault()
-    if (!hasToken) {
-      toast.info('Vui lòng đăng nhập để lưu công thức yêu thích')
-      return
-    }
-    if (isFavorited(recipeId)) {
-      removeFav(recipeId, {
-        onSuccess: () => toast.success('Đã bỏ lưu khỏi yêu thích'),
-        onError: () => toast.error('Không thể bỏ lưu. Vui lòng thử lại!'),
-      })
-    } else {
-      addFav({ recipeId, data: {} }, {
-        onSuccess: () => toast.success('Đã thêm vào yêu thích ❤️'),
-        onError: () => toast.error('Không thể thêm. Vui lòng thử lại!'),
-      })
-    }
-  }, [hasToken, isFavorited, addFav, removeFav])
-
+  const handleToggleFavorite = useCallback(
+    (e, recipeId) => {
+      e.stopPropagation()
+      e.preventDefault()
+      if (!hasToken) {
+        toast.info('Vui lòng đăng nhập để lưu công thức yêu thích')
+        return
+      }
+      if (isFavorited(recipeId)) {
+        removeFav(recipeId, {
+          onSuccess: () => toast.success('Đã bỏ lưu khỏi yêu thích'),
+          onError: () => toast.error('Không thể bỏ lưu. Vui lòng thử lại!'),
+        })
+      } else {
+        addFav(
+          { recipeId, data: {} },
+          {
+            onSuccess: () => toast.success('Đã thêm vào yêu thích ❤️'),
+            onError: () => toast.error('Không thể thêm. Vui lòng thử lại!'),
+          },
+        )
+      }
+    },
+    [hasToken, isFavorited, addFav, removeFav],
+  )
 
   const allRecipes = Array.isArray(recipesRes?.DT?.recipes)
     ? recipesRes.DT.recipes
@@ -163,7 +188,9 @@ export default function RecipeSearchPage() {
   // Handlers
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
-      updateFilters({ page: inputValue === search && newPage > 1 ? newPage : '' })
+      updateFilters({
+        page: inputValue === search && newPage > 1 ? newPage : '',
+      })
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
@@ -184,94 +211,24 @@ export default function RecipeSearchPage() {
         </p>
       </div>
 
-      {/* Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="flex-1 relative flex items-center">
-          <Search className="absolute left-4 w-5 h-5 text-slate-400" />
-          <Input
-            aria-label="Tìm kiếm công thức" value={inputValue}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Nhập tên món ăn hoặc nguyên liệu (VD: Thịt bò, Canh chua)..."
-            className="pl-12 pr-10 h-12 rounded-xl bg-white dark:bg-slate-900 text-base shadow-sm"
-          />
-          {inputValue && (
-            <button
-              type="button"
-              onClick={() => updateFilters({ search: '' })}
-              className="absolute right-4 text-slate-400 hover:text-slate-600"
-              aria-label="Xóa từ khóa tìm kiếm"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Additional Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6 items-start sm:items-center bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 font-medium">
-          <Filter className="w-4 h-4" /> Bộ lọc:
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <select
-            aria-label="Lọc độ khó" value={selectedDifficulty}
-            onChange={(e) => handleDifficultyChange(e.target.value)}
-            className="h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:border-orange-500 min-w-[140px]"
-          >
-            <option value="">Độ khó (Tất cả)</option>
-            <option value="Easy">Dễ</option>
-            <option value="Medium">Trung bình</option>
-            <option value="Hard">Khó</option>
-          </select>
-
-          <select
-            aria-label="Lọc thời gian nấu" value={selectedMaxTime}
-            onChange={(e) => handleMaxTimeChange(e.target.value)}
-            className="h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:border-orange-500 min-w-[140px]"
-          >
-            <option value="">Thời gian (Tất cả)</option>
-            <option value="15">Dưới 15 phút</option>
-            <option value="30">Dưới 30 phút</option>
-            <option value="60">Dưới 1 tiếng</option>
-            <option value="120">Dưới 2 tiếng</option>
-          </select>
-
-          {(selectedDifficulty || selectedMaxTime || selectedCategory) && (
-            <Button
-              variant="ghost"
-              onClick={clearAllFilters}
-              className="h-10 text-slate-500"
-            >
-              Xóa bộ lọc
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Category filter pills */}
-      {categoriesError && <QueryError title="Không thể tải bộ lọc danh mục" onRetry={retryCategories} isRetrying={categoriesFetching} />}
-      <div className="flex gap-2 flex-wrap mb-8">
-        <button
-          onClick={() => handleCategoryChange('')}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${!selectedCategory ? 'bg-orange-500 text-white border-orange-500 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-300'}`}
-        >
-          Tất cả danh mục
-        </button>
-        {categories.map((cat) => {
-          const id = String(cat.categoryId || cat.id || cat._id)
-          const name = cat.categoryName || cat.name || cat.title
-          return (
-            <button
-              key={id}
-              onClick={() => handleCategoryChange(id)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${selectedCategory === id ? 'bg-orange-500 text-white border-orange-500 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-300'}`}
-            >
-              {name}
-            </button>
-          )
-        })}
-      </div>
+      <RecipeSearchFilters
+        {...{
+          inputValue,
+          handleSearchChange,
+          updateFilters,
+          selectedDifficulty,
+          handleDifficultyChange,
+          selectedMaxTime,
+          handleMaxTimeChange,
+          selectedCategory,
+          clearAllFilters,
+          categoriesError,
+          retryCategories,
+          categoriesFetching,
+          handleCategoryChange,
+          categories,
+        }}
+      />
 
       {/* Results */}
       {isLoading ? (
@@ -324,9 +281,15 @@ export default function RecipeSearchPage() {
                   <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col h-full">
                     <div className="relative h-52 overflow-hidden shrink-0">
                       <img
-                        {...recipeImageProps(recipe.thumbnailUrl || recipe.thumbnail || recipe.image)} decoding="async"
+                        {...recipeImageProps(
+                          recipe.thumbnailUrl ||
+                            recipe.thumbnail ||
+                            recipe.image,
+                        )}
+                        decoding="async"
                         alt={recipe.title}
-                        loading={imageIndex < gridColumns ? 'eager' : 'lazy'} fetchPriority={imageIndex === 0 ? 'high' : 'auto'}
+                        loading={imageIndex < gridColumns ? 'eager' : 'lazy'}
+                        fetchPriority={imageIndex === 0 ? 'high' : 'auto'}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={handleRecipeImageError}
                       />
@@ -346,18 +309,41 @@ export default function RecipeSearchPage() {
                       </div>
 
                       <button
-                        onClick={(e) => handleToggleFavorite(e, recipe.recipeId || recipe.id || recipe._id)}
-                        disabled={adding || removing}
+                        onClick={(e) =>
+                          handleToggleFavorite(
+                            e,
+                            recipe.recipeId || recipe.id || recipe._id,
+                          )
+                        }
+                        disabled={
+                          adding ||
+                          removing ||
+                          (hasToken && (favoritesPending || favoritesError))
+                        }
                         className={`absolute top-3 right-3 w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center shadow-sm z-10 transition-all hover:scale-110 active:scale-95 ${
-                          isFavorited(recipe.recipeId || recipe.id || recipe._id)
+                          isFavorited(
+                            recipe.recipeId || recipe.id || recipe._id,
+                          )
                             ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/40'
                             : 'bg-white/90 hover:bg-white text-slate-400 hover:text-red-500'
                         }`}
-                        aria-label={isFavorited(recipe.recipeId || recipe.id || recipe._id) ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
+                        aria-label={
+                          isFavorited(
+                            recipe.recipeId || recipe.id || recipe._id,
+                          )
+                            ? 'Bỏ yêu thích'
+                            : 'Thêm vào yêu thích'
+                        }
                       >
-                        <Heart className={`w-4 h-4 ${
-                          isFavorited(recipe.recipeId || recipe.id || recipe._id) ? 'fill-white' : ''
-                        }`} />
+                        <Heart
+                          className={`w-4 h-4 ${
+                            isFavorited(
+                              recipe.recipeId || recipe.id || recipe._id,
+                            )
+                              ? 'fill-white'
+                              : ''
+                          }`}
+                        />
                       </button>
 
                       {recipe.difficulty && (

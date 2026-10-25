@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { toast } from 'sonner'
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
   const { mutate: login, isPending: isLoading } = useLogin()
 
   const handleLogin = (e) => {
@@ -25,7 +26,10 @@ export default function LoginPage() {
       {
         onSuccess: () => {
           toast.success('Đăng nhập thành công!')
-          navigate('/')
+          const from = location.state?.from
+          navigate(from?.pathname?.startsWith('/') && !from.pathname.startsWith('//')
+            ? { pathname: from.pathname, search: from.search || '', hash: from.hash || '' }
+            : '/', { replace: true })
         },
         onError: (error) => {
           toast.error(error.EM || error.response?.data?.EM || 'Đăng nhập thất bại')

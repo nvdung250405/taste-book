@@ -41,7 +41,7 @@ export const useMyRecipes = (params = {}, options = {}) => {
   return useQuery({
     queryKey: ['my-recipes', params],
     queryFn: ({ signal }) => params.page !== undefined
-      ? recipesApi.getMyRecipes(params, { signal })
+      ? recipesApi.getMyRecipes({ limit: 12, ...params }, { signal })
       : fetchCollection(page => recipesApi.getMyRecipes({ ...params, page, limit: 100 }, { signal }), signal),
     ...options,
   });
