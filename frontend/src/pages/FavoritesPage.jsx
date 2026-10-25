@@ -15,19 +15,14 @@ import useCollectionParams from '../hooks/useCollectionParams'
 import FavoriteNoteDialog from '../components/recipe/FavoriteNoteDialog'
 import useRecipeGridColumns from '../hooks/useRecipeGridColumns'
 import FavoriteRecipeCard from '../components/recipe/FavoriteRecipeCard'
+import { filterFavorites } from '../lib/collectionFilters'
 
 export default function FavoritesPage() {
   const gridColumns = useRecipeGridColumns('favorites')
   const hasToken = !!localStorage.getItem('token')
   const { page, search, searchQuery, setSearchQuery, setPage } =
     useCollectionParams()
-  const {
-    data: res,
-    isLoading,
-    isError,
-    isFetching,
-    refetch,
-  } = useFavorites({ page, limit: 12, search })
+  const { data: res, isLoading, isError, isFetching, refetch } = useFavorites()
   const { mutate: removeFav } = useRemoveFavorite()
   const { mutate: updateNote, isPending: updatingNote } =
     useUpdateFavoriteNote()
@@ -35,8 +30,9 @@ export default function FavoritesPage() {
   const [noteDialog, setNoteDialog] = useState(null) // { recipeId, note }
   const [removingIds, setRemovingIds] = useState(new Set())
 
-  const favorites = res?.DT?.items || []
-  const totalPages = Math.max(1, res?.DT?.totalPages || 1)
+  const favorites = filterFavorites(res?.DT?.items || [], search)
+  const totalPages = Math.max(1, Math.ceil(favorites.length / 12))
+  const visibleFavorites = favorites.slice((page - 1) * 12, page * 12)
   useEffect(() => {
     if (res && !isFetching && page > totalPages) setPage(totalPages)
   }, [res, isFetching, page, totalPages, setPage])
@@ -202,7 +198,7 @@ export default function FavoritesPage() {
       ) : (
         /* Favorites Grid */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {favorites.map((fav, index) => (
+          {visibleFavorites.map((fav, index) => (
             <FavoriteRecipeCard
               key={fav.recipeId || fav.id}
               {...{ fav, index, gridColumns, removingIds }}

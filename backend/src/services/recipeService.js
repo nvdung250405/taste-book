@@ -1105,35 +1105,11 @@ const getMyRecipes = async (user, query = {}) => {
 
     const offset = (pageNumber - 1) * limitNumber;
 
-    const where = { authorId: userId, isDeleted: false };
-    const search = typeof query.search === "string" ? query.search.trim() : "";
-    if (search) where.title = { [Op.iLike]: `%${search}%` };
-    if (query.status && query.status !== "all") {
-      if (!["approved", "pending", "rejected", "draft"].includes(query.status)) {
-        return { EC: 1, EM: "Trạng thái công thức không hợp lệ!", DT: null };
-      }
-      where.isPublic = query.status !== "draft";
-      if (where.isPublic) {
-        where.approvalStatus = query.status[0].toUpperCase() + query.status.slice(1);
-      }
-    }
-
-    let counts;
-    if (String(query.includeCounts) === "true") {
-      const groups = await db.Recipe.count({
-        where: { authorId: userId, isDeleted: false },
-        group: ["isPublic", "approvalStatus"],
-      });
-      counts = { all: 0, approved: 0, pending: 0, rejected: 0, draft: 0 };
-      groups.forEach(group => {
-        const key = group.isPublic ? String(group.approvalStatus).toLowerCase() : "draft";
-        counts.all += Number(group.count);
-        if (key in counts && key !== "all") counts[key] += Number(group.count);
-      });
-    }
-
     const { count, rows: recipes } = await db.Recipe.findAndCountAll({
-      where,
+      where: {
+        authorId: userId,
+        isDeleted: false,
+      },
       attributes: [
         "id",
         "title",
@@ -1146,7 +1122,7 @@ const getMyRecipes = async (user, query = {}) => {
         "rejectionReason",
         "createdAt",
       ],
-      order: [["createdAt", "DESC"], ["id", "DESC"]],
+      order: [["createdAt", "DESC"]],
       limit: limitNumber,
       offset: offset,
     });
@@ -1173,7 +1149,6 @@ const getMyRecipes = async (user, query = {}) => {
         total: count,
         totalPages: Math.ceil(count / limitNumber),
         items: formatted,
-        ...(counts && { counts }),
       },
     };
   } catch (e) {

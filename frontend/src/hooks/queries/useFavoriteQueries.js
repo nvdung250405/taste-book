@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import favoritesApi from '../../api/favorites.api';
+import { fetchCollection } from '../../api/fetchCollection';
 
 export const useFavorites = (params = {}, options = {}) => {
   const isOptions = params && ('enabled' in params || 'staleTime' in params);
@@ -10,18 +11,21 @@ export const useFavorites = (params = {}, options = {}) => {
 
   return useQuery({
     queryKey: ['favorites', queryParams],
-    queryFn: ({ signal }) => favoritesApi.getFavorites({ page: 1, limit: 12, ...queryParams }, { signal }),
+    queryFn: ({ signal }) => queryParams.page !== undefined
+      ? favoritesApi.getFavorites({ limit: 12, ...queryParams }, { signal })
+      : fetchCollection(page => favoritesApi.getFavorites({ ...queryParams, page, limit: 100 }, { signal }), signal),
     enabled: hasToken,
     retry: false,
     ...queryOptions,
   });
 };
 
-// Check only the recipes visible on the current screen, independently of list pagination.
+// The existing API has no ID lookup. Share the complete favorites cache so status
+// remains correct beyond the first page without requiring backend changes.
 export const useFavoriteIds = (recipeIds) => {
-  const ids = [...new Set(recipeIds.filter(Boolean).map(String))].sort();
-  return useFavorites({ recipeIds: ids.join(','), page: 1, limit: 100 }, {
-    enabled: !!localStorage.getItem('token') && ids.length > 0,
+  return useFavorites({}, {
+    enabled: !!localStorage.getItem('token') && recipeIds.some(Boolean),
+    staleTime: 60 * 1000,
     select: response => new Set((response.DT?.items || []).map(item => String(item.recipeId))),
   });
 };

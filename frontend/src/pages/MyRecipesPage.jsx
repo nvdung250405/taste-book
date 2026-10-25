@@ -22,6 +22,7 @@ import useCollectionParams from '../hooks/useCollectionParams'
 import RecipeDeleteDialog from '../components/recipe/RecipeDeleteDialog'
 import useRecipeGridColumns from '../hooks/useRecipeGridColumns'
 import MyRecipeCard from '../components/recipe/MyRecipeCard'
+import { filterRecipes, recipeCounts } from '../lib/collectionFilters'
 
 export default function MyRecipesPage() {
   const gridColumns = useRecipeGridColumns()
@@ -35,32 +36,16 @@ export default function MyRecipesPage() {
     setPage,
     reset,
   } = useCollectionParams()
-  const {
-    data: res,
-    isLoading,
-    isError,
-    isFetching,
-    refetch,
-  } = useMyRecipes({
-    page,
-    limit: 12,
-    search,
-    status: activeTab,
-    includeCounts: true,
-  })
+  const { data: res, isLoading, isError, isFetching, refetch } = useMyRecipes()
   const { mutate: deleteRecipe, isPending: deleting } = useDeleteRecipe()
 
   const [toDelete, setToDelete] = useState(null)
 
-  const recipes = res?.DT?.items || []
-  const counts = res?.DT?.counts || {
-    all: 0,
-    approved: 0,
-    pending: 0,
-    rejected: 0,
-    draft: 0,
-  }
-  const totalPages = Math.max(1, res?.DT?.totalPages || 1)
+  const allRecipes = res?.DT?.items || []
+  const counts = recipeCounts(allRecipes)
+  const recipes = filterRecipes(allRecipes, activeTab, search)
+  const totalPages = Math.max(1, Math.ceil(recipes.length / 12))
+  const visibleRecipes = recipes.slice((page - 1) * 12, page * 12)
   useEffect(() => {
     if (res && !isFetching && page > totalPages) setPage(totalPages)
   }, [res, isFetching, page, totalPages, setPage])
@@ -285,7 +270,7 @@ export default function MyRecipesPage() {
       ) : (
         /* Grid công thức */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {recipes.map((recipe, index) => (
+          {visibleRecipes.map((recipe, index) => (
             <MyRecipeCard
               key={recipe.recipeId || recipe.id || recipe._id}
               {...{ recipe, index, gridColumns }}

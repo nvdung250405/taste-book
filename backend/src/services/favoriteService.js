@@ -1,5 +1,4 @@
 import db from "../models/index";
-import { Op } from "sequelize";
 
 const parseRecipeId = (recipeId) => {
   if (Array.isArray(recipeId) || !/^[0-9]+$/.test(String(recipeId))) return null;
@@ -47,27 +46,10 @@ const getUserFavorites = async (userId, query = {}) => {
     }
 
     const offset = (pageNumber - 1) * limitNumber;
-    const where = { userId: Number(userId) };
-    if (query.recipeIds !== undefined) {
-      const ids = typeof query.recipeIds === "string" ? query.recipeIds.split(",") : [];
-      if (!ids.length || ids.length > 100 || ids.some(id => !parseRecipeId(id))) {
-        return { EC: 1, EM: "Danh sách ID món ăn không hợp lệ!", DT: null };
-      }
-      where.recipeId = { [Op.in]: ids.map(Number) };
-    }
-    const search = typeof query.search === "string" ? query.search.trim() : "";
-    if (search) {
-      where[Op.or] = [
-        { "$recipe.title$": { [Op.iLike]: `%${search}%` } },
-        { "$recipe.author.username$": { [Op.iLike]: `%${search}%` } },
-        { personalNotes: { [Op.iLike]: `%${search}%` } },
-      ];
-    }
 
     // 2. Truy vấn dữ liệu có phân trang kết hợp findAndCountAll
     const { count, rows } = await db.FavoriteRecipe.findAndCountAll({
-      where,
-      subQuery: false,
+      where: { userId: Number(userId) },
       include: [
         {
           model: db.Recipe,
@@ -89,7 +71,7 @@ const getUserFavorites = async (userId, query = {}) => {
           ],
         },
       ],
-      order: [["createdAt", "DESC"], ["recipeId", "DESC"]],
+      order: [["createdAt", "DESC"]],
       limit: limitNumber,
       offset: offset,
     });
