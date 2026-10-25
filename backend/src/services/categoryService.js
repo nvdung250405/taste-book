@@ -1,5 +1,6 @@
 import db from "../models/index";
 import { Op, Sequelize } from "sequelize";
+import { withMasterDataTransaction, isMasterDataId, isMasterDataName } from "./unitService";
 
 // 2.1 GET /categories - Lấy danh mục hiển thị (danh mục hệ thống + danh mục do user tạo)
 const getCategories = async (userId) => {
@@ -185,9 +186,9 @@ const updatePersonalCategory = async (userId, categoryId, data) => {
 
 // 2.4 DELETE /categories/:categoryId - Xóa danh mục cá nhân (UC-25)
 const deletePersonalCategory = async (userId, categoryId) => {
-  try {
+  return withMasterDataTransaction(async (transaction) => {
     let id = Number(categoryId);
-    if (!id || isNaN(id)) {
+    if (!isMasterDataId(categoryId)) {
       return {
         EC: 3,
         EM: "Không tìm thấy danh mục cần xóa!",
@@ -195,7 +196,7 @@ const deletePersonalCategory = async (userId, categoryId) => {
       };
     }
 
-    let category = await db.Category.findOne({ where: { id } });
+    let category = await db.Category.findOne({ transaction, where: { id } });
     if (!category) {
       return {
         EC: 3,
@@ -212,25 +213,18 @@ const deletePersonalCategory = async (userId, categoryId) => {
       };
     }
 
-    // Xóa liên kết trong bảng RecipeCategories nếu có
-    await db.RecipeCategory.destroy({ where: { categoryId: id } });
+    // Cho phép gỡ danh mục cá nhân; khóa dùng chung đồng bộ với luồng ghi công thức.
+    await db.RecipeCategory.destroy({ transaction, where: { categoryId: id } });
 
     // Xóa danh mục
-    await category.destroy();
+    await category.destroy({ transaction });
 
     return {
       EC: 0,
       EM: "Đã xóa danh mục cá nhân thành công!",
       DT: null,
     };
-  } catch (e) {
-    console.log("deletePersonalCategory error:", e);
-    return {
-      EC: -1,
-      EM: "Lỗi kết nối máy chủ!",
-      DT: null,
-    };
-  }
+  });
 };
 
 // 2.8 GET /admin/categories - Danh sách danh mục chuẩn hệ thống (UC-21)
@@ -265,8 +259,8 @@ const getAdminCategories = async () => {
 
 // 2.5 POST /admin/categories - Tạo danh mục chuẩn (UC-21)
 const createAdminCategory = async (data) => {
-  try {
-    if (!data || !data.categoryName || !data.categoryName.trim()) {
+  return withMasterDataTransaction(async (transaction) => {
+    if (!data || !isMasterDataName(data.categoryName)) {
       return {
         EC: 1,
         EM: "Tên danh mục không được để trống!",
@@ -278,6 +272,7 @@ const createAdminCategory = async (data) => {
 
     // Kiểm tra trùng lặp trong danh mục hệ thống (không phân biệt hoa thường và dấu)
     let exist = await db.Category.findOne({
+      transaction,
       where: {
         createdBy: null,
         [Op.and]: [
@@ -302,7 +297,7 @@ const createAdminCategory = async (data) => {
     let newCategory = await db.Category.create({
       categoryName: cleanName,
       createdBy: null,
-    });
+    }, { transaction });
 
     return {
       EC: 0,
@@ -313,20 +308,13 @@ const createAdminCategory = async (data) => {
         createdBy: newCategory.createdBy,
       },
     };
-  } catch (e) {
-    console.log("createAdminCategory error:", e);
-    return {
-      EC: -1,
-      EM: "Lỗi kết nối máy chủ!",
-      DT: null,
-    };
-  }
+  });
 };
 
 // 2.6 PUT /admin/categories/:categoryId - Sửa danh mục chuẩn (UC-21)
 const updateAdminCategory = async (categoryId, data) => {
-  try {
-    if (!data || !data.categoryName || !data.categoryName.trim()) {
+  return withMasterDataTransaction(async (transaction) => {
+    if (!data || !isMasterDataName(data.categoryName)) {
       return {
         EC: 1,
         EM: "Tên danh mục không được để trống!",
@@ -335,7 +323,7 @@ const updateAdminCategory = async (categoryId, data) => {
     }
 
     let id = Number(categoryId);
-    if (!id || isNaN(id)) {
+    if (!isMasterDataId(categoryId)) {
       return {
         EC: 3,
         EM: "Không tìm thấy danh mục chuẩn!",
@@ -344,6 +332,7 @@ const updateAdminCategory = async (categoryId, data) => {
     }
 
     let category = await db.Category.findOne({
+      transaction,
       where: { id, createdBy: null },
     });
 
@@ -359,6 +348,7 @@ const updateAdminCategory = async (categoryId, data) => {
 
     // Kiểm tra trùng tên với danh mục chuẩn khác của hệ thống (không phân biệt hoa thường và dấu)
     let exist = await db.Category.findOne({
+      transaction,
       where: {
         createdBy: null,
         id: { [Op.ne]: id },
@@ -382,7 +372,7 @@ const updateAdminCategory = async (categoryId, data) => {
     }
 
     category.categoryName = cleanName;
-    await category.save();
+    await category.save({ transaction });
 
     return {
       EC: 0,
@@ -392,21 +382,14 @@ const updateAdminCategory = async (categoryId, data) => {
         categoryName: category.categoryName,
       },
     };
-  } catch (e) {
-    console.log("updateAdminCategory error:", e);
-    return {
-      EC: -1,
-      EM: "Lỗi kết nối máy chủ!",
-      DT: null,
-    };
-  }
+  });
 };
 
 // 2.7 DELETE /admin/categories/:categoryId - Xóa danh mục chuẩn (UC-21)
 const deleteAdminCategory = async (categoryId) => {
-  try {
+  return withMasterDataTransaction(async (transaction) => {
     let id = Number(categoryId);
-    if (!id || isNaN(id)) {
+    if (!isMasterDataId(categoryId)) {
       return {
         EC: 3,
         EM: "Không tìm thấy danh mục chuẩn!",
@@ -415,6 +398,7 @@ const deleteAdminCategory = async (categoryId) => {
     }
 
     let category = await db.Category.findOne({
+      transaction,
       where: { id, createdBy: null },
     });
 
@@ -426,25 +410,26 @@ const deleteAdminCategory = async (categoryId) => {
       };
     }
 
-    // Xóa liên kết trong bảng RecipeCategories nếu có
-    await db.RecipeCategory.destroy({ where: { categoryId: id } });
+    const usage = await db.RecipeCategory.count({
+      where: { categoryId: id },
+      include: [{ model: db.Recipe, required: true, where: { isDeleted: false } }],
+      transaction,
+    });
+    if (usage > 0) {
+      return { EC: 2, EM: "Không thể xóa danh mục đang được công thức hoạt động sử dụng!", DT: null };
+    }
+    // Chỉ còn liên kết với các công thức đã xóa mềm.
+    await db.RecipeCategory.destroy({ transaction, where: { categoryId: id } });
 
     // Xóa danh mục
-    await category.destroy();
+    await category.destroy({ transaction });
 
     return {
       EC: 0,
       EM: "Xóa danh mục chuẩn thành công!",
       DT: null,
     };
-  } catch (e) {
-    console.log("deleteAdminCategory error:", e);
-    return {
-      EC: -1,
-      EM: "Lỗi kết nối máy chủ!",
-      DT: null,
-    };
-  }
+  });
 };
 
 module.exports = {

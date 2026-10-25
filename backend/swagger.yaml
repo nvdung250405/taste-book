@@ -825,6 +825,1023 @@ paths:
                 EC: -1
                 EM: Lỗi kết nối máy chủ!
                 DT: null
+  /admin/categories:
+    get:
+      tags:
+        - Admin Categories
+      summary: "UC-21: Lấy danh sách toàn bộ danh mục chuẩn hệ thống (Admin)"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lấy thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Lấy danh sách danh mục thành công!
+                DT:
+                  - categoryId: 1
+                    categoryName: Món Xào
+                    createdBy: null
+                  - categoryId: 2
+                    categoryName: Món Ăn  Chay
+                    createdBy: null
+        "401":
+          description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải quyền Admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng quản trị!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+    post:
+      tags:
+        - Admin Categories
+      summary: "UC-21: Tạo danh mục chuẩn hệ thống mới (Admin)"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - categoryName
+              properties:
+                categoryName:
+                  type: string
+                  example: Món lẩu & Nướng
+      responses:
+        "201":
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Thêm danh mục chuẩn thành công!
+                DT:
+                  categoryId: 20
+                  categoryName: Món Canh
+                  createdBy: null
+        "400":
+          description: Tên danh mục rỗng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Tên danh mục không được để trống!
+                DT: null
+        "401":
+          description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải quyền Admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng quản trị!
+                DT: null
+        "409":
+          description: Trùng tên danh mục hệ thống
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Danh mục chuẩn đã tồn tại trên hệ thống!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  "/admin/categories/{categoryId}":
+    put:
+      tags:
+        - Admin Categories
+      summary: "UC-21: Chỉnh sửa danh mục chuẩn hệ thống (Admin)"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 10
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - categoryName
+              properties:
+                categoryName:
+                  type: string
+                  example: Món nướng BBQ
+      responses:
+        "200":
+          description: Sửa thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Cập nhật danh mục chuẩn thành công!
+                DT:
+                  categoryId: 20
+                  categoryName: Món Hầm Canh
+        "400":
+          description: Tên danh mục rỗng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Tên danh mục không được để trống!
+                DT: null
+        "401":
+          description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải quyền Admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng quản trị!
+                DT: null
+        "404":
+          description: Không tìm thấy danh mục
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy danh mục chuẩn!
+                DT: null
+        "409":
+          description: Trùng tên danh mục hệ thống
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Danh mục chuẩn đã tồn tại trên hệ thống!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+    delete:
+      tags:
+        - Admin Categories
+      summary: "UC-21: Xóa danh mục chuẩn hệ thống (Admin)"
+      description: "Từ chối xóa khi được công thức có isDeleted = false sử dụng, gồm riêng tư, chờ duyệt và đã duyệt. Kiểm tra và xóa trong cùng transaction, dùng khóa PostgreSQL chung với luồng ghi công thức. Khi chỉ còn công thức đã xóa mềm, gỡ liên kết danh mục và lưu tên nguyên liệu/đơn vị để giữ lịch sử."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 10
+      responses:
+        "200":
+          description: Xóa thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Xóa danh mục chuẩn thành công!
+                DT: null
+        "401":
+          description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải quyền Admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng quản trị!
+                DT: null
+        "404":
+          description: Không tìm thấy danh mục
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy danh mục chuẩn!
+                DT: null
+        "409":
+          description: Dữ liệu đang được sử dụng, không thể xóa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Dữ liệu đang được sử dụng!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  /ingredients:
+    get:
+      tags:
+        - Ingredients & Units
+      summary: "UC-08/22: Gợi ý và tìm kiếm từ điển nguyên liệu chuẩn"
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Từ khóa tìm kiếm tên nguyên liệu
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+          description: Lọc theo nhóm nguyên liệu
+      responses:
+        "200":
+          description: Lấy danh sách thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Thành công!
+                DT:
+                  - ingredientId: 1
+                    ingredientName: Thịt bò
+                    defaultUnit:
+                      unitId: 1
+                      unitName: gam
+                    categoryName: Thịt cá
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  /admin/ingredients:
+    post:
+      tags:
+        - Ingredients & Units
+      summary: "UC-22: Thêm nguyên liệu chuẩn vào từ điển (Admin)"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ingredientName
+                - ingredientCategoryId
+                - defaultUnitId
+              properties:
+                ingredientName:
+                  type: string
+                  example: Nấm bào ngư
+                ingredientCategoryId:
+                  type: integer
+                  example: 5
+                defaultUnitId:
+                  type: integer
+                  example: 1
+      responses:
+        "201":
+          description: Thêm mới thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Thêm nguyên liệu chuẩn thành công!
+                DT:
+                  ingredientId: 8
+                  ingredientName: Thịt gà phi lê
+                  categoryName: Thịt cá
+        "400":
+          description: Tên nguyên liệu rỗng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Tên nguyên liệu không được để trống!
+                DT: null
+        "401":
+          description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải quyền Admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng quản trị!
+                DT: null
+        "409":
+          description: Trùng tên nguyên liệu đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Nguyên liệu đã tồn tại trong hệ thống!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  "/admin/ingredients/{ingredientId}":
+    put:
+      description: "Cho phép đổi defaultUnitId sau khi tạo nếu nguyên liệu chưa được công thức hoạt động sử dụng. Nếu nguyên liệu được công thức có isDeleted = false sử dụng, đổi defaultUnitId trả HTTP 409, EC 2. Vẫn cho phép giữ nguyên defaultUnitId để sửa thông tin khác và đổi tên đơn vị qua API quản trị đơn vị."
+      tags:
+        - Ingredients & Units
+      summary: "UC-22: Chỉnh sửa thông tin nguyên liệu chuẩn (Admin)"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: ingredientId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 53
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ingredientName:
+                  type: string
+                  example: Nấm bào ngư trắng
+                ingredientCategoryId:
+                  type: integer
+                  example: 5
+                defaultUnitId:
+                  type: integer
+                  example: 1
+      responses:
+        "200":
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Cập nhật nguyên liệu thành công!
+                DT: null
+        "400":
+          description: Tên nguyên liệu rỗng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Tên nguyên liệu không được để trống!
+                DT: null
+        "401":
+          description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải quyền Admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng quản trị!
+                DT: null
+        "404":
+          description: Không tìm thấy nguyên liệu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy nguyên liệu!
+                DT: null
+        "409":
+          description: Trùng tên nguyên liệu đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Nguyên liệu đã tồn tại trong hệ thống!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+    delete:
+      tags:
+        - Ingredients & Units
+      summary: "UC-22: Xóa nguyên liệu khỏi từ điển (Admin)"
+      description: "Từ chối xóa khi được công thức có isDeleted = false sử dụng, gồm riêng tư, chờ duyệt và đã duyệt. Kiểm tra và xóa trong cùng transaction, dùng khóa PostgreSQL chung với luồng ghi công thức. Khi chỉ còn công thức đã xóa mềm, gỡ liên kết danh mục và lưu tên nguyên liệu/đơn vị để giữ lịch sử."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: ingredientId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 53
+      responses:
+        "200":
+          description: Xóa nguyên liệu thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Xóa nguyên liệu thành công!
+                DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải quyền Admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng quản trị!
+                DT: null
+        "404":
+          description: Không tìm thấy nguyên liệu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy nguyên liệu!
+                DT: null
+        "409":
+          description: Dữ liệu đang được sử dụng, không thể xóa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Dữ liệu đang được sử dụng!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  /ingredient-categories:
+    get:
+      tags:
+        - Ingredients & Units
+      summary: "UC-22: Lấy danh sách các nhóm phân loại nguyên liệu"
+      responses:
+        "200":
+          description: Lấy danh sách thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Thành công!
+                DT:
+                  - ingredientCategoryId: 1
+                    categoryName: Rau củ
+                  - ingredientCategoryId: 2
+                    categoryName: Thịt cá
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  /admin/ingredient-categories:
+    post:
+      tags:
+        - Ingredients & Units
+      summary: "UC-22: Tạo nhóm phân loại nguyên liệu mới (Admin)"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - categoryName
+              properties:
+                categoryName:
+                  type: string
+                  example: Hải sản cao cấp
+      responses:
+        "201":
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Thêm nhóm nguyên liệu thành công!
+                DT:
+                  ingredientCategoryId: 3
+                  categoryName: Hải sản
+        "400":
+          description: Tên nguyên liệu rỗng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Tên nguyên liệu không được để trống!
+                DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải quyền Admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng quản trị!
+                DT: null
+        "409":
+          description: Trùng tên nhóm đã có
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Nhóm nguyên liệu đã tồn tại!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  /units:
+    get:
+      tags:
+        - Ingredients & Units
+      summary: "UC-23: Lấy danh sách từ điển đơn vị đo lường chuẩn"
+      responses:
+        "200":
+          description: Lấy thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Thành công!
+                DT:
+                  - unitId: 1
+                    unitName: gam
+                  - unitId: 2
+                    unitName: ml
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  /admin/units:
+    post:
+      tags:
+        - Ingredients & Units
+      summary: "UC-23: Thêm đơn vị tính mới vào hệ thống (Admin)"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - unitName
+              properties:
+                unitName:
+                  type: string
+                  example: muỗng cà phê
+      responses:
+        "201":
+          description: Thêm mới thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Thêm đơn vị đo thành công!
+                DT:
+                  unitId: 4
+                  unitName: muỗng canh
+        "400":
+          description: Tên đơn vị rỗng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Tên đơn vị không được để trống!
+                DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải quyền Admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng quản trị!
+                DT: null
+        "409":
+          description: Đơn vị đo đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Đơn vị đo lường này đã có trên hệ thống!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  "/admin/units/{unitId}":
+    put:
+      tags:
+        - Ingredients & Units
+      summary: "UC-23: Sửa đơn vị đo lường (Admin)"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: unitId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 23
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - unitName
+              properties:
+                unitName:
+                  type: string
+                  example: tsp
+      responses:
+        "200":
+          description: Sửa thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Cập nhật đơn vị thành công!
+                DT: null
+        "400":
+          description: Tên đơn vị rỗng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Tên đơn vị không được để trống!
+                DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải quyền Admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng quản trị!
+                DT: null
+        "404":
+          description: Không tìm thấy đơn vị
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy đơn vị đo lường!
+                DT: null
+        "409":
+          description: Đơn vị đo đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Đơn vị đo lường này đã có trên hệ thống!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+    delete:
+      tags:
+        - Ingredients & Units
+      summary: "UC-23: Xóa đơn vị đo lường (Admin)"
+      description: "Từ chối xóa khi được công thức có isDeleted = false sử dụng, gồm riêng tư, chờ duyệt và đã duyệt. Kiểm tra và xóa trong cùng transaction, dùng khóa PostgreSQL chung với luồng ghi công thức. Khi chỉ còn công thức đã xóa mềm, gỡ liên kết danh mục và lưu tên nguyên liệu/đơn vị để giữ lịch sử. Từ chối xóa đơn vị là defaultUnitId của bất kỳ nguyên liệu chuẩn nào."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: unitId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 23
+      responses:
+        "200":
+          description: Xóa thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Xóa đơn vị đo lường thành công!
+                DT: null
+        "401":
+          description: Chưa xác thực Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không phải quyền Admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng quản trị!
+                DT: null
+        "404":
+          description: Không tìm thấy đơn vị
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Không tìm thấy đơn vị đo lường!
+                DT: null
+        "409":
+          description: Dữ liệu đang được sử dụng, không thể xóa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 2
+                EM: Dữ liệu đang được sử dụng!
+                DT: null
+        "500":
+          description: Lỗi hệ thống server hoặc CSDL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
   /recipes:
     get:
       tags:
@@ -1386,7 +2403,7 @@ paths:
                       recipeId: 105
                       approvalStatus: "Approved"
         "400":
-          description: Lỗi dữ liệu đầu vào, thiếu tham số bắt buộc hoặc quantity = 0 với đơn vị định lượng
+          description: Lỗi dữ liệu đầu vào, thiếu tham số bắt buộc, quantity = 0 với đơn vị định lượng hoặc nguyên liệu chuẩn sử dụng đơn vị khác mặc định/customUnit
           content:
             application/json:
               schema:

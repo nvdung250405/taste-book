@@ -3,6 +3,10 @@ import app from "../../src/server";
 import { createJWT } from "../../src/middleware/JWTAction";
 import db from "../../src/models/index";
 
+beforeEach(() => {
+  jest.spyOn(db.sequelize, "query").mockResolvedValue([[], {}]);
+});
+
 describe("UC-19/20: quyền Admin và kiểm duyệt công thức", () => {
   const token = (role = "Admin", userId = 1) => createJWT({ userId, role });
   let transaction;

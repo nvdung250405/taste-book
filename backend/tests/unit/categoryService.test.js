@@ -1,6 +1,11 @@
 import categoryService from "../../src/services/categoryService";
 import db from "../../src/models/index";
 
+beforeEach(() => {
+  jest.spyOn(db.sequelize, "query").mockResolvedValue([[], {}]);
+  jest.spyOn(db.sequelize, "transaction").mockResolvedValue({ commit: jest.fn(), rollback: jest.fn() });
+});
+
 describe("CategoryService Unit Tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -245,7 +250,7 @@ describe("CategoryService Unit Tests", () => {
 
       expect(res.EC).toBe(0);
       expect(res.EM).toContain("Đã xóa danh mục cá nhân thành công");
-      expect(db.RecipeCategory.destroy).toHaveBeenCalledWith({ where: { categoryId: 15 } });
+      expect(db.RecipeCategory.destroy).toHaveBeenCalledWith({ where: { categoryId: 15 }, transaction: expect.any(Object) });
       expect(mockCategory.destroy).toHaveBeenCalled();
     });
 

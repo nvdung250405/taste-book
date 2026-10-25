@@ -1,6 +1,11 @@
 import recipeService from "../../src/services/recipeService";
 import db from "../../src/models/index";
 
+beforeEach(() => {
+  jest.spyOn(db.sequelize, "query").mockResolvedValue([[], {}]);
+  jest.spyOn(db.Unit, "findByPk").mockResolvedValue({ id: 1, unitName: "g" });
+});
+
 // ==================== TEST CÔNG THỨC CHO USER ====================
 describe("Kiểm thử đơn vị dịch vụ công thức", () => {
   beforeEach(() => {
@@ -669,6 +674,7 @@ describe.each([
   });
 
   test("chấp nhận quantity = 0 nếu đơn vị mặc định là định tính", async () => {
+    db.Unit.findByPk.mockResolvedValue({ id: 23, unitName: "vừa đủ" });
     db.Ingredient.findByPk.mockResolvedValue({
       id: 1, defaultUnitId: 23, defaultUnit: { id: 23, unitName: "vừa đủ" },
     });
