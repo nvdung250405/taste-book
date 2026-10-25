@@ -420,6 +420,7 @@ paths:
                   example: "0987654321"
                 avatarUrl:
                   type: string
+                  description: "Chỉ chấp nhận URL HTTPS https://res.cloudinary.com/<CLOUDINARY_CLOUD_NAME>/image/upload/... thuộc cloud của dự án, định dạng jpg/jpeg/png/webp, tối đa 5MB. Ảnh mới phải xác minh được dung lượng qua Cloudinary; không nhận URL bên ngoài."
                   example: https://res.cloudinary.com/...
       responses:
         "200":

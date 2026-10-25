@@ -3,6 +3,7 @@ import app from "../../src/server";
 import { createJWT } from "../../src/middleware/JWTAction";
 import db from "../../src/models/index";
 import bcrypt from "bcryptjs";
+import { cloudinary } from "../../src/config/cloudinary";
 
 describe("User API Integration Tests (Supertest)", () => {
   beforeEach(() => {
@@ -60,6 +61,50 @@ describe("User API Integration Tests (Supertest)", () => {
   });
 
   describe("PUT /api/v1/users/me (UC-05: Cập nhật hồ sơ cá nhân)", () => {
+    test.each([
+      "http://169.254.169.254/latest/meta-data/",
+      "https://res.cloudinary.com.evil.test/demo/image/upload/avatar.png",
+      "https://res.cloudinary.com/other-cloud/image/upload/avatar.png",
+    ])("từ chối avatar không tin cậy qua API: %s (#70)", async (avatarUrl) => {
+      jest.replaceProperty(process, "env", { ...process.env, CLOUDINARY_CLOUD_NAME: "demo" });
+      const user = { id: 1, role: "User", update: jest.fn() };
+      db.User.findOne.mockResolvedValue(user);
+      const resource = jest.spyOn(cloudinary.api, "resource").mockResolvedValue({ bytes: 1024 });
+      const fetchSpy = jest.spyOn(global, "fetch").mockRejectedValue(new Error("Unexpected fetch"));
+      const token = createJWT({ userId: 1, role: "User" });
+
+      const res = await request(app)
+        .put("/api/v1/users/me")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ username: "user", avatarUrl });
+
+      expect(res.status).toBe(400);
+      expect(res.body.EC).toBe(1);
+      expect(user.update).not.toHaveBeenCalled();
+      expect(resource).not.toHaveBeenCalled();
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    test("chấp nhận avatar Cloudinary hợp lệ qua API (#70)", async () => {
+      jest.replaceProperty(process, "env", { ...process.env, CLOUDINARY_CLOUD_NAME: "demo" });
+      const avatarUrl = "https://res.cloudinary.com/demo/image/upload/v123/tastebook_uploads/avatar.png";
+      const user = { id: 1, role: "User", update: jest.fn().mockImplementation(async (data) => Object.assign(user, data)) };
+      db.User.findOne.mockResolvedValue(user);
+      const resource = jest.spyOn(cloudinary.api, "resource").mockResolvedValue({ bytes: 1024 });
+      const fetchSpy = jest.spyOn(global, "fetch").mockRejectedValue(new Error("Unexpected fetch"));
+      const token = createJWT({ userId: 1, role: "User" });
+
+      const res = await request(app)
+        .put("/api/v1/users/me")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ username: "user", avatarUrl });
+
+      expect(res.status).toBe(200);
+      expect(res.body.DT.avatarUrl).toBe(avatarUrl);
+      expect(resource).toHaveBeenCalledWith("tastebook_uploads/avatar");
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
     test("chặn 401 khi không gửi kèm token JWT", async () => {
       const res = await request(app)
         .put("/api/v1/users/me")

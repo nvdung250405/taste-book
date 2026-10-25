@@ -13,32 +13,31 @@ const isPhoneValid = (phone) => {
 };
 
 const getPublicIdFromUrl = (url) => {
-  if (!url) return null;
-  let cleanUrl = url.split("?")[0].split("#")[0];
-  let matches = cleanUrl.match(/\/upload\/(?:v\d+\/)?(.+?)\.[a-zA-Z0-9]+$/);
-  return matches ? matches[1] : null;
+  if (typeof url !== "string" || !process.env.CLOUDINARY_CLOUD_NAME) return null;
+  try {
+    const parsedUrl = new URL(url);
+    if (
+      parsedUrl.protocol !== "https:" ||
+      parsedUrl.hostname !== "res.cloudinary.com" ||
+      parsedUrl.port || parsedUrl.username || parsedUrl.password
+    ) return null;
+
+    const matches = parsedUrl.pathname.match(
+      /^\/([^/]+)\/image\/upload\/(?:v\d+\/)?(.+?)\.(?:jpg|jpeg|png|webp)$/i,
+    );
+    if (!matches || matches[1] !== process.env.CLOUDINARY_CLOUD_NAME) return null;
+    return matches[2];
+  } catch {
+    return null;
+  }
 };
 
-const checkImageSize = async (url) => {
+const checkImageSize = async (publicId) => {
   try {
-    let publicId = getPublicIdFromUrl(url);
-    if (publicId) {
-      try {
-        let resource = await cloudinary.api.resource(publicId);
-        if (resource && resource.bytes) {
-          return resource.bytes;
-        }
-      } catch {
-        // Fallback to fetch HEAD
-      }
-    }
-    const response = await fetch(url, { method: "HEAD" });
-    const contentLength = response.headers.get("content-length");
-    if (contentLength) {
-      return parseInt(contentLength, 10);
-    }
+    const resource = await cloudinary.api.resource(publicId);
+    if (Number.isSafeInteger(resource?.bytes) && resource.bytes > 0) return resource.bytes;
   } catch {
-    // Ignore error if URL unreachable
+    // Không gọi trực tiếp URL do người dùng nhập, kể cả khi SDK thất bại.
   }
   return null;
 };
@@ -134,9 +133,20 @@ const updateUserProfile = async (userId, data) => {
     }
 
     if (data.avatarUrl !== undefined && data.avatarUrl !== null && data.avatarUrl !== "") {
+      const publicId = getPublicIdFromUrl(data.avatarUrl);
+      if (!publicId) {
+        return {
+          EC: 1,
+          EM: "Ảnh đại diện phải là URL HTTPS thuộc Cloudinary của dự án!",
+          DT: null,
+        };
+      }
       if (data.avatarUrl !== user.avatarUrl) {
-        let size = await checkImageSize(data.avatarUrl);
-        if (size && size > 5 * 1024 * 1024) {
+        const size = await checkImageSize(publicId);
+        if (size === null) {
+          return { EC: 1, EM: "Không thể xác minh dung lượng ảnh đại diện, vui lòng thử lại!", DT: null };
+        }
+        if (size > 5 * 1024 * 1024) {
           return {
             EC: 1,
             EM: "Dung lượng tệp ảnh đại diện vượt quá giới hạn cho phép (tối đa 5MB)!",
