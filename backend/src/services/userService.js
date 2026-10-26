@@ -263,6 +263,20 @@ const changeUserPassword = async (userId, data) => {
 // 1.7 GET /admin/users - Danh sách người dùng (Admin)
 const getAllUsersAdmin = async (query = {}) => {
   try {
+    const invalidQuery = (message) => ({ EC: 1, EM: message, DT: null });
+    const isPositiveInteger = (value) =>
+      (typeof value === "string" || typeof value === "number") &&
+      /^[1-9]\d*$/.test(String(value)) && Number.isSafeInteger(Number(value));
+    const page = query.page === undefined ? 1 : query.page;
+    const limit = query.limit === undefined ? 20 : query.limit;
+    if (!isPositiveInteger(page) || !isPositiveInteger(limit) || Number(limit) > 100 ||
+      !Number.isSafeInteger((Number(page) - 1) * Number(limit))) {
+      return invalidQuery("Tham số page phải là số nguyên dương, limit phải từ 1 đến 100!");
+    }
+    if ((query.keyword !== undefined && typeof query.keyword !== "string") ||
+      (query.role !== undefined && typeof query.role !== "string")) {
+      return invalidQuery("Tham số keyword và role phải là chuỗi!");
+    }
     let whereClause = {};
 
     if (query.keyword && query.keyword.trim()) {
@@ -278,13 +292,16 @@ const getAllUsersAdmin = async (query = {}) => {
       let roleVal = query.role.trim();
       if (roleVal.toLowerCase() === "admin") roleVal = "Admin";
       else if (roleVal.toLowerCase() === "user") roleVal = "User";
+      else return invalidQuery("Vai trò không hợp lệ (chỉ nhận User hoặc Admin)!");
       whereClause.role = roleVal;
     }
 
-    let users = await db.User.findAll({
+    const { rows: users, count } = await db.User.findAndCountAll({
       where: whereClause,
       attributes: ["id", "username", "email", "phone", "role", "createdAt"],
-      order: [["createdAt", "DESC"]],
+      order: [["createdAt", "DESC"], ["id", "DESC"]],
+      limit: Number(limit),
+      offset: (Number(page) - 1) * Number(limit),
     });
 
     let formattedUsers = users.map((u) => ({
@@ -301,6 +318,10 @@ const getAllUsersAdmin = async (query = {}) => {
       EM: "Lấy danh sách người dùng thành công!",
       DT: {
         users: formattedUsers,
+        page: Number(page),
+        limit: Number(limit),
+        total: count,
+        totalPages: Math.ceil(count / Number(limit)),
       },
     };
   } catch (e) {
@@ -316,8 +337,8 @@ const getAllUsersAdmin = async (query = {}) => {
 // 1.8 GET /admin/users/:userId - Chi tiết người dùng (Admin)
 const getUserDetailAdmin = async (userId) => {
   try {
-    let parsedId = parseInt(userId, 10);
-    if (isNaN(parsedId) || parsedId <= 0) {
+    const parsedId = Number(userId);
+    if (!/^[1-9]\d*$/.test(String(userId)) || !Number.isSafeInteger(parsedId) || parsedId > 2147483647) {
       return {
         EC: 3,
         EM: "Người dùng không tồn tại!",

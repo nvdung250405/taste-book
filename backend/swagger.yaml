@@ -576,6 +576,189 @@ paths:
                 EC: -1
                 EM: Lỗi kết nối máy chủ!
                 DT: null
+  /admin/users:
+    get:
+      tags:
+        - Admin Users
+      summary: "UC-24: Tìm kiếm và phân trang danh sách người dùng (Admin)"
+      description: >-
+        Chỉ Admin được truy cập. Tìm kiếm không phân biệt hoa thường theo tên,
+        email hoặc số điện thoại, kết hợp lọc vai trò. Sắp xếp createdAt DESC,
+        id DESC. Không trả mật khẩu. Trang vượt tổng số trang trả users rỗng;
+        khi không có kết quả total và totalPages bằng 0.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: keyword
+          in: query
+          schema:
+            type: string
+          description: Tìm theo username, email hoặc phone
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum:
+              - User
+              - Admin
+          description: Lọc theo vai trò (không phân biệt hoa thường; để trống để bỏ lọc)
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Số trang (số nguyên dương)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Số tài khoản mỗi trang
+      responses:
+        "200":
+          description: Lấy danh sách người dùng thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Lấy danh sách người dùng thành công!
+                DT:
+                  page: 1
+                  limit: 20
+                  total: 1
+                  totalPages: 1
+                  users:
+                    - userId: 1
+                      username: System Admin
+                      email: admin@gmail.com
+                      phone: "0999999999"
+                      role: Admin
+                      createdAt: 2026-09-06T13:57:01Z
+        "400":
+          description: Lỗi dữ liệu đầu vào hoặc thiếu tham số bắt buộc
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Dữ liệu đầu vào không hợp lệ!
+                DT: null
+        "401":
+          description: Chưa xác thực hoặc token hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không có quyền thực hiện chức năng này
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng này!
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
+  "/admin/users/{userId}":
+    get:
+      tags:
+        - Admin Users
+      summary: "UC-24: Xem chi tiết 1 người dùng theo ID (Admin)"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 2
+      responses:
+        "200":
+          description: Lấy chi tiết người dùng thành công!
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              example:
+                EC: 0
+                EM: Lấy chi tiết người dùng thành công!
+                DT:
+                  userId: 2
+                  username: Bếp Trưởng Hoàng
+                  email: chef.hoang@tastebook.vn
+                  phone: "0912345678"
+                  role: User
+        "400":
+          description: Lỗi dữ liệu đầu vào hoặc thiếu tham số bắt buộc
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 1
+                EM: Dữ liệu đầu vào không hợp lệ!
+                DT: null
+        "401":
+          description: Chưa xác thực hoặc token hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 5
+                EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
+                DT: null
+        "403":
+          description: Không có quyền thực hiện chức năng này
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 4
+                EM: Bạn không có quyền thực hiện chức năng quản trị!
+                DT: null
+        "404":
+          description: Không tìm thấy người dùng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: 3
+                EM: Người dùng không tồn tại!
+                DT: null
+        "500":
+          description: Lỗi kết nối máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                EC: -1
+                EM: Lỗi kết nối máy chủ!
+                DT: null
   /categories:
     get:
       tags:
