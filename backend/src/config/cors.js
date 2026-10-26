@@ -49,7 +49,7 @@ const configCors = (app) => {
 
       credentials: true,
 
-      exposedHeaders: ["Retry-After", "RateLimit", "RateLimit-Policy"],
+      exposedHeaders: ["Retry-After", "RateLimit", "RateLimit-Policy", "X-RateLimit-Policy"],
 
       maxAge: 86400,
     })

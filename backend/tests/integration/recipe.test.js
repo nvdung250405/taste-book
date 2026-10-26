@@ -1,10 +1,16 @@
 import request from "supertest";
 import { Op } from "sequelize";
+import { ipKeyGenerator } from "express-rate-limit";
+import { apiLimiter } from "../../src/middleware/apiRateLimit";
 import app from "../../src/server";
 import { createJWT } from "../../src/middleware/JWTAction";
 import db from "../../src/models/index";
 
-beforeEach(() => {
+beforeEach(async () => {
+  // Keep each test independent while preserving rate limiting within a test.
+  for (const ip of ["127.0.0.1", "::ffff:127.0.0.1", "::1"]) {
+    await apiLimiter.resetKey(ipKeyGenerator(ip));
+  }
   jest.spyOn(db.sequelize, "query").mockResolvedValue([[], {}]);
 });
 
