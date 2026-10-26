@@ -8,14 +8,21 @@ import configSwagger from "./config/swagger";
 import logger from "./config/logger";
 import requestLogger from "./middleware/requestLogger";
 import errorHandler from "./middleware/errorHandler";
+import { configureTrustProxy } from "./config/trustProxy";
+import { apiLimiter } from "./middleware/apiRateLimit";
 const app = express();
+configureTrustProxy(app);
 const PORT = process.env.PORT || 5000;
 
-//config cors
+// Log CORS rejections as well as rate-limited responses.
+app.use(requestLogger);
 configCors(app);
 
-//config request logger
-app.use(requestLogger);
+// Liveness only: this does not assert database readiness.
+app.get("/healthz", (req, res) => res.status(200).json({ status: "ok" }));
+
+// Shared budget across all API routes, before parsing/authentication/DB work.
+app.use("/api/v1", apiLimiter);
 
 //config view engine
 configViewEngine(app);

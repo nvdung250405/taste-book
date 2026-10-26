@@ -14,7 +14,7 @@ Tài liệu này tổng hợp chi tiết các bước để khởi chạy và qu
 │   └── Dockerfile         # Dockerfile cho Node.js
 ├── frontend/
 │   └── Dockerfile         # Dockerfile cho React/Vite
-└── Dockerfile/            # (Nơi chứa file compose)
+└── docker/            # (Nơi chứa file compose)
     └── docker-compose.yml
 ```
 
@@ -23,7 +23,7 @@ Tài liệu này tổng hợp chi tiết các bước để khởi chạy và qu
 **Bước 1: Mở Terminal và di chuyển vào đúng thư mục**
 Nếu sử dụng Command Prompt (CMD) trên Windows và thư mục nằm ở ổ đĩa khác ổ C, bạn phải sử dụng thêm cờ `/d` để đổi ổ đĩa.
 ```cmd
-cd /d ...\taste-book\Dockerfile
+cd /d ...\taste-book\docker
 ```
 
 **Bước 2: Khởi tạo hệ thống**
@@ -66,9 +66,9 @@ Mặc dù container Frontend và Backend báo xanh (Running), Frontend vẫn kh�
   ```bash
   docker compose stop
   ```
-- **Tắt và dọn dẹp các container (Dữ liệu PostgreSQL vẫn được giữ lại do đã mount volume `pgdata`):**
+- **Tắt và dọn dẹp các container:**
   ```bash
-  docker compose down
+  docker compose down -v
   ```
 - **Xem log thực tế của toàn bộ hệ thống để tìm lỗi (nếu crash):**
   ```bash
