@@ -1,6 +1,7 @@
 import userService from "../../src/services/userService";
 import db from "../../src/models/index";
 import bcrypt from "bcryptjs";
+import { Op } from "sequelize";
 import { cloudinary } from "../../src/config/cloudinary";
 
 describe("UserService Unit Tests", () => {
@@ -345,5 +346,102 @@ describe("UserService Unit Tests", () => {
       expect(res.EC).toBe(6);
       expect(res.EM).toContain("không chính xác");
     });
+  });
+});
+
+
+describe("UC-24 admin user service", () => {
+  const user = {
+    id: 2, username: "Lan", email: "lan@example.com", phone: "0912345678",
+    role: "User", createdAt: "2026-10-25T00:00:00.000Z", password: "secret-hash",
+  };
+
+  let list;
+  beforeEach(() => {
+    list = jest.spyOn(db.User, "findAndCountAll").mockResolvedValue({ rows: [user], count: 21 });
+  });
+
+  test("default pagination and safe response fields", async () => {
+    const result = await userService.getAllUsersAdmin();
+    expect(result.EC).toBe(0);
+    expect(result.DT).toMatchObject({ page: 1, limit: 20, total: 21, totalPages: 2 });
+    expect(result.DT.users[0]).toEqual({
+      userId: 2, username: user.username, email: user.email, phone: user.phone,
+      role: "User", createdAt: user.createdAt,
+    });
+    expect(list).toHaveBeenCalledWith(expect.objectContaining({
+      limit: 20, offset: 0, order: [["createdAt", "DESC"], ["id", "DESC"]],
+      attributes: ["id", "username", "email", "phone", "role", "createdAt"],
+    }));
+  });
+
+  test("combines search, normalized role and pagination before querying", async () => {
+    const result = await userService.getAllUsersAdmin({ keyword: " Lan ", role: " aDmIn ", page: "2", limit: "10" });
+    expect(result.DT).toMatchObject({ page: 2, limit: 10, total: 21, totalPages: 3 });
+    expect(list).toHaveBeenCalledWith(expect.objectContaining({
+      limit: 10, offset: 10,
+      where: {
+        role: "Admin",
+        [Op.or]: [
+          { username: { [Op.iLike]: "%Lan%" } },
+          { email: { [Op.iLike]: "%Lan%" } },
+          { phone: { [Op.iLike]: "%Lan%" } },
+        ],
+      },
+    }));
+  });
+
+  test("ignores blank search and role", async () => {
+    await userService.getAllUsersAdmin({ keyword: "  ", role: "  " });
+    expect(list.mock.calls[0][0].where).toEqual({});
+  });
+
+  test.each([
+    { page: "0" }, { page: "-1" }, { page: "1.5" }, { page: "abc" },
+    { page: "" }, { page: [] }, { page: {} }, { page: true },
+    { page: "9007199254740992" }, { page: "9007199254740991", limit: "100" },
+    { limit: "0" }, { limit: "101" }, { limit: "-2" }, { limit: "1.5" },
+    { limit: "" }, { limit: "abc" }, { limit: ["10"] }, { limit: {} },
+    { keyword: ["Lan"] }, { keyword: {} }, { role: ["Admin"] },
+    { role: {} }, { role: "Moderator" },
+  ])("rejects invalid query without accessing DB: %j", async (query) => {
+    expect(await userService.getAllUsersAdmin(query)).toMatchObject({ EC: 1, DT: null });
+    expect(list).not.toHaveBeenCalled();
+  });
+
+  test("accepts maximum page size", async () => {
+    const result = await userService.getAllUsersAdmin({ limit: "100" });
+    expect(result.EC).toBe(0);
+    expect(result.DT.limit).toBe(100);
+  });
+
+  test.each([0, 21])("empty page retains actual total %i", async (count) => {
+    list.mockResolvedValue({ rows: [], count });
+    const result = await userService.getAllUsersAdmin({ page: "4", limit: "10" });
+    expect(result.DT).toEqual({ users: [], page: 4, limit: 10, total: count, totalPages: Math.ceil(count / 10) });
+  });
+
+  test("database failure returns generic error", async () => {
+    jest.spyOn(console, "log").mockImplementation(() => {});
+    list.mockRejectedValue(new Error("private database information"));
+    const result = await userService.getAllUsersAdmin();
+    expect(result).toEqual({ EC: -1, EM: "Lỗi kết nối máy chủ!", DT: null });
+  });
+
+  test.each(["1abc", "1.5", "0", "-1", "1e2", "9007199254740992", "2147483648"])("rejects invalid user ID %s", async (id) => {
+    const find = jest.spyOn(db.User, "findOne");
+    expect(await userService.getUserDetailAdmin(id)).toMatchObject({ EC: 3, DT: null });
+    expect(find).not.toHaveBeenCalled();
+  });
+
+  test("detail only exposes allowed fields", async () => {
+    jest.spyOn(db.User, "findOne").mockResolvedValue(user);
+    const result = await userService.getUserDetailAdmin("2");
+    expect(result.DT).toEqual({ userId: 2, username: user.username, email: user.email, phone: user.phone, role: "User" });
+  });
+
+  test("missing user returns not found", async () => {
+    jest.spyOn(db.User, "findOne").mockResolvedValue(null);
+    expect(await userService.getUserDetailAdmin("2")).toMatchObject({ EC: 3, DT: null });
   });
 });

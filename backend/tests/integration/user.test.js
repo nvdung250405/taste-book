@@ -1,4 +1,5 @@
 import request from "supertest";
+import jwt from "jsonwebtoken";
 import app from "../../src/server";
 import { createJWT } from "../../src/middleware/JWTAction";
 import db from "../../src/models/index";
@@ -196,5 +197,120 @@ describe("User API Integration Tests (Supertest)", () => {
       expect(res.body.EC).toBe(0);
       expect(res.body.EM).toContain("thành công");
     });
+  });
+});
+
+
+describe("UC-24 admin user API (mocked database)", () => {
+  let findUser;
+  let listUsers;
+  let adminToken;
+  const admin = { id: 1, username: "Admin", role: "Admin" };
+  const user = { id: 2, username: "Lan", email: "lan@example.com", phone: "0912345678", role: "User", password: "secret-hash" };
+
+  beforeEach(() => {
+    findUser = jest.spyOn(db.User, "findOne").mockResolvedValue(admin);
+    listUsers = jest.spyOn(db.User, "findAndCountAll").mockResolvedValue({ rows: [user], count: 11 });
+    adminToken = createJWT({ userId: 1, role: "Admin" });
+  });
+
+  describe.each(["/api/v1/admin/users", "/api/v1/admin/users/2"])("authorization for %s", (url) => {
+    test("missing bearer token returns 401", async () => {
+      const res = await request(app).get(url);
+      expect(res.status).toBe(401);
+      expect(res.body.EC).toBe(5);
+      expect(findUser).not.toHaveBeenCalled();
+      expect(listUsers).not.toHaveBeenCalled();
+    });
+
+    test.each(["invalid", "expired", "wrong-signature"])("%s token returns 401", async (kind) => {
+      const token = kind === "invalid" ? "invalid-token" : jwt.sign(
+        { userId: 1, role: "Admin" },
+        kind === "wrong-signature" ? "different-signing-key" : process.env.JWT_SECRET,
+        { expiresIn: kind === "expired" ? -1 : "1h" },
+      );
+      const res = await request(app).get(url).set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(401);
+      expect(listUsers).not.toHaveBeenCalled();
+    });
+
+    test("token with User role returns 403 before accessing managed accounts", async () => {
+      findUser.mockResolvedValue(user);
+      const token = createJWT({ userId: user.id, role: "User" });
+      const res = await request(app).get(url).set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(403);
+      expect(res.body).toMatchObject({ EC: 4, DT: null });
+      expect(findUser).toHaveBeenCalledTimes(1);
+      expect(findUser).toHaveBeenCalledWith({ where: { id: user.id } });
+      expect(listUsers).not.toHaveBeenCalled();
+    });
+
+    test("user role in DB overrides Admin claim in JWT", async () => {
+      findUser.mockResolvedValue({ ...admin, role: "User" });
+      const res = await request(app).get(url).set("Authorization", `Bearer ${adminToken}`);
+      expect(res.status).toBe(403);
+      expect(res.body.EC).toBe(4);
+      expect(findUser).toHaveBeenCalledTimes(1);
+      expect(listUsers).not.toHaveBeenCalled();
+    });
+
+    test("deleted token owner returns 401", async () => {
+      findUser.mockResolvedValue(null);
+      const res = await request(app).get(url).set("Authorization", `Bearer ${adminToken}`);
+      expect(res.status).toBe(401);
+      expect(listUsers).not.toHaveBeenCalled();
+    });
+  });
+
+  test("Admin gets search results and pagination without password", async () => {
+    const res = await request(app).get("/api/v1/admin/users?keyword=Lan&role=User&page=2&limit=10")
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.DT).toMatchObject({ page: 2, limit: 10, total: 11, totalPages: 2 });
+    expect(res.body.DT.users[0]).toMatchObject({ userId: 2, username: "Lan" });
+    expect(res.body.DT.users[0]).not.toHaveProperty("password");
+    expect(listUsers).toHaveBeenCalledWith(expect.objectContaining({ offset: 10, limit: 10 }));
+  });
+
+  test.each(["page=0", "limit=101", "keyword[x]=Lan", "role=Unknown", "role=Admin&role=User", "page=1&page=2"])("invalid query %s returns 400", async (query) => {
+    const res = await request(app).get(`/api/v1/admin/users?${query}`).set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(400);
+    expect(res.body.EC).toBe(1);
+    expect(listUsers).not.toHaveBeenCalled();
+  });
+
+  test("page beyond results returns 200 with empty list", async () => {
+    listUsers.mockResolvedValue({ rows: [], count: 11 });
+    const res = await request(app).get("/api/v1/admin/users?page=3&limit=10").set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.DT).toEqual({ users: [], page: 3, limit: 10, total: 11, totalPages: 2 });
+  });
+
+  test("Admin gets user detail without password", async () => {
+    findUser.mockResolvedValueOnce(admin).mockResolvedValueOnce(user);
+    const res = await request(app).get("/api/v1/admin/users/2").set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.DT).toEqual({ userId: 2, username: "Lan", email: user.email, phone: user.phone, role: "User" });
+  });
+
+  test("missing user returns 404", async () => {
+    findUser.mockResolvedValueOnce(admin).mockResolvedValueOnce(null);
+    const res = await request(app).get("/api/v1/admin/users/999").set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(404);
+    expect(res.body.EC).toBe(3);
+  });
+
+  test("malformed user ID is not interpreted as another account", async () => {
+    const res = await request(app).get("/api/v1/admin/users/2abc").set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(404);
+    expect(findUser).toHaveBeenCalledTimes(1);
+  });
+
+  test("DB failure returns 500 without internal error details", async () => {
+    jest.spyOn(console, "log").mockImplementation(() => {});
+    listUsers.mockRejectedValue(new Error("private database information"));
+    const res = await request(app).get("/api/v1/admin/users").set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ EC: -1, EM: "Lỗi kết nối máy chủ!", DT: null });
   });
 });
