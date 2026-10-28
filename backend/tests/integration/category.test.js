@@ -8,6 +8,116 @@ beforeEach(() => {
   jest.spyOn(db.sequelize, "transaction").mockResolvedValue({ commit: jest.fn(), rollback: jest.fn() });
 });
 
+describe("UC-21: API quản trị danh mục", () => {
+  const path = "categories";
+  const model = "Category";
+  const relation = "RecipeCategory";
+  const body = { categoryName: "Món kho" };
+  const token = createJWT({ userId: 1, role: "Admin" });
+  let record;
+  const send = (method, auth = token, data = body) => {
+    const requestBuilder = request(app)[method](`/api/v1/admin/${path}${method === "post" ? "" : "/7"}`);
+    if (auth) requestBuilder.set("Authorization", `Bearer ${auth}`);
+    return requestBuilder.send(data);
+  };
+  beforeEach(() => {
+    record = { id: 7, ...body, defaultUnitId: 1, destroy: jest.fn(), save: jest.fn() };
+    jest.spyOn(db.User, "findOne").mockResolvedValue({ id: 1, role: "Admin" });
+    jest.spyOn(db[model], "findOne").mockResolvedValue(record);
+    jest.spyOn(db[relation], "count").mockResolvedValue(0);
+    jest.spyOn(db.RecipeCategory, "destroy").mockResolvedValue(0);
+  });
+
+  test.each(["post", "put", "delete"])("%s yêu cầu JWT và quyền Admin", async method => {
+    expect((await send(method, null)).status).toBe(401);
+    db.User.findOne.mockResolvedValue({ id: 1, role: "User" });
+    expect((await send(method)).status).toBe(403);
+    expect(record.destroy).not.toHaveBeenCalled();
+  });
+
+  test.each(["post", "put", "delete"])("%s từ chối token role User trước khi xử lý dữ liệu", async method => {
+    db.User.findOne.mockResolvedValue({ id: 2, role: "User" });
+    const response = await send(method, createJWT({ userId: 2, role: "User" }));
+    expect(response.status).toBe(403);
+    expect(response.body).toMatchObject({ EC: 4, DT: null });
+    expect(db.Category.findOne).not.toHaveBeenCalled();
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+    expect(record.save).not.toHaveBeenCalled();
+    expect(record.destroy).not.toHaveBeenCalled();
+  });
+
+  test("DELETE đang được công thức sử dụng trả 409", async () => {
+    db[relation].count.mockResolvedValue(1);
+    const response = await send("delete");
+    expect(response.status).toBe(409);
+    expect(response.body.EC).toBe(2);
+    expect(record.destroy).not.toHaveBeenCalled();
+  });
+
+  test("DELETE chưa được sử dụng trả 200", async () => {
+    expect((await send("delete")).status).toBe(200);
+    expect(record.destroy).toHaveBeenCalled();
+  });
+
+  test("DELETE không tồn tại trả 404", async () => {
+    db[model].findOne.mockResolvedValue(null);
+    expect((await send("delete")).status).toBe(404);
+  });
+
+  test("POST tạo dữ liệu và PUT sửa dữ liệu", async () => {
+    db[model].findOne.mockResolvedValue(null);
+    jest.spyOn(db[model], "create").mockResolvedValue(record);
+    expect((await send("post")).status).toBe(201);
+    db[model].findOne.mockResolvedValueOnce(record).mockResolvedValueOnce(null);
+    expect((await send("put")).status).toBe(200);
+    expect(record.save).toHaveBeenCalled();
+  });
+
+  test("POST tên sai kiểu trả 400", async () => {
+    const name = "categoryName";
+    expect((await send("post", token, { ...body, [name]: {} })).status).toBe(400);
+  });
+});
+
+describe("UC-21: GET /api/v1/admin/categories", () => {
+  let findCategories;
+
+  beforeEach(() => {
+    jest.spyOn(db.User, "findOne").mockResolvedValue({ id: 1, role: "Admin" });
+    findCategories = jest.spyOn(db.Category, "findAll").mockResolvedValue([
+      { id: 7, categoryName: "Món kho", createdBy: null },
+    ]);
+  });
+
+  test("không token trả 401 và không đọc danh mục", async () => {
+    const response = await request(app).get("/api/v1/admin/categories");
+    expect(response.status).toBe(401);
+    expect(db.User.findOne).not.toHaveBeenCalled();
+    expect(findCategories).not.toHaveBeenCalled();
+  });
+
+  test("token role User trả 403 và không đọc danh mục", async () => {
+    db.User.findOne.mockResolvedValue({ id: 2, role: "User" });
+    const response = await request(app).get("/api/v1/admin/categories")
+      .set("Authorization", `Bearer ${createJWT({ userId: 2, role: "User" })}`);
+    expect(response.status).toBe(403);
+    expect(response.body).toMatchObject({ EC: 4, DT: null });
+    expect(findCategories).not.toHaveBeenCalled();
+  });
+
+  test("Admin nhận 200 và danh sách danh mục hệ thống", async () => {
+    const response = await request(app).get("/api/v1/admin/categories")
+      .set("Authorization", `Bearer ${createJWT({ userId: 1, role: "Admin" })}`);
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ EC: 0, DT: [
+      { categoryId: 7, categoryName: "Món kho", createdBy: null },
+    ] });
+    expect(findCategories).toHaveBeenCalledWith(expect.objectContaining({
+      where: { createdBy: null }, order: [["id", "ASC"]],
+    }));
+  });
+});
+
 describe("Category API Integration Tests (UC-25)", () => {
   const userToken = createJWT({ userId: 10, email: "user10@example.com", role: "User" });
   const otherUserToken = createJWT({ userId: 99, email: "user99@example.com", role: "User" });
