@@ -2,6 +2,7 @@ import { Search, X, Filter } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import QueryError from '../ui/QueryError'
+import IngredientFilter from './IngredientFilter'
 
 export default function RecipeSearchFilters({
   inputValue,
@@ -18,6 +19,8 @@ export default function RecipeSearchFilters({
   categoriesFetching,
   handleCategoryChange,
   categories,
+  selectedIngredient,
+  handleIngredientChange,
 }) {
   return (
     <>
@@ -45,6 +48,10 @@ export default function RecipeSearchFilters({
           )}
         </div>
       </div>
+      <IngredientFilter
+        value={selectedIngredient}
+        onChange={handleIngredientChange}
+      />
       {/* Additional Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6 items-start sm:items-center bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 font-medium">
@@ -77,7 +84,10 @@ export default function RecipeSearchFilters({
             <option value="120">Dưới 2 tiếng</option>
           </select>
 
-          {(selectedDifficulty || selectedMaxTime || selectedCategory) && (
+          {(selectedDifficulty ||
+            selectedMaxTime ||
+            selectedCategory ||
+            selectedIngredient) && (
             <Button
               variant="ghost"
               onClick={clearAllFilters}

@@ -3,7 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ChefHat } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { useRecipeDetail } from '../hooks/queries/useRecipeQueries'
-import { useAddFavorite, useRemoveFavorite, useFavoriteIds } from '../hooks/queries/useFavoriteQueries'
+import {
+  useAddFavorite,
+  useRemoveFavorite,
+  useFavoriteIds,
+} from '../hooks/queries/useFavoriteQueries'
 import { useProfile } from '../hooks/queries/useAuthQueries'
 import { toast } from 'sonner'
 import QueryError from '../components/ui/QueryError'
@@ -15,11 +19,12 @@ import RecipeQuickInfo from '../components/recipe/RecipeQuickInfo'
 import RecipeIngredients from '../components/recipe/RecipeIngredients'
 import RecipeSteps from '../components/recipe/RecipeSteps'
 import RecipeSidebar from '../components/recipe/RecipeSidebar'
+import AddToMenuDialog from '../components/menu/AddToMenuDialog'
 
 const DIFFICULTY_TEXT = {
-  'Easy': 'Dễ',
-  'Medium': 'Trung bình',
-  'Hard': 'Khó',
+  Easy: 'Dễ',
+  Medium: 'Trung bình',
+  Hard: 'Khó',
 }
 
 export default function RecipeDetailPage() {
@@ -29,14 +34,25 @@ export default function RecipeDetailPage() {
 
 function RecipeDetail({ id }) {
   const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
 
-  const { data: recipeRes, isLoading, error, refetch, isFetching } = useRecipeDetail(id)
+  const {
+    data: recipeRes,
+    isLoading,
+    error,
+    refetch,
+    isFetching,
+  } = useRecipeDetail(id)
   const { data: profileRes } = useProfile()
-  const { data: favoriteIds, isPending: favoritesPending, isError: favoritesError } = useFavoriteIds([id])
+  const {
+    data: favoriteIds,
+    isPending: favoritesPending,
+    isError: favoritesError,
+  } = useFavoriteIds([id])
   const { mutate: addFav, isPending: adding } = useAddFavorite()
   const { mutate: removeFav, isPending: removing } = useRemoveFavorite()
 
-  const [servings, setServings] = useState(null)  // null = dùng servings gốc
+  const [servings, setServings] = useState(null) // null = dùng servings gốc
   const [checkedSteps, setCheckedSteps] = useState({})
 
   const recipe = recipeRes?.DT || null
@@ -45,25 +61,35 @@ function RecipeDetail({ id }) {
   // Check if recipe is favorited
   const isFavorited = favoriteIds?.has(String(id)) || false
 
-  const actualServings = servings || recipe?.defaultServings || recipe?.servings || 4
+  const actualServings =
+    servings || recipe?.defaultServings || recipe?.servings || 4
   const originalServings = recipe?.defaultServings || recipe?.servings || 4
   const ratio = actualServings / originalServings
 
-  const toggleStep = (idx) => setCheckedSteps(p => ({ ...p, [idx]: !p[idx] }))
+  const toggleStep = (idx) => setCheckedSteps((p) => ({ ...p, [idx]: !p[idx] }))
 
   const handleFavorite = () => {
-    if (!isLoggedIn) { toast.error('Vui lòng đăng nhập để thêm yêu thích'); return }
-    if (favoritesPending || favoritesError) { toast.error('Chưa thể kiểm tra trạng thái yêu thích. Vui lòng thử lại!'); return }
+    if (!isLoggedIn) {
+      toast.error('Vui lòng đăng nhập để thêm yêu thích')
+      return
+    }
+    if (favoritesPending || favoritesError) {
+      toast.error('Chưa thể kiểm tra trạng thái yêu thích. Vui lòng thử lại!')
+      return
+    }
     if (isFavorited) {
       removeFav(id, {
         onSuccess: () => toast.success('Đã xóa khỏi yêu thích'),
         onError: () => toast.error('Thất bại'),
       })
     } else {
-      addFav({ recipeId: id, data: {} }, {
-        onSuccess: () => toast.success('Đã thêm vào yêu thích ❤️'),
-        onError: () => toast.error('Thất bại'),
-      })
+      addFav(
+        { recipeId: id, data: {} },
+        {
+          onSuccess: () => toast.success('Đã thêm vào yêu thích ❤️'),
+          onError: () => toast.error('Thất bại'),
+        },
+      )
     }
   }
 
@@ -88,7 +114,12 @@ function RecipeDetail({ id }) {
             <div className="space-y-4">
               <div className="h-8 w-1/3 bg-slate-200 dark:bg-slate-800 rounded"></div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {[1,2,3,4].map(i => <div key={i} className="h-12 rounded-xl bg-slate-200 dark:bg-slate-800"></div>)}
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="h-12 rounded-xl bg-slate-200 dark:bg-slate-800"
+                  ></div>
+                ))}
               </div>
             </div>
           </div>
@@ -101,7 +132,14 @@ function RecipeDetail({ id }) {
     )
   }
 
-  if (error && error.EC !== 3) return <QueryError title="Không thể tải công thức" onRetry={refetch} isRetrying={isFetching} />
+  if (error && error.EC !== 3)
+    return (
+      <QueryError
+        title="Không thể tải công thức"
+        onRetry={refetch}
+        isRetrying={isFetching}
+      />
+    )
 
   if (error || !recipe) {
     return (
@@ -109,8 +147,12 @@ function RecipeDetail({ id }) {
         <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
           <ChefHat className="w-10 h-10 text-slate-400" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-300">Không tìm thấy công thức</h2>
-        <p className="text-slate-500 text-sm">Công thức này có thể đã bị xóa hoặc không tồn tại.</p>
+        <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-300">
+          Không tìm thấy công thức
+        </h2>
+        <p className="text-slate-500 text-sm">
+          Công thức này có thể đã bị xóa hoặc không tồn tại.
+        </p>
         <Button onClick={() => navigate(-1)} variant="outline">
           <ArrowLeft className="w-4 h-4 mr-2" /> Quay lại
         </Button>
@@ -123,8 +165,12 @@ function RecipeDetail({ id }) {
   const tags = recipe.categories || recipe.tags || []
   // Backend trả về authorName (string), không phải object author
   const author = {
-    name: recipe.authorName || recipe.author?.username || recipe.author?.name || 'TasteBook Chef',
-    email: recipe.author?.email || ''
+    name:
+      recipe.authorName ||
+      recipe.author?.username ||
+      recipe.author?.name ||
+      'TasteBook Chef',
+    email: recipe.author?.email || '',
   }
 
   return (
@@ -144,12 +190,19 @@ function RecipeDetail({ id }) {
         </h1>
         <div className="flex flex-wrap items-center gap-2">
           {tags.map((tag, idx) => (
-            <Badge key={tag.categoryId || tag.id || tag._id || idx} variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 border-none px-3 py-1 text-sm font-medium">
+            <Badge
+              key={tag.categoryId || tag.id || tag._id || idx}
+              variant="secondary"
+              className="bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 border-none px-3 py-1 text-sm font-medium"
+            >
               {tag.categoryName || tag.name || String(tag)}
             </Badge>
           ))}
           {recipe.difficulty && (
-            <Badge variant="outline" className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
+            <Badge
+              variant="outline"
+              className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm"
+            >
               Độ khó: {DIFFICULTY_TEXT[recipe.difficulty] || recipe.difficulty}
             </Badge>
           )}
@@ -159,11 +212,11 @@ function RecipeDetail({ id }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left: Main Content */}
         <div className="lg:col-span-2 space-y-8">
-          <RecipeHero 
-            recipe={recipe} 
-            isFavorited={isFavorited} 
-            handleFavorite={handleFavorite} 
-            disabledBtn={adding || removing} 
+          <RecipeHero
+            recipe={recipe}
+            isFavorited={isFavorited}
+            handleFavorite={handleFavorite}
+            disabledBtn={adding || removing}
           />
 
           <RecipeQuickInfo recipe={recipe} actualServings={actualServings} />
@@ -171,35 +224,53 @@ function RecipeDetail({ id }) {
           {/* Description */}
           {recipe.description && (
             <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-3">Giới thiệu</h2>
-              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{recipe.description}</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-3">
+                Giới thiệu
+              </h2>
+              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                {recipe.description}
+              </p>
             </div>
           )}
 
-          <RecipeIngredients 
-            ingredients={ingredients} 
-            actualServings={actualServings} 
-            setServings={setServings} 
-            ratio={ratio} 
+          <RecipeIngredients
+            ingredients={ingredients}
+            actualServings={actualServings}
+            setServings={setServings}
+            ratio={ratio}
           />
 
-          <RecipeSteps 
-            steps={steps} 
-            checkedSteps={checkedSteps} 
-            toggleStep={toggleStep} 
+          <RecipeSteps
+            steps={steps}
+            checkedSteps={checkedSteps}
+            toggleStep={toggleStep}
           />
         </div>
 
         {/* Right: Sidebar */}
-        <RecipeSidebar 
-          author={author} 
-          recipe={recipe} 
-          tags={tags} 
-          isFavorited={isFavorited} 
-          handleFavorite={handleFavorite} 
-          disabledBtn={adding || removing} 
+        <RecipeSidebar
+          onAddToMenu={() => {
+            if (!localStorage.getItem('token')) {
+              toast.info('Vui lòng đăng nhập để thêm món vào thực đơn')
+              return
+            }
+            setMenuOpen(true)
+          }}
+          author={author}
+          recipe={recipe}
+          tags={tags}
+          isFavorited={isFavorited}
+          handleFavorite={handleFavorite}
+          disabledBtn={adding || removing}
         />
       </div>
+      {menuOpen && (
+        <AddToMenuDialog
+          recipeId={id}
+          servings={actualServings}
+          onClose={() => setMenuOpen(false)}
+        />
+      )}
     </div>
   )
 }

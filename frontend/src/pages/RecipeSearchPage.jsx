@@ -54,6 +54,7 @@ export default function RecipeSearchPage() {
   // The URL owns the applied filters. Only text awaiting debounce is local state.
   const search = searchParams.get('search') || ''
   const selectedCategory = searchParams.get('categoryId') || ''
+  const selectedIngredient = searchParams.get('ingredientId') || ''
   const selectedDifficulty = searchParams.get('difficulty') || ''
   const selectedMaxTime = searchParams.get('maxTime') || ''
   const page = Number(searchParams.get('page'))
@@ -100,6 +101,7 @@ export default function RecipeSearchPage() {
   }
 
   const handleCategoryChange = (id) => updateFilters({ categoryId: id })
+  const handleIngredientChange = (id) => updateFilters({ ingredientId: id })
   const handleDifficultyChange = (val) => updateFilters({ difficulty: val })
   const handleMaxTimeChange = (val) => updateFilters({ maxTime: val })
 
@@ -111,6 +113,7 @@ export default function RecipeSearchPage() {
   const params = {
     ...(search && { search }),
     ...(selectedCategory && { categoryId: selectedCategory }),
+    ...(selectedIngredient && { ingredientId: selectedIngredient }),
     ...(selectedDifficulty && { difficulty: selectedDifficulty }),
     ...(selectedMaxTime && { maxTime: selectedMaxTime }),
     page: currentPage,
@@ -227,6 +230,8 @@ export default function RecipeSearchPage() {
           categoriesFetching,
           handleCategoryChange,
           categories,
+          selectedIngredient,
+          handleIngredientChange,
         }}
       />
 
