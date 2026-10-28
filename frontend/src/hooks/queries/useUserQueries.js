@@ -6,7 +6,7 @@ import usersApi from '../../api/users.api';
 export const useAdminUsers = (params = {}) => {
   return useQuery({
     queryKey: ['admin-users', params],
-    queryFn: () => usersApi.getUsers(params),
+    queryFn: ({ signal }) => usersApi.getUsers(params, { signal }),
     // Thường danh sách user không cần refetch liên tục
     staleTime: 60 * 1000, 
   });
@@ -15,7 +15,7 @@ export const useAdminUsers = (params = {}) => {
 export const useAdminUserDetail = (userId) => {
   return useQuery({
     queryKey: ['admin-user', userId],
-    queryFn: () => usersApi.getUserById(userId),
+    queryFn: ({ signal }) => usersApi.getUserById(userId, { signal }),
     enabled: !!userId,
   });
 };

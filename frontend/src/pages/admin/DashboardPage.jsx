@@ -1,170 +1,225 @@
+﻿import { Link } from 'react-router-dom'
 import {
   Users,
   UtensilsCrossed,
-  BookOpenCheck,
-  Activity,
-  ArrowUpRight,
+  ArrowRight,
+  RefreshCw,
+  LayoutDashboard,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
 import { useAdminUsers } from '../../hooks/queries/useUserQueries'
 import { useRecipes } from '../../hooks/queries/useRecipeQueries'
 import QueryError from '../../components/ui/QueryError'
+import {
+  recipeImageProps,
+  handleRecipeImageError,
+} from '../../lib/recipeImages'
 
 export default function DashboardPage() {
-  const { data: usersRes, isLoading: loadingUsers, isError: usersError, isFetching: usersFetching, refetch: retryUsers } = useAdminUsers()
-  const { data: recipesRes, isLoading: loadingRecipes, isError: recipesError, isFetching: recipesFetching, refetch: retryRecipes } = useRecipes()
-
-  const totalUsers = usersRes?.DT?.users?.length ?? '—'
-  const totalRecipes = recipesRes?.DT?.total ?? '—'
-
-  const STATS = [
+  const users = useAdminUsers({ page: 1, limit: 5 })
+  const recipes = useRecipes(
+    { page: 1, limit: 5, sortBy: 'createdAt', sortOrder: 'DESC' },
+    { staleTime: 60 * 1000 },
+  )
+  const busy = users.isFetching || recipes.isFetching
+  const stats = [
     {
       title: 'Tổng người dùng',
-      value: loadingUsers ? '...' : totalUsers,
+      query: users,
       icon: Users,
-      color: 'text-blue-500',
-      bg: 'bg-blue-100 dark:bg-blue-900/30',
-      note: 'Tài khoản đã đăng ký',
+      note: 'Tài khoản đã đăng ký trên hệ thống',
+      color: 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300',
     },
     {
-      title: 'Tổng công thức',
-      value: loadingRecipes ? '...' : totalRecipes,
+      title: 'Công thức đã duyệt',
+      query: recipes,
       icon: UtensilsCrossed,
-      color: 'text-orange-500',
-      bg: 'bg-orange-100 dark:bg-orange-900/30',
-      note: 'Công thức công khai đã được duyệt',
-    },
-    {
-      title: 'Công thức chờ duyệt',
-      value: '—',
-      icon: BookOpenCheck,
-      color: 'text-yellow-500',
-      bg: 'bg-yellow-100 dark:bg-yellow-900/30',
-      note: 'API chưa hỗ trợ',
-    },
-    {
-      title: 'Lượt truy cập',
-      value: '—',
-      icon: Activity,
-      color: 'text-green-500',
-      bg: 'bg-green-100 dark:bg-green-900/30',
-      note: 'API chưa hỗ trợ',
+      note: 'Công thức đã được duyệt và công khai',
+      color:
+        'bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-300',
     },
   ]
-
   return (
-    <div className="space-y-6">
-      {usersError && <QueryError title="Không thể tải thống kê người dùng" onRetry={retryUsers} isRetrying={usersFetching} />}
-      {recipesError && <QueryError title="Không thể tải thống kê công thức" onRetry={retryRecipes} isRetrying={recipesFetching} />}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Tổng quan hệ thống</h1>
-        <p className="text-slate-500">Xin chào Admin, đây là tình hình hoạt động của TasteBook.</p>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-orange-700 dark:text-orange-400">
+            <LayoutDashboard className="h-4 w-4" />
+            Không gian quản trị
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            Tổng quan hệ thống
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Theo dõi tài khoản và các công thức mới nhất của TasteBook.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          disabled={busy}
+          onClick={() => {
+            users.refetch()
+            recipes.refetch()
+          }}
+        >
+          <RefreshCw className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} />
+          Làm mới
+        </Button>
       </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {STATS.map((stat, idx) => {
-          const Icon = stat.icon
-          return (
-            <Card key={idx} className="border-slate-200 dark:border-slate-800 shadow-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.bg}`}>
-                    <Icon className={`w-6 h-6 ${stat.color}`} />
-                  </div>
-                  {stat.value !== '—' && stat.value !== '...' && (
-                    <div className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full text-green-600 bg-green-50 dark:bg-green-900/20">
-                      <ArrowUpRight className="w-3 h-3" />
-                      Dữ liệu thật
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-slate-500 text-sm font-medium mb-1">{stat.title}</h3>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-slate-50">{stat.value}</p>
-                  <p className="text-xs text-slate-400 mt-1">{stat.note}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {stats.map(({ title, query, icon: Icon, note, color }) => (
+          <Card key={title} className="rounded-2xl">
+            <CardContent className="flex items-center justify-between gap-4 px-6">
+              <div>
+                <h2 className="text-sm font-medium text-slate-500">{title}</h2>
+                <p
+                  aria-live="polite"
+                  className="my-2 text-4xl font-bold tabular-nums"
+                >
+                  {query.isPending
+                    ? '…'
+                    : query.isError
+                      ? '—'
+                      : (query.data?.DT?.total ?? 0).toLocaleString('vi-VN')}
+                </p>
+                <p className="text-xs text-slate-500">{note}</p>
+              </div>
+              <span
+                className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${color}`}
+              >
+                <Icon className="h-7 w-7" />
+              </span>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-
-      {/* Info cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Users */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="min-w-0 rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-500" />
-              Người dùng gần đây
-            </CardTitle>
-            <CardDescription>Danh sách tài khoản mới đăng ký</CardDescription>
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-lg">Người dùng gần đây</CardTitle>
+              <Link
+                to="/admin/users"
+                className="flex shrink-0 items-center gap-1 text-sm font-medium text-orange-700 hover:underline dark:text-orange-400"
+              >
+                Xem tất cả
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <CardDescription>5 tài khoản mới đăng ký</CardDescription>
           </CardHeader>
           <CardContent>
-            {loadingUsers ? (
-              <p className="text-slate-400 text-sm">Đang tải...</p>
-            ) : (
-              <div className="space-y-3">
-                {(usersRes?.DT?.users || []).slice(0, 5).map((user) => (
-                  <div key={user.userId} className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-xs uppercase shrink-0">
-                      {(user.username || 'U').charAt(0)}
+            {users.isError ? (
+              <QueryError
+                title="Không thể tải dữ liệu người dùng"
+                onRetry={users.refetch}
+                isRetrying={users.isFetching}
+              />
+            ) : users.isPending ? (
+              <p role="status" className="py-8 text-sm text-slate-500">
+                Đang tải tài khoản…
+              </p>
+            ) : users.data?.DT?.users?.length ? (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {users.data.DT.users.map((user) => (
+                  <div
+                    key={user.userId}
+                    className="flex items-center gap-3 py-3"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100 font-semibold text-orange-700 dark:bg-orange-950 dark:text-orange-300"
+                    >
+                      {(user.username || 'U').charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {user.username}
+                      </p>
+                      <p className="truncate text-xs text-slate-500">
+                        {user.email}
+                      </p>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{user.username}</p>
-                      <p className="text-xs text-slate-400 truncate">{user.email}</p>
-                    </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
-                      user.role === 'Admin'
-                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
-                    }`}>
+                    <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                       {user.role}
                     </span>
                   </div>
                 ))}
-                {(usersRes?.DT?.users?.length || 0) === 0 && (
-                  <p className="text-slate-400 text-sm">Không có người dùng nào.</p>
-                )}
               </div>
+            ) : (
+              <p className="py-8 text-sm text-slate-500">
+                Chưa có người dùng nào.
+              </p>
             )}
           </CardContent>
         </Card>
-
-        {/* Recent Recipes */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+        <Card className="min-w-0 rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <UtensilsCrossed className="w-5 h-5 text-orange-500" />
-              Công thức gần đây
-            </CardTitle>
-            <CardDescription>Công thức đã được duyệt và công khai</CardDescription>
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-lg">Công thức gần đây</CardTitle>
+              <Link
+                to="/admin/approvals"
+                className="flex shrink-0 items-center gap-1 text-sm font-medium text-orange-700 hover:underline dark:text-orange-400"
+              >
+                Kiểm duyệt
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <CardDescription>
+              Công thức công khai mới nhất đã được duyệt
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {loadingRecipes ? (
-              <p className="text-slate-400 text-sm">Đang tải...</p>
-            ) : (
-              <div className="space-y-3">
-                {(recipesRes?.DT?.recipes || recipesRes?.DT || []).slice(0, 5).map((recipe, idx) => (
-                  <div key={recipe.id || idx} className="flex items-center gap-3">
-                    {recipe.thumbnailUrl ? (
-                      <img src={recipe.thumbnailUrl} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
-                        <UtensilsCrossed className="w-4 h-4 text-orange-500" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{recipe.title}</p>
-                      <p className="text-xs text-slate-400">{recipe.cookTimeMinutes} phút · {recipe.difficulty}</p>
+            {recipes.isError ? (
+              <QueryError
+                title="Không thể tải dữ liệu công thức"
+                onRetry={recipes.refetch}
+                isRetrying={recipes.isFetching}
+              />
+            ) : recipes.isPending ? (
+              <p role="status" className="py-8 text-sm text-slate-500">
+                Đang tải công thức…
+              </p>
+            ) : recipes.data?.DT?.recipes?.length ? (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {recipes.data.DT.recipes.map((recipe) => (
+                  <Link
+                    key={recipe.recipeId}
+                    to={`/recipe/${recipe.recipeId}`}
+                    className="flex items-center gap-3 rounded-lg py-3 hover:text-orange-600"
+                  >
+                    <img
+                      {...recipeImageProps(recipe.thumbnailUrl)}
+                      onError={handleRecipeImageError}
+                      alt=""
+                      loading="lazy"
+                      className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">
+                        {recipe.title}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {recipe.cookTimeMinutes ?? '—'} phút ·{' '}
+                        {{ Easy: 'Dễ', Medium: 'Trung bình', Hard: 'Khó' }[
+                          recipe.difficulty
+                        ] || recipe.difficulty}
+                      </p>
                     </div>
-                  </div>
+                  </Link>
                 ))}
-                {(recipesRes?.DT?.recipes || recipesRes?.DT || []).length === 0 && (
-                  <p className="text-slate-400 text-sm">Chưa có công thức nào được duyệt.</p>
-                )}
               </div>
+            ) : (
+              <p className="py-8 text-sm text-slate-500">
+                Chưa có công thức công khai đã duyệt.
+              </p>
             )}
           </CardContent>
         </Card>
