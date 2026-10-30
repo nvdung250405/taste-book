@@ -1,5 +1,5 @@
 ﻿import { useRef, useState } from 'react'
-import { BookOpenCheck, CheckCircle, Eye, Loader2, RefreshCw, Search, Star, XCircle } from 'lucide-react'
+import { BookOpenCheck, CheckCircle, Eye, Loader2, RefreshCw, Search, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -61,10 +61,6 @@ function ReviewDialog({ recipe, onClose }) {
       </section>
       <div className="space-y-4 border-t pt-4" aria-busy={busy}>
         {!rejecting ? <>
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
-            <input type="checkbox" checked={false} disabled className="mt-1 size-4" />
-            <span><span className="flex items-center gap-1 font-semibold"><Star className="size-4" />Gán cờ Món chính thức</span><span>Chưa khả dụng: API hiện tại chưa hỗ trợ gán cờ.</span></span>
-          </label>
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" disabled={busy} onClick={onClose}>Đóng</Button>
             <Button variant="destructive" disabled={busy} onClick={() => { setRejecting(true); setError('') }}><XCircle className="size-4" />Từ chối</Button>
