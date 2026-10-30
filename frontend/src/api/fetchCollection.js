@@ -1,5 +1,10 @@
-// These endpoints only filter on the client, so collect every server page first.
-export async function fetchCollection(fetchPage, signal) {
+// Fallback for features the API cannot filter yet. Normal list browsing should
+// request a single server page instead of calling this helper.
+export async function fetchCollection(
+  fetchPage,
+  signal,
+  getId = (item) => item.recipeId ?? item.id,
+) {
   signal?.throwIfAborted()
   const first = await fetchPage(1)
   const items = [...(first.DT?.items || [])]
@@ -13,7 +18,14 @@ export async function fetchCollection(fetchPage, signal) {
   signal?.throwIfAborted()
 
   // A concurrent insertion can move a recipe onto the next server page.
-  const uniqueItems = [...new Map(items.map(item => [item.recipeId, item])).values()]
+  const uniqueItems = [
+    ...new Map(
+      items.map((item) => {
+        const id = getId(item)
+        return [id === undefined || id === null ? Symbol() : String(id), item]
+      }),
+    ).values(),
+  ]
   return {
     ...first,
     DT: { items: uniqueItems, total: uniqueItems.length },
