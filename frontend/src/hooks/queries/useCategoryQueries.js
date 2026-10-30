@@ -17,10 +17,11 @@ export const useCategories = (options = {}) => {
   });
 };
 
-export const useAdminCategories = () => {
+export const useAdminCategories = (options = {}) => {
   return useQuery({
     queryKey: ['admin-categories'],
     queryFn: () => categoriesApi.getAdminCategories(),
+    ...options,
   });
 };
 

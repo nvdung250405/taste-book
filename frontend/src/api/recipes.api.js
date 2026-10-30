@@ -43,8 +43,8 @@ const recipesApi = {
   // --- ADMIN RECIPES ---
 
   // Admin xem toàn bộ công thức
-  getAdminRecipes() {
-    return axiosClient.get('/admin/recipes');
+  getAdminRecipes(params = {}, options = {}) {
+    return axiosClient.get('/admin/recipes', { ...options, params });
   },
 
   // Admin tạo công thức chuẩn

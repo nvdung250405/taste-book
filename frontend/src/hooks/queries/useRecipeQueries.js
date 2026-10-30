@@ -86,10 +86,11 @@ export const useDeleteRecipe = () => {
 
 // --- ADMIN RECIPE QUERIES ---
 
-export const useAdminRecipes = () => {
+export const useAdminRecipes = (params = {}, options = {}) => {
   return useQuery({
-    queryKey: ['admin-recipes'],
-    queryFn: () => recipesApi.getAdminRecipes(),
+    queryKey: ['admin-recipes', params],
+    queryFn: ({ signal }) => recipesApi.getAdminRecipes(params, { signal }),
+    ...options,
   });
 };
 
@@ -111,6 +112,7 @@ export const useCreateAdminRecipe = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
       queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
     },
   });
 };
@@ -124,6 +126,10 @@ export const useUpdateAdminRecipe = () => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
       queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipe', variables.recipeId] });
+      queryClient.invalidateQueries({ queryKey: ['recipe', String(variables.recipeId)] });
+      queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe-list'] });
     },
   });
 };
@@ -132,10 +138,16 @@ export const useDeleteAdminRecipe = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (recipeId) => recipesApi.deleteAdminRecipe(recipeId),
-    onSuccess: () => {
+    onSuccess: (_, recipeId) => {
       queryClient.invalidateQueries({ queryKey: ['admin-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
       queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe', String(recipeId)] });
+      queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+      queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe-list'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe-lists'] });
     },
   });
 };

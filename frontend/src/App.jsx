@@ -72,6 +72,7 @@ const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
 const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
 const AdminApprovalsPage = lazy(() => import('./pages/admin/AdminApprovalsPage'))
+const AdminRecipesPage = lazy(() => import('./pages/admin/AdminRecipesPage'))
 const AdminCategoriesPage = lazy(() => import('./pages/admin/AdminCategoriesPage'))
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'))
 const AdminIngredientsPage = lazy(() => import('./pages/admin/AdminIngredientsPage'))
@@ -119,6 +120,9 @@ function App() {
             <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
               <Route index element={<DashboardPage />} />
               <Route path="approvals" element={<AdminApprovalsPage />} />
+              <Route path="recipes" element={<AdminRecipesPage />} />
+              <Route path="recipes/create" element={<RecipeFormPage admin />} />
+              <Route path="recipes/:id/edit" element={<RecipeFormPage admin />} />
               <Route path="categories" element={<AdminCategoriesPage />} />
               <Route path="users" element={<AdminUsersPage />} />
               <Route path="ingredients" element={<AdminIngredientsPage />} />
