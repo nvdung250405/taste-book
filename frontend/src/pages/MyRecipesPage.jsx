@@ -22,7 +22,7 @@ import useCollectionParams from '../hooks/useCollectionParams'
 import RecipeDeleteDialog from '../components/recipe/RecipeDeleteDialog'
 import useRecipeGridColumns from '../hooks/useRecipeGridColumns'
 import MyRecipeCard from '../components/recipe/MyRecipeCard'
-import { filterRecipes, recipeCounts } from '../lib/collectionFilters'
+import { filterRecipes } from '../lib/collectionFilters'
 
 export default function MyRecipesPage() {
   const gridColumns = useRecipeGridColumns()
@@ -36,27 +36,50 @@ export default function MyRecipesPage() {
     setPage,
     reset,
   } = useCollectionParams()
-  const { data: res, isLoading, isError, isFetching, refetch } = useMyRecipes()
+  // The current API pages records but does not filter them. Only load the full
+  // collection when a global search/status filter actually needs it.
+  const needsCollection = !!search.trim() || activeTab !== 'all'
+  const paginated = useMyRecipes(
+    { page, limit: 12 },
+    { enabled: !needsCollection },
+  )
+  const collection = useMyRecipes(
+    {},
+    { enabled: needsCollection, staleTime: 60 * 1000 },
+  )
+  const {
+    data: res,
+    isPending: isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = needsCollection ? collection : paginated
   const { mutate: deleteRecipe, isPending: deleting } = useDeleteRecipe()
 
   const [toDelete, setToDelete] = useState(null)
 
   const allRecipes = res?.DT?.items || []
-  const counts = recipeCounts(allRecipes)
-  const recipes = filterRecipes(allRecipes, activeTab, search)
-  const totalPages = Math.max(1, Math.ceil(recipes.length / 12))
-  const visibleRecipes = recipes.slice((page - 1) * 12, page * 12)
+  const recipes = needsCollection
+    ? filterRecipes(allRecipes, activeTab, search)
+    : allRecipes
+  const total = res?.DT?.total
+  const totalPages = Math.max(
+    1,
+    needsCollection ? Math.ceil(recipes.length / 12) : res?.DT?.totalPages || 1,
+  )
+  const visibleRecipes = needsCollection
+    ? recipes.slice((page - 1) * 12, page * 12)
+    : recipes
   useEffect(() => {
     if (res && !isFetching && page > totalPages) setPage(totalPages)
   }, [res, isFetching, page, totalPages, setPage])
 
   // Tabs cấu hình
   const tabs = [
-    { id: 'all', label: 'Tất cả', count: counts.all, icon: BookOpen },
+    { id: 'all', label: 'Tất cả', count: total, icon: BookOpen },
     {
       id: 'approved',
       label: 'Đã duyệt',
-      count: counts.approved,
       icon: CheckCircle2,
       color: 'text-emerald-500',
       activeColor:
@@ -65,7 +88,6 @@ export default function MyRecipesPage() {
     {
       id: 'pending',
       label: 'Chờ duyệt',
-      count: counts.pending,
       icon: Clock3,
       color: 'text-amber-500',
       activeColor:
@@ -74,25 +96,19 @@ export default function MyRecipesPage() {
     {
       id: 'rejected',
       label: 'Bị từ chối',
-      count: counts.rejected,
       icon: XCircle,
       color: 'text-rose-500',
       activeColor:
         'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300',
     },
-    ...(counts.draft > 0
-      ? [
-          {
-            id: 'draft',
-            label: 'Riêng tư / Nháp',
-            count: counts.draft,
-            icon: Lock,
-            color: 'text-slate-500',
-            activeColor:
-              'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
-          },
-        ]
-      : []),
+    {
+      id: 'draft',
+      label: 'Riêng tư / Nháp',
+      icon: Lock,
+      color: 'text-slate-500',
+      activeColor:
+        'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
+    },
   ]
 
   const handleDelete = () => {
@@ -155,22 +171,24 @@ export default function MyRecipesPage() {
                   }`}
                 />
                 <span>{tab.label}</span>
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-semibold transition-colors ${
-                    isActive
-                      ? 'bg-white/20 text-white dark:bg-slate-900/10 dark:text-slate-900'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  {tab.count}
-                </span>
+                {tab.count !== undefined && (
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-semibold transition-colors ${
+                      isActive
+                        ? 'bg-white/20 text-white dark:bg-slate-900/10 dark:text-slate-900'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
               </button>
             )
           })}
         </div>
 
         {/* Tìm kiếm nhanh */}
-        {(counts.all > 0 || searchQuery) && (
+        {
           <div className="relative w-full md:w-64 shrink-0">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -190,7 +208,7 @@ export default function MyRecipesPage() {
               </button>
             )}
           </div>
-        )}
+        }
       </div>
 
       {/* Content list */}

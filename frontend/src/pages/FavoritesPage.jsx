@@ -22,7 +22,22 @@ export default function FavoritesPage() {
   const hasToken = !!localStorage.getItem('token')
   const { page, search, searchQuery, setSearchQuery, setPage } =
     useCollectionParams()
-  const { data: res, isLoading, isError, isFetching, refetch } = useFavorites()
+  const needsCollection = !!search.trim()
+  const paginated = useFavorites(
+    { page, limit: 12 },
+    { enabled: hasToken && !needsCollection },
+  )
+  const collection = useFavorites(
+    {},
+    { enabled: hasToken && needsCollection, staleTime: 60 * 1000 },
+  )
+  const {
+    data: res,
+    isPending: isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = needsCollection ? collection : paginated
   const { mutate: removeFav } = useRemoveFavorite()
   const { mutate: updateNote, isPending: updatingNote } =
     useUpdateFavoriteNote()
@@ -30,9 +45,17 @@ export default function FavoritesPage() {
   const [noteDialog, setNoteDialog] = useState(null) // { recipeId, note }
   const [removingIds, setRemovingIds] = useState(new Set())
 
-  const favorites = filterFavorites(res?.DT?.items || [], search)
-  const totalPages = Math.max(1, Math.ceil(favorites.length / 12))
-  const visibleFavorites = favorites.slice((page - 1) * 12, page * 12)
+  const items = res?.DT?.items || []
+  const favorites = needsCollection ? filterFavorites(items, search) : items
+  const totalPages = Math.max(
+    1,
+    needsCollection
+      ? Math.ceil(favorites.length / 12)
+      : res?.DT?.totalPages || 1,
+  )
+  const visibleFavorites = needsCollection
+    ? favorites.slice((page - 1) * 12, page * 12)
+    : favorites
   useEffect(() => {
     if (res && !isFetching && page > totalPages) setPage(totalPages)
   }, [res, isFetching, page, totalPages, setPage])
