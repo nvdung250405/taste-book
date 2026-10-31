@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
   BookOpenCheck,
+  BookOpen,
   Tags,
   Carrot,
   Scale,
@@ -10,6 +11,7 @@ import {
 
 const items = [
   { to: '/admin', label: 'Tổng quan', icon: LayoutDashboard, end: true },
+  { to: '/admin/recipes', label: 'Công thức chuẩn', icon: BookOpen },
   {
     to: '/admin/approvals',
     label: 'Kiểm duyệt công thức',
