@@ -322,6 +322,9 @@ describe("Recipe API Integration Tests (Supertest)", () => {
   });
 
   describe("GET /api/v1/recipes/mine (UC-09: Quản lý công thức của tôi)", () => {
+    beforeEach(() => {
+      jest.spyOn(db.Recipe, "findAll").mockResolvedValue([]);
+    });
     test("chặn 401 khi không gửi kèm token", async () => {
       const res = await request(app).get("/api/v1/recipes/mine");
 
@@ -802,4 +805,50 @@ describe("UC-19: Admin CRUD, validation và khóa công thức", () => {
       expect(transactions.reduce((sum, t) => sum + t.rollback.mock.calls.length, 0)).toBe(1);
     },
   );
+});
+
+
+describe("#100: authenticated recipe search API", () => {
+  const token = createJWT({ userId: 10, role: "User" });
+  beforeEach(async () => {
+    for (const ip of ["127.0.0.1", "::ffff:127.0.0.1", "::1"]) {
+      await apiLimiter.resetKey(ipKeyGenerator(ip));
+    }
+    jest.spyOn(db.User, "findOne").mockResolvedValue({ id: 10, role: "User" });
+    jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({ count: 13, rows: [{ id: 101, title: "Phở bò" }] });
+    jest.spyOn(db.Recipe, "findAll").mockResolvedValue([{ isPublic: true, approvalStatus: "Approved", count: "13" }]);
+    jest.spyOn(db.FavoriteRecipe, "findAndCountAll").mockResolvedValue({ count: 13, rows: [
+      { recipeId: 101, recipe: { title: "Phở bò", author: { id: 2, username: "chef" } }, personalNotes: "ít muối" },
+    ] });
+  });
+
+  test.each(["search", "keyword"])("mine accepts %s + status and returns filtered pagination and badges", async (alias) => {
+    const response = await request(app).get("/api/v1/recipes/mine")
+      .query({ [alias]: "pho", status: "approved", page: 2, limit: 12 })
+      .set("Authorization", `Bearer ${token}`);
+    expect(response.status).toBe(200);
+    expect(response.body.DT).toMatchObject({ page: 2, limit: 12, total: 13, totalPages: 2,
+      items: [{ recipeId: 101, title: "Phở bò" }],
+      totals: { total: 13, approved: 13, pending: 0, rejected: 0, private: 0 } });
+    expect(db.Recipe.findAndCountAll).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ authorId: 10, isDeleted: false, isPublic: true, approvalStatus: "Approved" }),
+      limit: 12, offset: 12,
+    }));
+  });
+
+  test.each([
+    "/recipes/mine?status=invalid", "/recipes/mine?status[]=approved",
+    "/recipes/mine?search[]=pho", "/recipes/mine?keyword[x]=pho",
+  ])("malformed query returns 400 before database access: %s", async (path) => {
+    const response = await request(app).get(`/api/v1${path}`).set("Authorization", `Bearer ${token}`);
+    expect(response.status).toBe(400);
+    expect(response.body.EC).toBe(1);
+    expect(db.Recipe.findAndCountAll).not.toHaveBeenCalled();
+    expect(db.Recipe.findAll).not.toHaveBeenCalled();
+    expect(db.FavoriteRecipe.findAndCountAll).not.toHaveBeenCalled();
+  });
+
+  test.each(["/recipes/mine?search=pho&status=approved"])("search still requires authentication: %s", async (path) => {
+    expect((await request(app).get(`/api/v1${path}`)).status).toBe(401);
+  });
 });

@@ -2410,9 +2410,27 @@ paths:
       tags:
         - User Recipes
       summary: "UC-09: Quản lý danh sách các công thức do chính mình tạo"
+      description: "Tìm kiếm tên công thức không phân biệt hoa/thường và dấu tiếng Việt tại database trước khi phân trang. DT.total/totalPages áp dụng cả search và status. DT.totals áp dụng search nhưng bỏ qua status và phân trang, chỉ đếm công thức của người dùng chưa bị xóa. Các nhóm trạng thái không chồng nhau: private là isPublic=false; approved/pending/rejected chỉ tính isPublic=true."
       security:
         - bearerAuth: []
       parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: "Tìm chuỗi con trong title; trim khoảng trắng, chuỗi rỗng không lọc. Ký tự %, _ được tìm như ký tự thông thường. Không nhận mảng/object."
+        - in: query
+          name: keyword
+          schema:
+            type: string
+          description: "Alias của search; search không rỗng được ưu tiên nếu truyền cả hai."
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [all, approved, pending, rejected, private, draft]
+            default: all
+          description: "Trạng thái không phân biệt hoa/thường; draft là alias của private. Giá trị sai trả 400."
         - in: query
           name: page
           schema:
@@ -2444,6 +2462,12 @@ paths:
                   limit: 10
                   total: 25
                   totalPages: 3
+                  totals:
+                    total: 25
+                    approved: 10
+                    pending: 7
+                    rejected: 3
+                    private: 5
                   items:
                     - recipeId: 105
                       title: Canh chua cá lóc
@@ -2456,7 +2480,7 @@ paths:
                       rejectionReason: null
                       createdAt: "2026-08-20T10:00:00.000Z"
         "400":
-          description: Tham số phân trang không hợp lệ
+          description: Tham số phân trang, từ khóa tìm kiếm hoặc trạng thái không hợp lệ
           content:
             application/json:
               schema:
@@ -3639,10 +3663,20 @@ paths:
       tags:
         - Favorites
       summary: "5.1. UC-12: Danh sách món yêu thích"
-      description: "Lấy danh sách các món ăn được người dùng lưu vào bộ sưu tập yêu thích kèm ghi chú cá nhân (personalNotes), thông tin món ăn (ảnh đại diện, thời gian nấu, tác giả...) và hỗ trợ phân trang (page, limit)."
+      description: "Lấy danh sách món yêu thích chưa bị xóa của người dùng. Tìm chuỗi con trong tên món (recipe.title), tên tác giả (recipe.author.username) hoặc ghi chú cá nhân (personalNotes), không phân biệt hoa/thường và dấu tiếng Việt. Lọc tại database trước khi phân trang; total/totalPages là số lượng kết quả phù hợp."
       security:
         - bearerAuth: []
       parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: "Từ khóa tìm kiếm; trim khoảng trắng, chuỗi rỗng không lọc. Ký tự %, _ được tìm như ký tự thông thường. Không nhận mảng/object."
+        - name: keyword
+          in: query
+          schema:
+            type: string
+          description: "Alias của search; search không rỗng được ưu tiên nếu truyền cả hai."
         - name: page
           in: query
           description: "Số trang cần lấy (mặc định: 1)"
@@ -3686,7 +3720,7 @@ paths:
                       personalNotes: "Nêm ớt vừa tay, nấu cho gia đình vào cuối tuần."
                       createdAt: "2026-08-22T08:30:00.000Z"
         "400":
-          description: Tham số phân trang page hoặc limit không hợp lệ
+          description: Tham số phân trang page/limit hoặc từ khóa search/keyword không hợp lệ
           content:
             application/json:
               schema:

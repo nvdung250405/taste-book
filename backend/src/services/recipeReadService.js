@@ -1,4 +1,6 @@
 import db from "../models/index";
+import { Op, Sequelize } from "sequelize";
+import { collectionKeyword, collectionTextMatch } from "./recipeSearchService";
 import { isQualitativeUnit } from "./unitService";
 
 const getRecipeById = async (id, viewerId = null, viewerRole = null) => {
@@ -269,6 +271,21 @@ const scaleRecipeIngredients = async (
   }
 };
 
+const collectionStatus = (value = "all") => {
+  if (typeof value !== "string") throw new Error("Trạng thái không hợp lệ!");
+  const status = value.trim().toLowerCase() || "all";
+  if (!["all", "approved", "pending", "rejected", "private", "draft"].includes(status)) {
+    throw new Error("Trạng thái không hợp lệ!");
+  }
+  return status === "draft" ? "private" : status;
+};
+
+const recipeStatusWhere = (status) => {
+  if (status === "all") return {};
+  if (status === "private") return { isPublic: false };
+  return { isPublic: true, approvalStatus: status[0].toUpperCase() + status.slice(1) };
+};
+
 // 4.5 GET /api/v1/recipes/mine - Quản lý công thức của tôi (UC-09)
 const getMyRecipes = async (user, query = {}) => {
   try {
@@ -281,6 +298,13 @@ const getMyRecipes = async (user, query = {}) => {
       };
     }
 
+    let keyword, status;
+    try {
+      keyword = collectionKeyword(query);
+      status = collectionStatus(query.status);
+    } catch (error) {
+      return { EC: 1, EM: error.message, DT: null };
+    }
     const { page, limit } = query;
 
     let pageNumber = 1;
@@ -309,10 +333,13 @@ const getMyRecipes = async (user, query = {}) => {
 
     const offset = (pageNumber - 1) * limitNumber;
 
+    const baseWhere = { authorId: userId, isDeleted: false };
+    if (keyword) baseWhere[Op.and] = [collectionTextMatch("Recipe.title", keyword)];
+
     const { count, rows: recipes } = await db.Recipe.findAndCountAll({
       where: {
-        authorId: userId,
-        isDeleted: false,
+        ...baseWhere,
+        ...recipeStatusWhere(status),
       },
       attributes: [
         "id",
@@ -326,10 +353,25 @@ const getMyRecipes = async (user, query = {}) => {
         "rejectionReason",
         "createdAt",
       ],
-      order: [["createdAt", "DESC"]],
+      order: [["createdAt", "DESC"], ["id", "DESC"]],
       limit: limitNumber,
       offset: offset,
     });
+
+    // Aggregate at the database across all tabs, within the same search scope.
+    const groups = await db.Recipe.findAll({
+      where: baseWhere,
+      attributes: ["isPublic", "approvalStatus", [Sequelize.fn("COUNT", Sequelize.col("id")), "count"]],
+      group: ["isPublic", "approvalStatus"],
+      raw: true,
+    });
+    const totals = { total: 0, approved: 0, pending: 0, rejected: 0, private: 0 };
+    for (const group of groups) {
+      const amount = Number(group.count);
+      const key = group.isPublic ? group.approvalStatus.toLowerCase() : "private";
+      totals.total += amount;
+      if (Object.prototype.hasOwnProperty.call(totals, key)) totals[key] += amount;
+    }
 
     const formatted = recipes.map((r) => ({
       recipeId: r.id,
@@ -352,6 +394,7 @@ const getMyRecipes = async (user, query = {}) => {
         limit: limitNumber,
         total: count,
         totalPages: Math.ceil(count / limitNumber),
+        totals,
         items: formatted,
       },
     };
