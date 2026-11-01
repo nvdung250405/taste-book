@@ -3,11 +3,12 @@
  * Chạy Postman Collection bằng Newman theo môi trường.
  *
  * Cách dùng (từ thư mục backend/):
- *   node scripts/run-newman.js <local|staging> [auth|user|recipes|recipe-mgmt|all]
+ *   node scripts/run-newman.js <local|staging> [auth|admin|user|recipes|...|all]
  *
  * Ví dụ:
  *   node scripts/run-newman.js local                 # chạy tất cả collection trên local
- *   node scripts/run-newman.js staging recipe-mgmt   # chỉ chạy collection mới trên Render
+ *   node scripts/run-newman.js staging uc19          # chạy riêng UC-19
+ *   node scripts/run-newman.js staging admin         # chạy tuần tự các bộ Admin độc lập
  *
  * - Tự "đánh thức" backend trước khi chạy (Render free ngủ sau 15 phút - RSK-04).
  * - Báo cáo HTML: reports/<collection>-<env>-report.html
@@ -24,6 +25,13 @@ const DATA_DIR = path.join(POSTMAN_DIR, "data"); // ảnh mẫu cho test upload 
 
 const COLLECTIONS = {
   auth: "tastebook_auth_postman_collection_v2.json",
+  uc19: "tastebook_uc19_admin_recipes_postman_collection.json",
+  uc20: "tastebook_uc20_moderation_postman_collection.json",
+  uc21: "tastebook_uc21_admin_categories_postman_collection.json",
+  uc22: "tastebook_uc22_admin_ingredients_postman_collection.json",
+  uc23: "tastebook_uc23_admin_units_postman_collection.json",
+  uc24: "tastebook_uc24_admin_users_postman_collection.json",
+  "admin-images": "tastebook_uc08_admin_images_postman_collection.json",
   user: "tastebook_user_profile_postman_collection_v2.json",
   recipes: "tastebook_recipes_postman_collection.json",
   categories: "tastebook_categories_postman_collection.json",
@@ -37,6 +45,10 @@ const COLLECTIONS = {
   uc17: "tastebook_uc17_shopping_list_postman_collection.json",
   uc18: "tastebook_uc18_shopping_list_postman_collection.json",
 };
+
+const ADMIN_COLLECTIONS = ["uc19", "uc20", "uc21", "uc22", "uc23", "uc24", "admin-images"];
+// 3 giây/request theo cấu hình chạy QA; quota 100 request/15 phút vẫn dùng chung.
+const API_DELAY_MS = 3000;
 
 const ENVIRONMENTS = {
   local: {
@@ -67,6 +79,20 @@ function readBaseUrl(envPath) {
   if (!item || !item.value)
     fail(`Environment ${path.basename(envPath)} chưa có biến baseUrl.`);
   return item.value.replace(/\/+$/, "");
+}
+
+function authRequestNames(collectionPath) {
+  const collection = JSON.parse(fs.readFileSync(collectionPath, "utf8"));
+  const names = [];
+  const visit = (items) => {
+    for (const item of items || []) {
+      if (item.item) visit(item.item);
+      const url = typeof item.request?.url === "string" ? item.request.url : item.request?.url?.raw;
+      if (url && /\/auth\/(login|register)(?:[/?#]|$)/.test(url)) names.push(item.name);
+    }
+  };
+  visit(collection.item);
+  return names;
 }
 
 async function warmUp(baseUrl, attempts, envName) {
@@ -105,15 +131,20 @@ async function main() {
       `Thiếu/sai môi trường. Dùng: local | staging\n  node scripts/run-newman.js <local|staging> [${Object.keys(COLLECTIONS).join("|")}|all]`,
     );
 
-  const keys = which === "all" ? Object.keys(COLLECTIONS) : [which];
+  const keys = which === "admin" ? ADMIN_COLLECTIONS : which === "all" ? Object.keys(COLLECTIONS) : [which];
   for (const k of keys)
     if (!COLLECTIONS[k])
       fail(
-        `Collection không hợp lệ: "${k}". Chọn: ${Object.keys(COLLECTIONS).join(", ")}, all`,
+        `Collection không hợp lệ: "${k}". Chọn: ${Object.keys(COLLECTIONS).join(", ")}, admin, all`,
       );
 
   const envPath = path.join(POSTMAN_DIR, envCfg.file);
   if (!fs.existsSync(envPath)) fail(`Không thấy file environment: ${envPath}`);
+  for (const key of keys) {
+    if (!fs.existsSync(path.join(POSTMAN_DIR, COLLECTIONS[key]))) {
+      fail(`Không thấy collection ${COLLECTIONS[key]}; không được bỏ qua rồi báo thành công.`);
+    }
+  }
 
   const baseUrl = readBaseUrl(envPath);
   console.log(
@@ -126,12 +157,6 @@ async function main() {
 
   for (const key of keys) {
     const colPath = path.join(POSTMAN_DIR, COLLECTIONS[key]);
-    if (!fs.existsSync(colPath)) {
-      console.warn(
-        `[run-newman] BỎ QUA "${key}": chưa có file ${COLLECTIONS[key]}`,
-      );
-      continue;
-    }
     const report = path.join(REPORT_DIR, `${key}-${envName}-report.html`);
     const args = [
       "run",
@@ -148,6 +173,18 @@ async function main() {
       quote(`TasteBook - ${key} - ${envName}`),
     ];
     if (fs.existsSync(DATA_DIR)) args.push("--working-dir", quote(DATA_DIR));
+    if (ADMIN_COLLECTIONS.includes(key)) {
+      args.push("--reporter-htmlextra-skipHeaders", quote("Authorization,Cookie,Set-Cookie"));
+      const authRequests = authRequestNames(colPath).join(",");
+      if (authRequests) {
+        args.push("--reporter-htmlextra-hideRequestBody", quote(authRequests));
+        args.push("--reporter-htmlextra-hideResponseBody", quote(authRequests));
+      }
+    }
+    if (ADMIN_COLLECTIONS.includes(key) || which === "all") {
+      args.push("--delay-request", API_DELAY_MS);
+      console.log(`[run-newman] Giãn cách ${API_DELAY_MS} ms/request. Quota API vẫn là 100 request/15 phút/IP; tránh chạy dồn nhiều bộ.`);
+    }
 
     console.log(`\n[run-newman] ===== ${key} (${envName}) =====`);
     const r = spawnSync(`npx newman ${args.join(" ")}`, {

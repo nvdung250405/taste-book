@@ -1,0 +1,857 @@
+{
+  "info": {
+    "_postman_id": "d640caed-1796-4c14-9387-2ade79a2b2c6",
+    "name": "TasteBook UC-08 Admin API - Normal, Abnormal, Boundary (TB-98)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Bộ độc lập UC-8, dùng sáu biến environment hiện có. Có setup, xác minh dữ liệu, cleanup riêng và assertion cuối kiểm tra đủ 4 mã TC. Không sửa dữ liệu seed. Các giới hạn lấy từ code chưa được tài liệu duyệt được ghi rõ trong CSV/spec gaps; BE/BA phải chốt trước nghiệm thu Staging. Runner trên Staging có delay 11000ms/request để giữ hạn mức 100 request/15 phút; không chạy đồng thời nhiều bộ trên cùng IP. Nhóm nguyên liệu không có API xóa: UC-22 để lại 4 nhóm; các UC khác không tạo nhóm. Xem README_admin_rbac.md."
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "tb98RunId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98UserToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AdminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98UserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AdminId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98CategoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98GroupId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98UnitId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98IngredientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98RecipeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98PendingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98ImageId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98ImageIdEncoded",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryCategoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryGroupId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryIngredientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryUnitId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryRecipeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryPendingOneId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryPendingTwoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryBeyondLastPage",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryExpectedName",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryCategoryQueue",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryUnitQueue",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryIngredientQueue",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryRecipeQueue",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryPendingQueue",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalRecipeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalPendingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalRejectedId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalCategoryAId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalCategoryBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalIngredientAId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalIngredientBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalUnitAId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalUnitBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98ExecutedCases",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98RemainingGroups",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Đọc cấu hình từ environment Local/Staging đang được chọn.",
+          "var environmentKeys = [\"baseUrl\",\"userAEmail\",\"userPassword\",\"adminEmail\",\"adminPassword\",\"maxResponseMs\"];",
+          "environmentKeys.forEach(function (key) {",
+          "  pm.variables.set(key, pm.environment.get(key));",
+          "});",
+          "",
+          "// Dùng phạm vi cục bộ để environment không ghi đè ID và token của lượt chạy.",
+          "      Object.keys(pm.collectionVariables.toObject()).forEach(function (key) {",
+          "        if (key.indexOf('tb98') === 0) pm.variables.set(key, pm.collectionVariables.get(key));",
+          "      });",
+          "// Mỗi request dùng lại ngưỡng environment; chỉ warm-up được nới riêng.",
+          "pm.variables.set('tb98ResponseLimitMs', Number(pm.environment.get('maxResponseMs')));"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Cấu trúc phản hồi: JSON có đủ EC/EM/DT', function () {",
+          "        pm.expect(pm.response.headers.get('Content-Type') || '').to.include('application/json');",
+          "        var data = pm.response.json();",
+          "        pm.expect(data).to.be.an('object');",
+          "        pm.expect(data).to.have.all.keys('EC', 'EM', 'DT');",
+          "        pm.expect(data.EC).to.be.a('number');",
+          "        pm.expect(data.EM).to.be.a('string'); pm.expect(data.EM.trim()).not.to.eql('');",
+          "        pm.expect(data.DT === null || typeof data.DT === 'object').to.eql(true);",
+          "      });",
+          "      pm.test('Cấu trúc phản hồi: lỗi không trả dữ liệu', function () {",
+          "        if (pm.response.code >= 400) pm.expect(pm.response.json().DT).to.eql(null);",
+          "      });",
+          "",
+          "pm.test('Hiệu năng: thời gian phản hồi nhỏ hơn ngưỡng của request', function () {",
+          "  var maxResponseMs = Number(pm.variables.get('tb98ResponseLimitMs'));",
+          "  pm.expect(Number.isFinite(maxResponseMs) && maxResponseMs > 0).to.eql(true);",
+          "  pm.expect(pm.response.responseTime).to.be.below(maxResponseMs);",
+          "});",
+          "var caseId = pm.info.requestName.match(/^TC-\\d{2}-\\d{2}[a-z]?\\b/);",
+          "if (caseId) { var seen = JSON.parse(pm.collectionVariables.get('tb98ExecutedCases') || '[]'); if (seen.indexOf(caseId[0]) < 0) seen.push(caseId[0]); pm.collectionVariables.set('tb98ExecutedCases', JSON.stringify(seen)); }",
+          "if (pm.request.method === 'POST' && pm.request.url.toString().split('?')[0].endsWith('/admin/ingredient-categories') && pm.response.code === 201) {",
+          "  var groupData = null; try { groupData = pm.response.json(); } catch (error) {}",
+          "  if (groupData && groupData.EC === 0 && groupData.DT && Number.isSafeInteger(groupData.DT.ingredientCategoryId)) {",
+          "    var group = { runId: pm.collectionVariables.get('tb98RunId'), ingredientCategoryId: groupData.DT.ingredientCategoryId, categoryName: groupData.DT.categoryName };",
+          "    var groups = JSON.parse(pm.collectionVariables.get('tb98RemainingGroups') || '[]'); groups.push(group); pm.collectionVariables.set('tb98RemainingGroups', JSON.stringify(groups));",
+          "    console.log('QA_LEFTOVER_GROUP ' + JSON.stringify(group));",
+          "  }",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00_Setup",
+      "item": [
+        {
+          "name": "TC-SETUP-01 Warm-up backend và khởi tạo lượt chạy (UC-08)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Kiểm tra các biến environment có sẵn trước khi tạo dữ liệu kiểm thử.",
+                  "var requiredKeys = [\"baseUrl\",\"userAEmail\",\"userPassword\",\"adminEmail\",\"adminPassword\",\"maxResponseMs\"];",
+                  "var missingKeys = requiredKeys.filter(function (key) {",
+                  "  var value = pm.environment.get(key);",
+                  "  return value === undefined || value === null || String(value).trim() === '';",
+                  "});",
+                  "if (missingKeys.length > 0) {",
+                  "  pm.execution.setNextRequest(null);",
+                  "  throw new Error('Environment đang chọn thiếu các biến: ' + missingKeys.join(', '));",
+                  "}",
+                  "if (!/^https?:\\/\\/.+\\/api\\/v1$/.test(String(pm.environment.get('baseUrl')))) {",
+                  "  pm.execution.setNextRequest(null);",
+                  "  throw new Error('Biến baseUrl trong environment phải là URL HTTP(S), kết thúc bằng /api/v1 và không có dấu gạch chéo cuối.');",
+                  "}",
+                  "var maxResponseMs = Number(pm.environment.get('maxResponseMs'));",
+                  "if (!Number.isFinite(maxResponseMs) || maxResponseMs <= 0) {",
+                  "  pm.execution.setNextRequest(null);",
+                  "  throw new Error('Biến maxResponseMs trong environment phải là số dương.');",
+                  "}",
+                  "",
+                  "pm.collectionVariables.toObject && Object.keys(pm.collectionVariables.toObject()).forEach(function (key) {",
+                  "          if (key.indexOf('tb98') === 0) pm.collectionVariables.unset(key);",
+                  "        });",
+                  "        pm.collectionVariables.set('tb98RunId', Date.now().toString(36) + Math.random().toString(36).slice(2, 7));",
+                  "pm.variables.set('tb98ResponseLimitMs', Math.max(60000, Number(pm.environment.get('maxResponseMs'))));",
+                  "pm.collectionVariables.set('tb98ExecutedCases', '[]');",
+                  "pm.collectionVariables.set('tb98RemainingGroups', '[]');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc sẽ báo JSON không hợp lệ. */ }",
+                  "pm.test('TC-SETUP-01 Máy chủ phản hồi HTTP 200 và EC 0', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(body).to.be.an('object');",
+                  "  pm.expect(body.EC).to.eql(0);",
+                  "});",
+                  "if (pm.response.code !== 200 || !body || body.EC !== 0) pm.execution.setNextRequest(null);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/home",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "home"
+              ]
+            },
+            "description": "Đánh thức máy chủ bằng GET /home trước khi đăng nhập. Chỉ request này được nới ngưỡng thời gian lên tối thiểu 60000 ms; các request kiểm thử vẫn dùng maxResponseMs trong environment."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SETUP-02 Đăng nhập User lấy token (UC-08)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-SETUP-02 HTTP 200 và EC 0', function () {",
+                  "      pm.response.to.have.status(200);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(0);",
+                  "    });",
+                  "    ",
+                  "        var dt = body && body.DT;",
+                  "        var valid = Boolean(dt && typeof dt.accessToken === 'string' && /^[\\w-]+\\.[\\w-]+\\.[\\w-]+$/.test(dt.accessToken) && dt.user && dt.user.role === 'User' && Number.isSafeInteger(dt.user.userId) && dt.user.userId > 0);",
+                  "        pm.test('Đăng nhập trả JWT hợp lệ và đúng vai trò User', function () { pm.expect(valid).to.eql(true); });",
+                  "        if (pm.response.code === 200 && body && body.EC === 0 && valid) {",
+                  "          pm.collectionVariables.set('tb98UserToken', dt.accessToken);",
+                  "          pm.collectionVariables.set('tb98UserId', dt.user.userId);",
+                  "        } else { pm.execution.setNextRequest(null); }",
+                  "      ",
+                  "    ",
+                  "    if (pm.response.code !== 200 || !body || body.EC !== 0) { pm.execution.setNextRequest(null); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "POST /auth/login. Kỳ vọng HTTP 200, EC=0. Vai trò: Khách chưa đăng nhập (Guest).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{userAEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SETUP-03 Đăng nhập Admin lấy token (UC-08)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-SETUP-03 HTTP 200 và EC 0', function () {",
+                  "      pm.response.to.have.status(200);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(0);",
+                  "    });",
+                  "    ",
+                  "        var dt = body && body.DT;",
+                  "        var valid = Boolean(dt && typeof dt.accessToken === 'string' && /^[\\w-]+\\.[\\w-]+\\.[\\w-]+$/.test(dt.accessToken) && dt.user && dt.user.role === 'Admin' && Number.isSafeInteger(dt.user.userId) && dt.user.userId > 0);",
+                  "        pm.test('Đăng nhập trả JWT hợp lệ và đúng vai trò Admin', function () { pm.expect(valid).to.eql(true); });",
+                  "        if (pm.response.code === 200 && body && body.EC === 0 && valid) {",
+                  "          pm.collectionVariables.set('tb98AdminToken', dt.accessToken);",
+                  "          pm.collectionVariables.set('tb98AdminId', dt.user.userId);",
+                  "        } else { pm.execution.setNextRequest(null); }",
+                  "      ",
+                  "    ",
+                  "    if (pm.response.code !== 200 || !body || body.EC !== 0) { pm.execution.setNextRequest(null); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "POST /auth/login. Kỳ vọng HTTP 200, EC=0. Vai trò: Khách chưa đăng nhập (Guest).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PRE-08-01 Tải lên ảnh riêng cho kiểm thử xóa ảnh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('PRE-08-01 HTTP 201 và EC 0', function () {",
+                  "      pm.response.to.have.status(201);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(0);",
+                  "    });",
+                  "    ",
+                  "    ",
+                  "    var savedId = body && body.DT && body.DT.publicId;",
+                  "    var validId = typeof savedId === 'string' && savedId.length > 0;",
+                  "    pm.test('PRE-08-01 ID dữ liệu kiểm thử vừa tạo hợp lệ', function () { pm.expect(validId).to.eql(true); });",
+                  "    if (pm.response.code === 201 && body && body.EC === 0 && validId) {",
+                  "      pm.collectionVariables.set('tb98ImageId', savedId);",
+                  "      pm.collectionVariables.set('tb98ImageIdEncoded', encodeURIComponent(savedId));",
+                  "    } else { pm.execution.setNextRequest(null); }",
+                  "    ",
+                  "    if (pm.response.code !== 201 || !body || body.EC !== 0) { pm.execution.setNextRequest(null); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "images"
+              ]
+            },
+            "description": "POST /images. Kỳ vọng HTTP 201, EC=0. Vai trò: Quản trị viên (Admin).",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "anh-mau.png"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01_UC8_Normal_RBAC",
+      "item": [
+        {
+          "name": "TC-08-59 Xóa ảnh theo publicId khi không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-08-59 HTTP 401 và EC 5', function () {",
+                  "      pm.response.to.have.status(401);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(5);",
+                  "    });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/images/{{tb98ImageIdEncoded}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "images",
+                "{{tb98ImageIdEncoded}}"
+              ]
+            },
+            "description": "DELETE /images/{{tb98ImageIdEncoded}}. Kỳ vọng HTTP 401, EC=5. Vai trò: Khách chưa đăng nhập (Guest).\nUC: 08; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-08-60 Xóa ảnh theo publicId bằng tài khoản User không có quyền Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-08-60 HTTP 403 và EC 4', function () {",
+                  "      pm.response.to.have.status(403);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(4);",
+                  "    });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98UserToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/images/{{tb98ImageIdEncoded}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "images",
+                "{{tb98ImageIdEncoded}}"
+              ]
+            },
+            "description": "DELETE /images/{{tb98ImageIdEncoded}}. Kỳ vọng HTTP 403, EC=4. Vai trò: Người dùng thường (User).\nUC: 08; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-08-61 Admin Xóa ảnh theo publicId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-08-61 HTTP 200 và EC 0', function () {",
+                  "      pm.response.to.have.status(200);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(0);",
+                  "    });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/images/{{tb98ImageIdEncoded}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "images",
+                "{{tb98ImageIdEncoded}}"
+              ]
+            },
+            "description": "DELETE /images/{{tb98ImageIdEncoded}}. Kỳ vọng HTTP 200, EC=0. Vai trò: Quản trị viên (Admin).\nUC: 08; Loại: Normal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-08-62 Xóa lại cùng ảnh phải báo không tồn tại",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-62 Ảnh đã xóa không còn tồn tại', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "  var body = pm.response.json(); pm.expect(body.EC).to.eql(3); pm.expect(body.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/images/{{tb98ImageIdEncoded}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "images",
+                "{{tb98ImageIdEncoded}}"
+              ]
+            },
+            "description": "Sau khi Admin xóa ảnh thành công, gửi lại DELETE cùng publicId của ảnh kiểm thử. Kỳ vọng HTTP 404, EC=3, DT=null; phát hiện trường hợp API báo thành công nhưng không xóa ảnh.\nUC: 08; Loại: Normal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "99_Teardown",
+      "item": [
+        {
+          "name": "TD-08-01 Dọn ảnh kiểm thử nếu vẫn còn",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/images/{{tb98ImageIdEncoded}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "images",
+                "{{tb98ImageIdEncoded}}"
+              ]
+            },
+            "description": "Dọn ảnh kiểm thử nếu vẫn còn. Kỳ vọng HTTP 200/404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TD-08-01 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([200,404]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TD-08-99 Kiểm tra đủ mã TC đã được thực thi",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/home",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "home"
+              ]
+            },
+            "description": "Kiểm tra đủ mã TC đã được thực thi. Kỳ vọng HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TD-08-99 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([200]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});",
+                  "",
+                  "pm.test('Đã thực thi đủ mã TC của UC-8', function () { var seen=JSON.parse(pm.collectionVariables.get('tb98ExecutedCases')||'[]');pm.expect(seen.slice().sort()).to.eql([\"TC-08-59\",\"TC-08-60\",\"TC-08-61\",\"TC-08-62\"].slice().sort()); });",
+                  "var remainingGroups = JSON.parse(pm.collectionVariables.get('tb98RemainingGroups') || '[]'); if (remainingGroups.length) console.log('QA_LEFTOVER_GROUPS ' + JSON.stringify(remainingGroups));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}
