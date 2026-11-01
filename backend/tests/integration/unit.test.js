@@ -78,6 +78,52 @@ describe("UC-23: API quản trị đơn vị đo", () => {
     const name = "unitName";
     expect((await send("post", token, { ...body, [name]: {} })).status).toBe(400);
   });
+
+  test.each([["TC-23-17", "post"], ["TC-23-25", "put"]])(
+    "BUGS-11 %s rejects 31 characters with the correct error",
+    async (_testCase, method) => {
+      jest.spyOn(db.Unit, "create");
+      const response = await send(method, token, { unitName: "N".repeat(31) });
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        EC: 1, EM: "Tên đơn vị không được vượt quá 30 ký tự!", DT: null,
+      });
+      expect(db.Unit.findOne).not.toHaveBeenCalled();
+      expect(db.Unit.create).not.toHaveBeenCalled();
+      expect(record.save).not.toHaveBeenCalled();
+      const transaction = await db.sequelize.transaction.mock.results[0].value;
+      expect(transaction.rollback).toHaveBeenCalledTimes(1);
+      expect(transaction.commit).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(["post", "put"])("BUGS-11 %s preserves empty-name validation", async method => {
+    for (const unitName of ["", "   ", null, {}, 123]) {
+      const response = await send(method, token, { unitName });
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ EC: 1, EM: "Tên đơn vị không được để trống!", DT: null });
+    }
+  });
+
+  test.each(["post", "put"])("BUGS-11 %s accepts 30 characters after trim", async method => {
+    const unitName = "N".repeat(30);
+    jest.spyOn(db.Unit, "create").mockResolvedValue({ id: 7, unitName });
+    db.Unit.findOne.mockReset();
+    if (method === "put") db.Unit.findOne.mockResolvedValueOnce(record);
+    db.Unit.findOne.mockResolvedValue(null);
+    const response = await send(method, token, { unitName: `  ${unitName}  ` });
+    expect(response.status).toBe(method === "post" ? 201 : 200);
+    expect(response.body.EC).toBe(0);
+    if (method === "post") {
+      expect(response.body.DT.unitName).toBe(unitName);
+      expect(db.Unit.create).toHaveBeenCalledWith(
+        { unitName }, { transaction: expect.any(Object) },
+      );
+    } else {
+      expect(record.unitName).toBe(unitName);
+      expect(record.save).toHaveBeenCalled();
+    }
+  });
 });
 
 describe("UC-23: GET /api/v1/units", () => {

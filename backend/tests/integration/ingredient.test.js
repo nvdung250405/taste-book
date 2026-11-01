@@ -80,6 +80,54 @@ describe("UC-22: API quản trị nguyên liệu", () => {
     const name = "ingredientName";
     expect((await send("post", token, { ...body, [name]: {} })).status).toBe(400);
   });
+
+  test.each([["TC-22-26", "post"], ["TC-22-34", "put"]])(
+    "BUGS-9 %s rejects 256 characters with the correct error",
+    async (_testCase, method) => {
+      jest.spyOn(db.Ingredient, "create");
+      const response = await send(method, token, { ...body, ingredientName: "N".repeat(256) });
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        EC: 1, EM: "Tên nguyên liệu không được vượt quá 255 ký tự!", DT: null,
+      });
+      expect(db.Ingredient.findOne).not.toHaveBeenCalled();
+      expect(db.IngredientCategory.findOne).not.toHaveBeenCalled();
+      expect(db.Unit.findOne).not.toHaveBeenCalled();
+      expect(db.Ingredient.create).not.toHaveBeenCalled();
+      expect(record.save).not.toHaveBeenCalled();
+      const transaction = await db.sequelize.transaction.mock.results[0].value;
+      expect(transaction.rollback).toHaveBeenCalledTimes(1);
+      expect(transaction.commit).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(["post", "put"])("BUGS-9 %s preserves empty-name validation", async method => {
+    for (const ingredientName of ["", "   ", null, {}, 123]) {
+      const response = await send(method, token, { ...body, ingredientName });
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ EC: 1, EM: "Tên nguyên liệu không được để trống!", DT: null });
+    }
+  });
+
+  test.each(["post", "put"])("BUGS-9 %s accepts 255 characters after trim", async method => {
+    const ingredientName = "N".repeat(255);
+    const data = { ...body, ingredientName: `  ${ingredientName}  ` };
+    jest.spyOn(db.Ingredient, "create").mockResolvedValue({ id: 7, ...body, ingredientName });
+    db.Ingredient.findOne.mockReset();
+    if (method === "put") db.Ingredient.findOne.mockResolvedValueOnce(record);
+    db.Ingredient.findOne.mockResolvedValue(null);
+    const response = await send(method, token, data);
+    expect(response.status).toBe(method === "post" ? 201 : 200);
+    expect(response.body.EC).toBe(0);
+    if (method === "post") {
+      expect(db.Ingredient.create).toHaveBeenCalledWith(
+        expect.objectContaining({ ingredientName }), { transaction: expect.any(Object) },
+      );
+    } else {
+      expect(record.ingredientName).toBe(ingredientName);
+      expect(record.save).toHaveBeenCalled();
+    }
+  });
 });
 
 describe("UC-22: POST /api/v1/admin/ingredient-categories", () => {
@@ -93,6 +141,21 @@ describe("UC-22: POST /api/v1/admin/ingredient-categories", () => {
     jest.spyOn(db.User, "findOne").mockResolvedValue({ id: 1, role: "Admin" });
     jest.spyOn(db.IngredientCategory, "findOne").mockResolvedValue(null);
     jest.spyOn(db.IngredientCategory, "create").mockResolvedValue({ id: 7, categoryName: "Gia vị" });
+  });
+
+  test.each([["TC-22-17", 254], ["TC-22-20", 255]])("BUGS-8 %s accepts a name of %i characters", async (_testCase, length) => {
+    const categoryName = "N".repeat(length);
+    db.IngredientCategory.create.mockResolvedValue({ id: 7, categoryName });
+    const response = await request(app)
+      .post("/api/v1/admin/ingredient-categories")
+      .set("Authorization", `Bearer ${createJWT({ userId: 1, role: "Admin" })}`)
+      .send({ categoryName });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({ EC: 0, DT: { ingredientCategoryId: 7, categoryName } });
+    expect(db.IngredientCategory.create).toHaveBeenCalledWith(
+      { categoryName }, { transaction: expect.any(Object) },
+    );
   });
 
   test.each([[null, 401], ["User", 403]])("role %s bị chặn với %i trước khi đọc/ghi dữ liệu", async (role, status) => {

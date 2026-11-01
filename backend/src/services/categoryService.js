@@ -260,10 +260,18 @@ const getAdminCategories = async () => {
 // 2.5 POST /admin/categories - Tạo danh mục chuẩn (UC-21)
 const createAdminCategory = async (data) => {
   return withMasterDataTransaction(async (transaction) => {
-    if (!data || !isMasterDataName(data.categoryName)) {
+    if (!data || typeof data.categoryName !== "string" || !data.categoryName.trim()) {
       return {
         EC: 1,
         EM: "Tên danh mục không được để trống!",
+        DT: null,
+      };
+    }
+
+    if (!isMasterDataName(data.categoryName)) {
+      return {
+        EC: 1,
+        EM: "Tên danh mục không được vượt quá 255 ký tự!",
         DT: null,
       };
     }
@@ -314,10 +322,18 @@ const createAdminCategory = async (data) => {
 // 2.6 PUT /admin/categories/:categoryId - Sửa danh mục chuẩn (UC-21)
 const updateAdminCategory = async (categoryId, data) => {
   return withMasterDataTransaction(async (transaction) => {
-    if (!data || !isMasterDataName(data.categoryName)) {
+    if (!data || typeof data.categoryName !== "string" || !data.categoryName.trim()) {
       return {
         EC: 1,
         EM: "Tên danh mục không được để trống!",
+        DT: null,
+      };
+    }
+
+    if (!isMasterDataName(data.categoryName)) {
+      return {
+        EC: 1,
+        EM: "Tên danh mục không được vượt quá 255 ký tự!",
         DT: null,
       };
     }

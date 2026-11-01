@@ -1147,6 +1147,9 @@ paths:
               properties:
                 categoryName:
                   type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Tên danh mục không được rỗng sau khi trim, tối đa 255 ký tự sau khi trim.
                   example: Món lẩu & Nướng
       responses:
         "429":
@@ -1165,15 +1168,22 @@ paths:
                   categoryName: Món Canh
                   createdBy: null
         "400":
-          description: Tên danh mục rỗng
+          description: Tên danh mục rỗng, sai kiểu hoặc vượt quá 255 ký tự
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 1
-                EM: Tên danh mục không được để trống!
-                DT: null
+              examples:
+                emptyName:
+                  value:
+                    EC: 1
+                    EM: Tên danh mục không được để trống!
+                    DT: null
+                nameTooLong:
+                  value:
+                    EC: 1
+                    EM: Tên danh mục không được vượt quá 255 ký tự!
+                    DT: null
         "401":
           description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
           content:
@@ -1239,6 +1249,9 @@ paths:
               properties:
                 categoryName:
                   type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Tên danh mục không được rỗng sau khi trim, tối đa 255 ký tự sau khi trim.
                   example: Món nướng BBQ
       responses:
         "429":
@@ -1256,15 +1269,22 @@ paths:
                   categoryId: 20
                   categoryName: Món Hầm Canh
         "400":
-          description: Tên danh mục rỗng
+          description: Tên danh mục rỗng, sai kiểu hoặc vượt quá 255 ký tự
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 1
-                EM: Tên danh mục không được để trống!
-                DT: null
+              examples:
+                emptyName:
+                  value:
+                    EC: 1
+                    EM: Tên danh mục không được để trống!
+                    DT: null
+                nameTooLong:
+                  value:
+                    EC: 1
+                    EM: Tên danh mục không được vượt quá 255 ký tự!
+                    DT: null
         "401":
           description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
           content:
@@ -1457,6 +1477,9 @@ paths:
               properties:
                 ingredientName:
                   type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Tên nguyên liệu không được rỗng sau khi trim, tối đa 255 ký tự sau khi trim.
                   example: Nấm bào ngư
                 ingredientCategoryId:
                   type: integer
@@ -1481,15 +1504,22 @@ paths:
                   ingredientName: Thịt gà phi lê
                   categoryName: Thịt cá
         "400":
-          description: Tên nguyên liệu rỗng
+          description: Tên nguyên liệu rỗng, sai kiểu, vượt quá 255 ký tự hoặc dữ liệu tham chiếu không hợp lệ
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 1
-                EM: Tên nguyên liệu không được để trống!
-                DT: null
+              examples:
+                emptyName:
+                  value:
+                    EC: 1
+                    EM: Tên nguyên liệu không được để trống!
+                    DT: null
+                nameTooLong:
+                  value:
+                    EC: 1
+                    EM: Tên nguyên liệu không được vượt quá 255 ký tự!
+                    DT: null
         "401":
           description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
           content:
@@ -1554,6 +1584,9 @@ paths:
               properties:
                 ingredientName:
                   type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Tên nguyên liệu không được rỗng sau khi trim, tối đa 255 ký tự sau khi trim.
                   example: Nấm bào ngư trắng
                 ingredientCategoryId:
                   type: integer
@@ -1575,15 +1608,22 @@ paths:
                 EM: Cập nhật nguyên liệu thành công!
                 DT: null
         "400":
-          description: Tên nguyên liệu rỗng
+          description: Tên nguyên liệu rỗng, sai kiểu, vượt quá 255 ký tự hoặc dữ liệu tham chiếu không hợp lệ
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 1
-                EM: Tên nguyên liệu không được để trống!
-                DT: null
+              examples:
+                emptyName:
+                  value:
+                    EC: 1
+                    EM: Tên nguyên liệu không được để trống!
+                    DT: null
+                nameTooLong:
+                  value:
+                    EC: 1
+                    EM: Tên nguyên liệu không được vượt quá 255 ký tự!
+                    DT: null
         "401":
           description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
           content:
@@ -1761,6 +1801,9 @@ paths:
               properties:
                 categoryName:
                   type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Tên nhóm nguyên liệu không được rỗng sau khi trim, tối đa 255 ký tự sau khi trim.
                   example: Hải sản cao cấp
       responses:
         "429":
@@ -1877,6 +1920,9 @@ paths:
               properties:
                 unitName:
                   type: string
+                  minLength: 1
+                  maxLength: 30
+                  description: Tên đơn vị không được rỗng sau khi trim, tối đa 30 ký tự sau khi trim.
                   example: muỗng cà phê
       responses:
         "429":
@@ -1894,15 +1940,22 @@ paths:
                   unitId: 4
                   unitName: muỗng canh
         "400":
-          description: Tên đơn vị rỗng
+          description: Tên đơn vị rỗng, sai kiểu hoặc vượt quá 30 ký tự
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 1
-                EM: Tên đơn vị không được để trống!
-                DT: null
+              examples:
+                emptyName:
+                  value:
+                    EC: 1
+                    EM: Tên đơn vị không được để trống!
+                    DT: null
+                nameTooLong:
+                  value:
+                    EC: 1
+                    EM: Tên đơn vị không được vượt quá 30 ký tự!
+                    DT: null
         "401":
           description: Chưa xác thực Token
           content:
@@ -1968,6 +2021,9 @@ paths:
               properties:
                 unitName:
                   type: string
+                  minLength: 1
+                  maxLength: 30
+                  description: Tên đơn vị không được rỗng sau khi trim, tối đa 30 ký tự sau khi trim.
                   example: tsp
       responses:
         "429":
@@ -1983,15 +2039,22 @@ paths:
                 EM: Cập nhật đơn vị thành công!
                 DT: null
         "400":
-          description: Tên đơn vị rỗng
+          description: Tên đơn vị rỗng, sai kiểu hoặc vượt quá 30 ký tự
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 1
-                EM: Tên đơn vị không được để trống!
-                DT: null
+              examples:
+                emptyName:
+                  value:
+                    EC: 1
+                    EM: Tên đơn vị không được để trống!
+                    DT: null
+                nameTooLong:
+                  value:
+                    EC: 1
+                    EM: Tên đơn vị không được vượt quá 30 ký tự!
+                    DT: null
         "401":
           description: Chưa xác thực Token
           content:

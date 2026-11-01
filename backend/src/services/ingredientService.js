@@ -96,10 +96,18 @@ const getIngredients = async (search, categoryId) => {
 // 3.2 POST /api/v1/admin/ingredients - Thêm nguyên liệu chuẩn (UC-22)
 const createAdminIngredient = async (data) => {
   return withMasterDataTransaction(async (transaction) => {
-    if (!data || !isMasterDataName(data.ingredientName)) {
+    if (!data || typeof data.ingredientName !== "string" || !data.ingredientName.trim()) {
       return {
         EC: 1,
         EM: "Tên nguyên liệu không được để trống!",
+        DT: null,
+      };
+    }
+
+    if (!isMasterDataName(data.ingredientName)) {
+      return {
+        EC: 1,
+        EM: "Tên nguyên liệu không được vượt quá 255 ký tự!",
         DT: null,
       };
     }
@@ -188,10 +196,18 @@ const createAdminIngredient = async (data) => {
 // 3.3 PUT /api/v1/admin/ingredients/:ingredientId - Sửa nguyên liệu (UC-22)
 const updateAdminIngredient = async (ingredientId, data) => {
   return withMasterDataTransaction(async (transaction) => {
-    if (!data || !isMasterDataName(data.ingredientName)) {
+    if (!data || typeof data.ingredientName !== "string" || !data.ingredientName.trim()) {
       return {
         EC: 1,
         EM: "Tên nguyên liệu không được để trống!",
+        DT: null,
+      };
+    }
+
+    if (!isMasterDataName(data.ingredientName)) {
+      return {
+        EC: 1,
+        EM: "Tên nguyên liệu không được vượt quá 255 ký tự!",
         DT: null,
       };
     }

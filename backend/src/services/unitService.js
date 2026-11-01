@@ -73,10 +73,18 @@ const getUnits = async () => {
 // 3.8 POST /api/v1/admin/units - Thêm đơn vị đo mới (UC-23)
 const createAdminUnit = async (data) => {
   return withMasterDataTransaction(async (transaction) => {
-    if (!data || !isMasterDataName(data.unitName, 30)) {
+    if (!data || typeof data.unitName !== "string" || !data.unitName.trim()) {
       return {
         EC: 1,
         EM: "Tên đơn vị không được để trống!",
+        DT: null,
+      };
+    }
+
+    if (!isMasterDataName(data.unitName, 30)) {
+      return {
+        EC: 1,
+        EM: "Tên đơn vị không được vượt quá 30 ký tự!",
         DT: null,
       };
     }
@@ -120,10 +128,18 @@ const createAdminUnit = async (data) => {
 // 3.9 PUT /api/v1/admin/units/:unitId - Sửa đơn vị đo (UC-23)
 const updateAdminUnit = async (unitId, data) => {
   return withMasterDataTransaction(async (transaction) => {
-    if (!data || !isMasterDataName(data.unitName, 30)) {
+    if (!data || typeof data.unitName !== "string" || !data.unitName.trim()) {
       return {
         EC: 1,
         EM: "Tên đơn vị không được để trống!",
+        DT: null,
+      };
+    }
+
+    if (!isMasterDataName(data.unitName, 30)) {
+      return {
+        EC: 1,
+        EM: "Tên đơn vị không được vượt quá 30 ký tự!",
         DT: null,
       };
     }
