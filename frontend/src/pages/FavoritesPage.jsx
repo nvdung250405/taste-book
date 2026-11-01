@@ -15,29 +15,22 @@ import useCollectionParams from '../hooks/useCollectionParams'
 import FavoriteNoteDialog from '../components/recipe/FavoriteNoteDialog'
 import useRecipeGridColumns from '../hooks/useRecipeGridColumns'
 import FavoriteRecipeCard from '../components/recipe/FavoriteRecipeCard'
-import { filterFavorites } from '../lib/collectionFilters'
 
 export default function FavoritesPage() {
   const gridColumns = useRecipeGridColumns('favorites')
   const hasToken = !!localStorage.getItem('token')
   const { page, search, searchQuery, setSearchQuery, setPage } =
     useCollectionParams()
-  const needsCollection = !!search.trim()
-  const paginated = useFavorites(
-    { page, limit: 12 },
-    { enabled: hasToken && !needsCollection },
-  )
-  const collection = useFavorites(
-    {},
-    { enabled: hasToken && needsCollection, staleTime: 60 * 1000 },
-  )
   const {
     data: res,
     isPending: isLoading,
     isError,
     isFetching,
     refetch,
-  } = needsCollection ? collection : paginated
+  } = useFavorites(
+    { page, limit: 12, ...(search.trim() ? { search: search.trim() } : {}) },
+    { enabled: hasToken },
+  )
   const { mutate: removeFav } = useRemoveFavorite()
   const { mutate: updateNote, isPending: updatingNote } =
     useUpdateFavoriteNote()
@@ -45,17 +38,9 @@ export default function FavoritesPage() {
   const [noteDialog, setNoteDialog] = useState(null) // { recipeId, note }
   const [removingIds, setRemovingIds] = useState(new Set())
 
-  const items = res?.DT?.items || []
-  const favorites = needsCollection ? filterFavorites(items, search) : items
-  const totalPages = Math.max(
-    1,
-    needsCollection
-      ? Math.ceil(favorites.length / 12)
-      : res?.DT?.totalPages || 1,
-  )
-  const visibleFavorites = needsCollection
-    ? favorites.slice((page - 1) * 12, page * 12)
-    : favorites
+  const favorites = res?.DT?.items || []
+  const totalPages = Math.max(1, res?.DT?.totalPages || 1)
+  const visibleFavorites = favorites
   useEffect(() => {
     if (res && !isFetching && page > totalPages) setPage(totalPages)
   }, [res, isFetching, page, totalPages, setPage])

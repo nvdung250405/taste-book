@@ -1,23 +1,26 @@
-# Phân trang danh sách cá nhân — tiến độ issue #78
+# Phân trang danh sách cá nhân — issue #78
 
-## Phạm vi đã thực hiện ở frontend
+## Hợp đồng API sau PR Backend #101
 
-- Mở hoặc chuyển trang Công thức của tôi/Yêu thích gọi API với `page` và `limit=12`, không tự động gom các trang còn lại.
-- Trang hiện tại và bộ lọc vẫn nằm trong URL. Tổng số trang lấy từ API khi duyệt danh sách không có bộ lọc.
-- Các tab trạng thái luôn truy cập được. Chỉ badge Tất cả dùng tổng số từ API; không đếm trạng thái từ riêng trang đang xem.
-- Khi tìm kiếm hoặc chọn trạng thái, frontend dùng truy vấn toàn bộ collection làm phương án tương thích với backend hiện tại. Truy vấn này dùng chung cache 60 giây, không tạo một collection mới cho mỗi từ khóa.
-- Tìm kiếm favorites vẫn bao gồm tên món, tác giả và ghi chú trên toàn bộ dữ liệu.
-- `fetchCollection` cho phép truyền hàm lấy ID, hỗ trợ `recipeId`/`id` mặc định và không làm mất bản ghi không có ID.
-- Giữ rollback khi bỏ yêu thích thất bại và điều chỉnh trang khi xóa món cuối trang cuối.
+- `/recipes/mine`: `page`, `limit`, `search`, `status` (`all`, `approved`, `pending`, `rejected`, `private`; `draft` là alias).
+- `/favorites`: `page`, `limit`, `search`; tìm trong tên món, tên tác giả và ghi chú.
+- Cả hai trả `DT.items`, `total`, `totalPages`. Mine trả thêm `DT.totals` gồm `total`, `approved`, `pending`, `rejected`, `private`; số lượng thuộc cùng phạm vi từ khóa, không giới hạn vào trang/tab.
 
-## Phần còn cần backend
+## Frontend
 
-Issue #78 chưa hoàn tất toàn bộ. Tìm kiếm/lọc vẫn cần gom trang vì `/recipes/mine` và `/favorites` chỉ hỗ trợ `page`, `limit`. Tra cứu trạng thái yêu thích ở trang chủ/tìm kiếm/chi tiết vẫn cần danh sách đầy đủ để không tái phát lỗi #79.
+- `useMyRecipes()` và `useFavorites()` mặc định chỉ gọi trang 1 với `limit=12`, không gom collection kể cả khi không truyền tham số.
+- Hai trang gửi trang, từ khóa và trạng thái tới API; không lọc/cắt trang lại trên client. Kết quả khớp không dấu hoặc ghi chú do Backend trả được giữ nguyên.
+- Query key chứa toàn bộ tham số và truyền AbortSignal để hủy request cũ. URL giữ trang/từ khóa/tab; đổi từ khóa/tab đặt lại trang 1. Tab `draft` gửi `status=private`.
+- Badge lấy từ `DT.totals`, không đếm trang hiện tại hoặc dùng tổng tab đang chọn làm số Tất cả.
+- Bỏ yêu thích cập nhật tức thì, rollback khi lỗi, refetch và điều chỉnh trang cuối. Sửa ghi chú làm mới các kết quả tìm kiếm liên quan.
 
-Để loại bỏ hoàn toàn việc gom collection, cần API tìm kiếm/lọc trạng thái, số lượng theo trạng thái và cách tra cứu trạng thái yêu thích theo các ID đang hiển thị. Frontend không gửi các tham số này cho API khi chưa có hỗ trợ.
+## Ngoại lệ tương thích issue #79
+
+Backend chưa có API tra cứu trạng thái yêu thích theo nhóm ID. `useFavoriteIds` giữ truy vấn riêng `['favorites', 'ids']`, cache 60 giây, chỉ chạy khi đã đăng nhập và có ID cần hiển thị. Chỉ truy vấn này còn dùng `fetchCollection` để giữ trạng thái đúng cho món sau 100 bản ghi đầu. Danh sách/tìm kiếm/phân trang không dùng truy vấn này. Khi có API lookup, thay riêng phần này mà không thay hai trang danh sách.
 
 ## Kiểm tra
 
-- Chạy `npm run lint`, `npm test`, `npm run build` trong `frontend`.
-- Kiểm tra Edge với API giả lập 205 bản ghi: một request trang mặc định, điều hướng URL, lọc trạng thái và ghi chú ngoài 100 bản ghi đầu, rollback bỏ yêu thích, điều chỉnh trang cuối và không hiển thị dữ liệu một phần khi tải collection thất bại.
-- Cần nghiệm thu lại bằng dữ liệu staging trước khi merge.
+- `npm run lint`, `npm test`, `npm run build` trong `frontend`.
+- Test hook: trang mặc định và search/status chỉ gọi một lần; key phân biệt bộ lọc; lookup không dùng nhầm cache trang đã lọc; rollback cả trang và lookup.
+- Test trang: URL page 2, kết quả máy chủ không bị lọc/cắt lại, tab riêng tư và badge tổng máy chủ.
+- Edge với API giả lập 205 bản ghi: chuyển trang, lọc trạng thái/riêng tư, kết hợp tìm kiếm/trạng thái, tìm trong ghi chú, rollback bỏ lưu, điều chỉnh trang cuối, lỗi tải và thử lại đều đạt; các request danh sách đều có limit=12, không có lỗi JavaScript. Cần nghiệm thu staging với dữ liệu thật.
