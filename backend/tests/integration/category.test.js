@@ -77,6 +77,52 @@ describe("UC-21: API quản trị danh mục", () => {
     const name = "categoryName";
     expect((await send("post", token, { ...body, [name]: {} })).status).toBe(400);
   });
+
+  test.each([["TC-21-20", "post"], ["TC-21-28", "put"]])(
+    "BUGS-10 %s rejects 256 characters with the correct error",
+    async (_testCase, method) => {
+      jest.spyOn(db.Category, "create");
+      const response = await send(method, token, { categoryName: "N".repeat(256) });
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        EC: 1, EM: "Tên danh mục không được vượt quá 255 ký tự!", DT: null,
+      });
+      expect(db.Category.findOne).not.toHaveBeenCalled();
+      expect(db.Category.create).not.toHaveBeenCalled();
+      expect(record.save).not.toHaveBeenCalled();
+      const transaction = await db.sequelize.transaction.mock.results[0].value;
+      expect(transaction.rollback).toHaveBeenCalledTimes(1);
+      expect(transaction.commit).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(["post", "put"])("BUGS-10 %s preserves empty-name validation", async method => {
+    for (const categoryName of ["", "   ", null, {}, 123]) {
+      const response = await send(method, token, { categoryName });
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ EC: 1, EM: "Tên danh mục không được để trống!", DT: null });
+    }
+  });
+
+  test.each(["post", "put"])("BUGS-10 %s accepts 255 characters after trim", async method => {
+    const categoryName = "N".repeat(255);
+    jest.spyOn(db.Category, "create").mockResolvedValue({ id: 7, categoryName, createdBy: null });
+    db.Category.findOne.mockReset();
+    if (method === "put") db.Category.findOne.mockResolvedValueOnce(record);
+    db.Category.findOne.mockResolvedValue(null);
+    const response = await send(method, token, { categoryName: `  ${categoryName}  ` });
+    expect(response.status).toBe(method === "post" ? 201 : 200);
+    expect(response.body.EC).toBe(0);
+    expect(response.body.DT.categoryName).toBe(categoryName);
+    if (method === "post") {
+      expect(db.Category.create).toHaveBeenCalledWith(
+        { categoryName, createdBy: null }, { transaction: expect.any(Object) },
+      );
+    } else {
+      expect(record.categoryName).toBe(categoryName);
+      expect(record.save).toHaveBeenCalled();
+    }
+  });
 });
 
 describe("UC-21: GET /api/v1/admin/categories", () => {

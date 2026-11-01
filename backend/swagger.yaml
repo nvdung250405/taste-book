@@ -1147,6 +1147,9 @@ paths:
               properties:
                 categoryName:
                   type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Tên danh mục không được rỗng sau khi trim, tối đa 255 ký tự sau khi trim.
                   example: Món lẩu & Nướng
       responses:
         "429":
@@ -1165,15 +1168,22 @@ paths:
                   categoryName: Món Canh
                   createdBy: null
         "400":
-          description: Tên danh mục rỗng
+          description: Tên danh mục rỗng, sai kiểu hoặc vượt quá 255 ký tự
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 1
-                EM: Tên danh mục không được để trống!
-                DT: null
+              examples:
+                emptyName:
+                  value:
+                    EC: 1
+                    EM: Tên danh mục không được để trống!
+                    DT: null
+                nameTooLong:
+                  value:
+                    EC: 1
+                    EM: Tên danh mục không được vượt quá 255 ký tự!
+                    DT: null
         "401":
           description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
           content:
@@ -1239,6 +1249,9 @@ paths:
               properties:
                 categoryName:
                   type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Tên danh mục không được rỗng sau khi trim, tối đa 255 ký tự sau khi trim.
                   example: Món nướng BBQ
       responses:
         "429":
@@ -1256,15 +1269,22 @@ paths:
                   categoryId: 20
                   categoryName: Món Hầm Canh
         "400":
-          description: Tên danh mục rỗng
+          description: Tên danh mục rỗng, sai kiểu hoặc vượt quá 255 ký tự
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 1
-                EM: Tên danh mục không được để trống!
-                DT: null
+              examples:
+                emptyName:
+                  value:
+                    EC: 1
+                    EM: Tên danh mục không được để trống!
+                    DT: null
+                nameTooLong:
+                  value:
+                    EC: 1
+                    EM: Tên danh mục không được vượt quá 255 ký tự!
+                    DT: null
         "401":
           description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
           content:
