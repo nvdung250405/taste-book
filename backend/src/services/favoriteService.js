@@ -1,4 +1,6 @@
 import db from "../models/index";
+import { Op } from "sequelize";
+import { collectionKeyword, collectionTextMatch } from "./recipeSearchService";
 
 const parseRecipeId = (recipeId) => {
   if (Array.isArray(recipeId) || !/^[0-9]+$/.test(String(recipeId))) return null;
@@ -17,6 +19,12 @@ const getUserFavorites = async (userId, query = {}) => {
       };
     }
 
+    let keyword;
+    try {
+      keyword = collectionKeyword(query);
+    } catch (error) {
+      return { EC: 1, EM: error.message, DT: null };
+    }
     const { page, limit } = query;
 
     // 1. Phân trang: page & limit
@@ -48,8 +56,16 @@ const getUserFavorites = async (userId, query = {}) => {
     const offset = (pageNumber - 1) * limitNumber;
 
     // 2. Truy vấn dữ liệu có phân trang kết hợp findAndCountAll
+    const where = { userId: Number(userId) };
+    if (keyword) {
+      where[Op.or] = [
+        collectionTextMatch("recipe.title", keyword),
+        collectionTextMatch("recipe->author.username", keyword),
+        collectionTextMatch("FavoriteRecipe.personalNotes", keyword),
+      ];
+    }
     const { count, rows } = await db.FavoriteRecipe.findAndCountAll({
-      where: { userId: Number(userId) },
+      where,
       include: [
         {
           model: db.Recipe,
@@ -71,7 +87,7 @@ const getUserFavorites = async (userId, query = {}) => {
           ],
         },
       ],
-      order: [["createdAt", "DESC"]],
+      order: [["createdAt", "DESC"], ["recipeId", "DESC"]],
       limit: limitNumber,
       offset: offset,
     });

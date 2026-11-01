@@ -2,6 +2,22 @@ import db from "../models/index";
 import { Op, Sequelize } from "sequelize";
 import { hasVietnameseAccents } from "./recipeValidation";
 
+// Shared keyword handling for personal recipes and favorites (#100).
+export const collectionKeyword = (query) => {
+  for (const key of ["search", "keyword"]) {
+    if (query[key] !== undefined && typeof query[key] !== "string") {
+      throw new Error("Từ khóa tìm kiếm phải là chuỗi!");
+    }
+  }
+  return query.search?.trim() || query.keyword?.trim() || "";
+};
+
+// Treat LIKE metacharacters as literal input. Sequelize escapes values.
+export const collectionTextMatch = (column, keyword) => Sequelize.where(
+  Sequelize.fn("unaccent", Sequelize.col(column)),
+  { [Op.iLike]: Sequelize.fn("unaccent", `%${keyword.replace(/[\\%_]/g, "\\$&")}%`) },
+);
+
 // 4.1 GET /api/v1/recipes - Tìm kiếm / Lọc công thức (UC-06)
 const getRecipes = async (query = {}) => {
   try {

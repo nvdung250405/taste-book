@@ -1,6 +1,7 @@
 import recipeService from "../../src/services/recipeService";
 import db from "../../src/models/index";
 import { Op } from "sequelize";
+import { collectionKeyword, collectionTextMatch } from "../../src/services/recipeSearchService";
 
 beforeEach(() => {
   jest.spyOn(db.Unit, "findByPk").mockResolvedValue({ id: 1, unitName: "g" });
@@ -630,6 +631,9 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
   });
 
   describe("getMyRecipes (UC-09 - Quản lý công thức của tôi)", () => {
+    beforeEach(() => {
+      jest.spyOn(db.Recipe, "findAll").mockResolvedValue([]);
+    });
     test("thành công: trả về danh sách phân trang công thức cá nhân (EC: 0)", async () => {
       jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({
         count: 1,
@@ -1401,5 +1405,65 @@ describe("scaleRecipeIngredients: quyền xem của Admin", () => {
     const result = await recipeService.scaleRecipeIngredients(101, { servings: 4 }, 99, "Admin");
     expect(result.EC).toBe(0);
     expect(result.DT.scaleFactor).toBe(2);
+  });
+});
+
+
+describe("#100: personal recipe search at the database", () => {
+  let mine, aggregate;
+  beforeEach(() => {
+    mine = jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({ count: 13, rows: [] });
+    aggregate = jest.spyOn(db.Recipe, "findAll").mockResolvedValue([
+      { isPublic: true, approvalStatus: "Approved", count: "13" },
+      { isPublic: true, approvalStatus: "Pending", count: "2" },
+      { isPublic: true, approvalStatus: "Rejected", count: "1" },
+      { isPublic: false, approvalStatus: "Approved", count: "3" },
+      { isPublic: false, approvalStatus: "Pending", count: "4" },
+    ]);
+  });
+
+  test.each(["search", "keyword"])("mine combines %s, ownership, status and pagination; badges ignore status", async (alias) => {
+    const result = await recipeService.getMyRecipes({ id: 10 }, { [alias]: " PHỞ ", status: "approved", page: 2, limit: 12 });
+    expect(result.DT).toMatchObject({ page: 2, limit: 12, total: 13, totalPages: 2,
+      totals: { total: 23, approved: 13, pending: 2, rejected: 1, private: 7 } });
+    const options = mine.mock.calls[0][0];
+    expect(options).toMatchObject({ where: { authorId: 10, isDeleted: false, isPublic: true, approvalStatus: "Approved" }, limit: 12, offset: 12 });
+    expect(options.where[Op.and]).toEqual([collectionTextMatch("Recipe.title", "PHỞ")]);
+    expect(aggregate.mock.calls[0][0]).toMatchObject({ raw: true, group: ["isPublic", "approvalStatus"] });
+    expect(aggregate.mock.calls[0][0].where).toEqual({ authorId: 10, isDeleted: false, [Op.and]: options.where[Op.and] });
+    expect(aggregate.mock.calls[0][0]).not.toHaveProperty("limit");
+  });
+
+  test.each(["all", "approved", "pending", "rejected", "private", "draft"])("status %s has mutually exclusive SQL predicates", async (status) => {
+    await recipeService.getMyRecipes({ userId: 7 }, { status });
+    expect(mine.mock.calls[0][0].where).toEqual({ authorId: 7, isDeleted: false, ...({
+      all: {}, approved: { isPublic: true, approvalStatus: "Approved" },
+      pending: { isPublic: true, approvalStatus: "Pending" },
+      rejected: { isPublic: true, approvalStatus: "Rejected" },
+      private: { isPublic: false }, draft: { isPublic: false },
+    }[status]) });
+  });
+
+  test.each([
+    { search: ["pho"] }, { keyword: {} }, { search: "pho", keyword: [] },
+    { status: "unknown" }, { status: ["approved"] },
+  ])("mine rejects malformed filters before querying: %j", async (query) => {
+    expect((await recipeService.getMyRecipes({ id: 10 }, query)).EC).toBe(1);
+    expect(mine).not.toHaveBeenCalled();
+    expect(aggregate).not.toHaveBeenCalled();
+  });
+
+  test("empty keyword adds no search clause; alias precedence is explicit", async () => {
+    expect(collectionKeyword({ search: " ", keyword: " pho " })).toBe("pho");
+    expect(collectionKeyword({ search: " ga ", keyword: "pho" })).toBe("ga");
+    await recipeService.getMyRecipes({ id: 10 }, { search: " " });
+    expect(mine.mock.calls[0][0].where).toEqual({ authorId: 10, isDeleted: false });
+  });
+
+  test("no matches yields zero badges and zero totalPages", async () => {
+    mine.mockResolvedValue({ count: 0, rows: [] });
+    aggregate.mockResolvedValue([]);
+    expect((await recipeService.getMyRecipes({ id: 10 }, { search: "missing" })).DT).toMatchObject({ total: 0, totalPages: 0,
+      totals: { total: 0, approved: 0, pending: 0, rejected: 0, private: 0 } });
   });
 });

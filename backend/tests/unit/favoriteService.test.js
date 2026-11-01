@@ -1,5 +1,7 @@
 import favoriteService from "../../src/services/favoriteService";
 import db from "../../src/models/index";
+import { Op } from "sequelize";
+import { collectionTextMatch } from "../../src/services/recipeSearchService";
 
 describe("FavoriteService Unit Tests", () => {
   beforeEach(() => {
@@ -457,5 +459,34 @@ describe("FavoriteService Unit Tests", () => {
       expect(res.EM).toBe("Lỗi kết nối máy chủ!");
       expect(res.DT).toBeNull();
     });
+  });
+});
+
+
+describe("#100: favorites search at the database", () => {
+  let favorites;
+  beforeEach(() => {
+    favorites = jest.spyOn(db.FavoriteRecipe, "findAndCountAll").mockResolvedValue({ count: 13, rows: [] });
+  });
+  test.each(["search", "keyword"])("favorites searches title, joined author and personal notes using %s", async (alias) => {
+    const result = await favoriteService.getUserFavorites(10, { [alias]: " pho ", page: 2, limit: 12 });
+    expect(result.DT).toMatchObject({ page: 2, limit: 12, total: 13, totalPages: 2 });
+    const options = favorites.mock.calls[0][0];
+    expect(options.where).toEqual({ userId: 10, [Op.or]: [
+      collectionTextMatch("recipe.title", "pho"),
+      collectionTextMatch("recipe->author.username", "pho"),
+      collectionTextMatch("FavoriteRecipe.personalNotes", "pho"),
+    ] });
+    expect(options).toMatchObject({ limit: 12, offset: 12, include: [{ as: "recipe", where: { isDeleted: false } }] });
+  });
+
+  test.each([{ search: [] }, { keyword: {} }, { search: "pho", keyword: [] }])("favorites rejects malformed keywords: %j", async (query) => {
+    expect((await favoriteService.getUserFavorites(10, query)).EC).toBe(1);
+    expect(favorites).not.toHaveBeenCalled();
+  });
+
+  test("empty keyword adds no favorites search clause", async () => {
+    await favoriteService.getUserFavorites(10, { keyword: " " });
+    expect(favorites.mock.calls[0][0].where).toEqual({ userId: 10 });
   });
 });

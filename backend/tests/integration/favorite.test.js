@@ -2,6 +2,8 @@ import request from "supertest";
 import app from "../../src/server";
 import { createJWT } from "../../src/middleware/JWTAction";
 import db from "../../src/models/index";
+import { ipKeyGenerator } from "express-rate-limit";
+import { apiLimiter } from "../../src/middleware/apiRateLimit";
 
 describe("Favorites API Integration Tests (Supertest)", () => {
   beforeEach(() => {
@@ -190,5 +192,45 @@ describe("Favorites API Integration Tests (Supertest)", () => {
       expect(res.body.EM).toBe("Đã xóa khỏi danh sách yêu thích!");
       expect(res.body.DT).toBeNull();
     });
+  });
+});
+
+
+describe("#100: authenticated favorite search API", () => {
+  const token = createJWT({ userId: 10, role: "User" });
+  beforeEach(async () => {
+    for (const ip of ["127.0.0.1", "::ffff:127.0.0.1", "::1"]) {
+      await apiLimiter.resetKey(ipKeyGenerator(ip));
+    }
+    jest.spyOn(db.User, "findOne").mockResolvedValue({ id: 10, role: "User" });
+    jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({ count: 13, rows: [{ id: 101, title: "Phở bò" }] });
+    jest.spyOn(db.Recipe, "findAll").mockResolvedValue([{ isPublic: true, approvalStatus: "Approved", count: "13" }]);
+    jest.spyOn(db.FavoriteRecipe, "findAndCountAll").mockResolvedValue({ count: 13, rows: [
+      { recipeId: 101, recipe: { title: "Phở bò", author: { id: 2, username: "chef" } }, personalNotes: "ít muối" },
+    ] });
+  });
+
+  test.each(["search", "keyword"])("favorites accepts %s and preserves note/author response", async (alias) => {
+    const response = await request(app).get("/api/v1/favorites").query({ [alias]: "pho", page: 2, limit: 12 })
+      .set("Authorization", `Bearer ${token}`);
+    expect(response.status).toBe(200);
+    expect(response.body.DT).toMatchObject({ page: 2, limit: 12, total: 13, totalPages: 2,
+      items: [{ recipeId: 101, author: { username: "chef" }, personalNotes: "ít muối" }] });
+    expect(db.FavoriteRecipe.findAndCountAll).toHaveBeenCalledWith(expect.objectContaining({ limit: 12, offset: 12 }));
+  });
+
+  test.each([
+    "/favorites?search[]=pho", "/favorites?keyword[x]=pho",
+  ])("malformed query returns 400 before database access: %s", async (path) => {
+    const response = await request(app).get(`/api/v1${path}`).set("Authorization", `Bearer ${token}`);
+    expect(response.status).toBe(400);
+    expect(response.body.EC).toBe(1);
+    expect(db.Recipe.findAndCountAll).not.toHaveBeenCalled();
+    expect(db.Recipe.findAll).not.toHaveBeenCalled();
+    expect(db.FavoriteRecipe.findAndCountAll).not.toHaveBeenCalled();
+  });
+
+  test.each(["/favorites?search=pho"])("search still requires authentication: %s", async (path) => {
+    expect((await request(app).get(`/api/v1${path}`)).status).toBe(401);
   });
 });
