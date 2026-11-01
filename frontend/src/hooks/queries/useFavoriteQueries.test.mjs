@@ -70,7 +70,7 @@ for (const kind of ['favorites', 'my-recipes']) {
     }
     favoritesApi.getFavorites = api
     recipesApi.getMyRecipes = api
-    const params = { page: 4, limit: 12 }
+    const params = { page: 4, limit: 12, search: 'ghi chú', ...(kind === 'my-recipes' ? { status: 'pending' } : {}) }
     render(() =>
       kind === 'favorites'
         ? hooks.useFavorites(params)
@@ -82,7 +82,22 @@ for (const kind of ['favorites', 'my-recipes']) {
   })
 }
 
-test('favorite status collects later pages using only supported params and shares the complete list cache', async () => {
+for (const kind of ['favorites', 'my-recipes']) {
+  test(`${kind} defaults to a single page instead of downloading the collection`, async () => {
+    const calls = []
+    const api = async params => {
+      calls.push(params)
+      return { DT: { items: [], total: 2400, totalPages: 200 } }
+    }
+    favoritesApi.getFavorites = api
+    recipesApi.getMyRecipes = api
+    render(() => kind === 'favorites' ? hooks.useFavorites() : recipeHooks.useMyRecipes())
+    await client.fetchQuery(client.getQueryCache().getAll()[0].options)
+    assert.deepEqual(calls, [{ page: 1, limit: 12 }])
+  })
+}
+
+test('favorite status retains later-page correctness in an isolated cache, without reusing a filtered page', async () => {
   const calls = []
   favoritesApi.getFavorites = async (params) => {
     calls.push(params)
@@ -110,14 +125,14 @@ test('favorite status collects later pages using only supported params and share
   const result = render(() => hooks.useFavoriteIds([111, 120]))
   assert.equal(result.data.has('111'), true)
   assert.equal(result.data.has('120'), false)
-  const list = render(() => hooks.useFavorites())
-  assert.equal(list.data.DT.items.length, 101)
-  assert.equal(client.getQueryCache().getAll().length, 1)
+  const list = render(() => hooks.useFavorites({ search: 'not in the status query' }))
+  assert.equal(list.data, undefined)
+  assert.equal(client.getQueryCache().getAll().length, 2)
 })
 
 test('failed removal restores both paginated list and status lookup caches', async () => {
   const listKey = ['favorites', { page: 3 }]
-  const statusKey = ['favorites', {}]
+  const statusKey = ['favorites', 'ids']
   const data = {
     EC: 0,
     DT: { items: [{ recipeId: 111 }], total: 25, totalPages: 3 },

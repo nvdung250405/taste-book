@@ -42,7 +42,7 @@ for (const [Page, key, url] of [
   [() => MyRecipes, 'my-recipes', '/my-recipes'],
   [() => Favorites, 'favorites', '/favorites'],
 ]) {
-  test(`${key} opens on a single server page and keeps the all-pages fallback disabled`, () => {
+  test(`${key} renders a single server page without creating a full-collection query`, () => {
     const client = new QueryClient({
       defaultOptions: { queries: { staleTime: Infinity, retry: false } },
     })
@@ -69,34 +69,49 @@ for (const [Page, key, url] of [
         .filter((query) => query.options.enabled !== false)
       assert.equal(active.length, 1)
       assert.deepEqual(active[0].queryKey, [key, { page: 2, limit: 12 }])
-      assert.equal(client.getQueryState([key, {}]).fetchStatus, 'idle')
+      assert.equal(client.getQueryState([key, {}]), undefined)
     } finally {
       client.clear()
     }
   })
-  test(`${key} searches all records beyond the first 100 without sending unsupported API filters`, () => {
+  test(`${key} renders server search results on page two without filtering or slicing again`, () => {
     const client = new QueryClient({
       defaultOptions: { queries: { staleTime: Infinity, retry: false } },
     })
-    const items = Array.from({ length: 205 }, (_, index) => ({
-      recipeId: index + 1,
-      title: index === 204 ? 'Món cuối' : 'Món thường',
-      isPublic: true,
-      approvalStatus: 'Approved',
-    }))
-    client.setQueryData([key, {}], { DT: { items, total: 205 } })
+    const params = { page: 2, limit: 12, search: 'khong dau' }
+    client.setQueryData([key, params], {
+      DT: { items: [{ recipeId: 205, title: 'Kết quả từ máy chủ' }], total: 13, totalPages: 2 },
+    })
     try {
-      const html = render(client, Page(), url + '?search=Món%20cuối')
-      assert.match(html, /Món cuối/)
-      assert.doesNotMatch(html, /Món thường/)
+      const html = render(client, Page(), url + '?search=khong%20dau&page=2')
+      assert.match(html, /Kết quả từ máy chủ/)
       const active = client
         .getQueryCache()
         .getAll()
         .filter((query) => query.options.enabled !== false)
       assert.equal(active.length, 1)
-      assert.deepEqual(active[0].queryKey, [key, {}])
+      assert.deepEqual(active[0].queryKey, [key, params])
+      assert.equal(client.getQueryCache().getAll().length, 1)
     } finally {
       client.clear()
     }
   })
 }
+
+test('private tab maps draft URL to API private and uses search-scoped server totals', () => {
+  const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } })
+  const params = { page: 1, limit: 12, search: 'bo', status: 'private' }
+  client.setQueryData(['my-recipes', params], {
+    DT: {
+      items: [{ recipeId: 205, title: 'Bò riêng tư', isPublic: false }],
+      total: 1, totalPages: 1,
+      totals: { total: 205, approved: 100, pending: 80, rejected: 24, private: 1 },
+    },
+  })
+  try {
+    const html = render(client, MyRecipes, '/my-recipes?search=bo&status=draft')
+    assert.match(html, /Bò riêng tư/)
+    for (const count of [205, 100, 80, 24]) assert.match(html, new RegExp(`>${count}</span>`))
+    assert.equal(client.getQueryCache().getAll().length, 1)
+  } finally { client.clear() }
+})

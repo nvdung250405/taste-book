@@ -3,28 +3,28 @@ import favoritesApi from '../../api/favorites.api';
 import { fetchCollection } from '../../api/fetchCollection';
 
 export const useFavorites = (params = {}, options = {}) => {
-  const isOptions = params && ('enabled' in params || 'staleTime' in params);
-  const queryParams = isOptions ? {} : params;
-  const queryOptions = isOptions ? params : options;
-
+  const queryParams = { page: 1, limit: 12, ...params };
   const hasToken = !!localStorage.getItem('token');
 
   return useQuery({
     queryKey: ['favorites', queryParams],
-    queryFn: ({ signal }) => queryParams.page !== undefined
-      ? favoritesApi.getFavorites({ limit: 12, ...queryParams }, { signal })
-      : fetchCollection(page => favoritesApi.getFavorites({ ...queryParams, page, limit: 100 }, { signal }), signal),
+    queryFn: ({ signal }) => favoritesApi.getFavorites(queryParams, { signal }),
     enabled: hasToken,
     retry: false,
-    ...queryOptions,
+    ...options,
   });
 };
 
-// The existing API has no ID lookup. Share the complete favorites cache so status
-// remains correct beyond the first page without requiring backend changes.
+// No batch ID lookup exists yet. Keep this compatibility query separate from
+// paginated lists so searching never downloads all favorites or breaks #79.
 export const useFavoriteIds = (recipeIds) => {
-  return useFavorites({}, {
+  return useQuery({
+    queryKey: ['favorites', 'ids'],
+    queryFn: ({ signal }) => fetchCollection(
+      page => favoritesApi.getFavorites({ page, limit: 100 }, { signal }), signal,
+    ),
     enabled: !!localStorage.getItem('token') && recipeIds.some(Boolean),
+    retry: false,
     staleTime: 60 * 1000,
     select: response => new Set((response.DT?.items || []).map(item => String(item.recipeId))),
   });

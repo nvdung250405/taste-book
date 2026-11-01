@@ -22,7 +22,6 @@ import useCollectionParams from '../hooks/useCollectionParams'
 import RecipeDeleteDialog from '../components/recipe/RecipeDeleteDialog'
 import useRecipeGridColumns from '../hooks/useRecipeGridColumns'
 import MyRecipeCard from '../components/recipe/MyRecipeCard'
-import { filterRecipes } from '../lib/collectionFilters'
 
 export default function MyRecipesPage() {
   const gridColumns = useRecipeGridColumns()
@@ -36,40 +35,27 @@ export default function MyRecipesPage() {
     setPage,
     reset,
   } = useCollectionParams()
-  // The current API pages records but does not filter them. Only load the full
-  // collection when a global search/status filter actually needs it.
-  const needsCollection = !!search.trim() || activeTab !== 'all'
-  const paginated = useMyRecipes(
-    { page, limit: 12 },
-    { enabled: !needsCollection },
-  )
-  const collection = useMyRecipes(
-    {},
-    { enabled: needsCollection, staleTime: 60 * 1000 },
-  )
   const {
     data: res,
     isPending: isLoading,
     isError,
     isFetching,
     refetch,
-  } = needsCollection ? collection : paginated
+  } = useMyRecipes({
+    page,
+    limit: 12,
+    ...(search.trim() ? { search: search.trim() } : {}),
+    ...(activeTab !== 'all' ? { status: activeTab === 'draft' ? 'private' : activeTab } : {}),
+  })
   const { mutate: deleteRecipe, isPending: deleting } = useDeleteRecipe()
 
   const [toDelete, setToDelete] = useState(null)
 
-  const allRecipes = res?.DT?.items || []
-  const recipes = needsCollection
-    ? filterRecipes(allRecipes, activeTab, search)
-    : allRecipes
-  const total = res?.DT?.total
-  const totalPages = Math.max(
-    1,
-    needsCollection ? Math.ceil(recipes.length / 12) : res?.DT?.totalPages || 1,
-  )
-  const visibleRecipes = needsCollection
-    ? recipes.slice((page - 1) * 12, page * 12)
-    : recipes
+  const recipes = res?.DT?.items || []
+  const totals = res?.DT?.totals
+  const total = totals?.total ?? (activeTab === 'all' ? res?.DT?.total : undefined)
+  const totalPages = Math.max(1, res?.DT?.totalPages || 1)
+  const visibleRecipes = recipes
   useEffect(() => {
     if (res && !isFetching && page > totalPages) setPage(totalPages)
   }, [res, isFetching, page, totalPages, setPage])
@@ -79,6 +65,7 @@ export default function MyRecipesPage() {
     { id: 'all', label: 'Tất cả', count: total, icon: BookOpen },
     {
       id: 'approved',
+      count: totals?.approved,
       label: 'Đã duyệt',
       icon: CheckCircle2,
       color: 'text-emerald-500',
@@ -87,6 +74,7 @@ export default function MyRecipesPage() {
     },
     {
       id: 'pending',
+      count: totals?.pending,
       label: 'Chờ duyệt',
       icon: Clock3,
       color: 'text-amber-500',
@@ -95,6 +83,7 @@ export default function MyRecipesPage() {
     },
     {
       id: 'rejected',
+      count: totals?.rejected,
       label: 'Bị từ chối',
       icon: XCircle,
       color: 'text-rose-500',
@@ -103,6 +92,7 @@ export default function MyRecipesPage() {
     },
     {
       id: 'draft',
+      count: totals?.private,
       label: 'Riêng tư / Nháp',
       icon: Lock,
       color: 'text-slate-500',
