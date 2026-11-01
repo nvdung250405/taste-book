@@ -95,6 +95,21 @@ describe("UC-22: POST /api/v1/admin/ingredient-categories", () => {
     jest.spyOn(db.IngredientCategory, "create").mockResolvedValue({ id: 7, categoryName: "Gia vị" });
   });
 
+  test.each([["TC-22-17", 254], ["TC-22-20", 255]])("BUGS-8 %s accepts a name of %i characters", async (_testCase, length) => {
+    const categoryName = "N".repeat(length);
+    db.IngredientCategory.create.mockResolvedValue({ id: 7, categoryName });
+    const response = await request(app)
+      .post("/api/v1/admin/ingredient-categories")
+      .set("Authorization", `Bearer ${createJWT({ userId: 1, role: "Admin" })}`)
+      .send({ categoryName });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({ EC: 0, DT: { ingredientCategoryId: 7, categoryName } });
+    expect(db.IngredientCategory.create).toHaveBeenCalledWith(
+      { categoryName }, { transaction: expect.any(Object) },
+    );
+  });
+
   test.each([[null, 401], ["User", 403]])("role %s bị chặn với %i trước khi đọc/ghi dữ liệu", async (role, status) => {
     db.User.findOne.mockResolvedValue({ id: 2, role: "User" });
     const response = await send(role);

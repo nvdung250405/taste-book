@@ -1761,6 +1761,9 @@ paths:
               properties:
                 categoryName:
                   type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Tên nhóm nguyên liệu không được rỗng sau khi trim, tối đa 255 ký tự sau khi trim.
                   example: Hải sản cao cấp
       responses:
         "429":
