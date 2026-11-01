@@ -22,7 +22,7 @@ before(async () => {
 after(async () => { await server?.close() })
 
 beforeEach(() => {
-  token = 'test-token'
+  token = 'header.' + btoa(JSON.stringify({ exp: 9999999999 })) + '.signature'
   storageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
   Object.defineProperty(globalThis, 'localStorage', {
     configurable: true,
@@ -56,6 +56,8 @@ function renderGuard() {
   return { html, adminRendered }
 }
 
+const accessKey = () => ['admin-access', token, '/admin/users']
+
 test('guest cannot mount admin pages even with a cached Admin profile', () => {
   token = null
   queryClient.setQueryData(['profile'], { DT: { role: 'Admin' } })
@@ -71,23 +73,25 @@ test('waits for the profile without mounting admin pages', () => {
 })
 
 for (const role of ['User', undefined, 'admin']) {
-  test(`denies access for role ${String(role)}`, () => {
-    queryClient.setQueryData(['profile'], { DT: { role } })
+  test(`does not mount admin pages from cached role ${String(role)} before revalidation`, () => {
+    queryClient.setQueryData(accessKey(), { DT: { role } })
     const { html, adminRendered } = renderGuard()
     assert.equal(adminRendered, false)
-    assert.match(html, /Bạn không có quyền truy cập/)
+    assert.match(html, /Đang kiểm tra quyền truy cập/)
   })
 }
 
-test('allows a verified Admin profile to mount admin pages', () => {
-  queryClient.setQueryData(['profile'], { DT: { role: 'Admin' } })
-  assert.equal(renderGuard().adminRendered, true)
+test('cached Admin access is revalidated on mount before showing protected content', () => {
+  queryClient.setQueryData(accessKey(), { DT: { role: 'Admin' } })
+  const { html, adminRendered } = renderGuard()
+  assert.equal(adminRendered, false)
+  assert.match(html, /Đang kiểm tra quyền truy cập/)
 })
 
 test('shows retry on profile failure even if the cached role is Admin', () => {
-  queryClient.setQueryData(['profile'], { DT: { role: 'Admin' } })
-  queryClient.getQueryCache().find({ queryKey: ['profile'] }).setState({
-    status: 'error', error: new Error('Network unavailable'),
+  queryClient.setQueryData(accessKey(), { DT: { role: 'Admin' } })
+  queryClient.getQueryCache().find({ queryKey: accessKey() }).setState({
+    data: undefined, status: 'error', error: new Error('Network unavailable'),
   })
   const { html, adminRendered } = renderGuard()
   assert.equal(adminRendered, false)
@@ -96,9 +100,26 @@ test('shows retry on profile failure even if the cached role is Admin', () => {
 })
 
 test('does not allow cached admin data while the profile is being refreshed', () => {
-  queryClient.setQueryData(['profile'], { DT: { role: 'Admin' } })
-  queryClient.getQueryCache().find({ queryKey: ['profile'] }).setState({ fetchStatus: 'fetching' })
+  queryClient.setQueryData(accessKey(), { DT: { role: 'Admin' } })
+  queryClient.getQueryCache().find({ queryKey: accessKey() }).setState({ fetchStatus: 'fetching' })
   const { html, adminRendered } = renderGuard()
   assert.equal(adminRendered, false)
   assert.match(html, /Đang kiểm tra quyền truy cập/)
 })
+
+test('a previous session or general profile cache cannot authorize a new token', () => {
+  queryClient.setQueryData(['profile'], { DT: { role: 'Admin' } })
+  queryClient.setQueryData(accessKey(), { DT: { role: 'Admin' } })
+  token = 'new.' + btoa(JSON.stringify({ exp: 9999999999 })) + '.signature'
+  const { html, adminRendered } = renderGuard()
+  assert.equal(adminRendered, false)
+  assert.match(html, /Đang kiểm tra quyền truy cập/)
+})
+
+for (const invalidToken of ['invalid', 'h.' + btoa(JSON.stringify({ exp: 1 })) + '.s', 'h.' + btoa(JSON.stringify({ role: 'Admin' })) + '.s']) {
+  test(`rejects missing/invalid expiry even with cached Admin access: ${invalidToken}`, () => {
+    token = invalidToken
+    queryClient.setQueryData(accessKey(), { DT: { role: 'Admin' } })
+    assert.equal(renderGuard().adminRendered, false)
+  })
+}

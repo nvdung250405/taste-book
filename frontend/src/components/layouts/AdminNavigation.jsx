@@ -27,7 +27,7 @@ export default function AdminNavigation({ onNavigate }) {
   return (
     <nav
       aria-label="Điều hướng quản trị"
-      className="flex-1 space-y-2 overflow-y-auto p-4"
+      className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-4"
     >
       {items.map(({ to, label, icon: Icon, end }) => (
         <NavLink
@@ -36,7 +36,7 @@ export default function AdminNavigation({ onNavigate }) {
           end={end}
           onClick={onNavigate}
           className={({ isActive }) =>
-            `flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
+            `flex min-h-11 items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 ${
               isActive
                 ? 'border-orange-200 bg-orange-50 font-semibold text-orange-700 dark:border-orange-900 dark:bg-orange-950/50 dark:text-orange-300'
                 : 'border-transparent text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'

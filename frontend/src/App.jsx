@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Toaster, toast } from 'sonner'
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { clearAuthSession } from './lib/authSession'
+import { isAdminPath } from './lib/navigation'
 
 function AppBehaviorHandler() {
   const location = useLocation()
@@ -21,12 +22,19 @@ function AppBehaviorHandler() {
       clearAuthSession(queryClient)
       if (pathname !== '/login' && pathname !== '/register') {
         toast.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại')
-        navigate('/login', { replace: true, state: { from: location } })
+        navigate(isAdminPath(pathname) ? '/403' : '/login', { replace: true, state: { from: location } })
       }
+    }
+    const handleForbidden = () => {
+      if (isAdminPath(pathname)) navigate('/403', { replace: true, state: { from: location } })
     }
 
     window.addEventListener('unauthorized', handleUnauthorized)
-    return () => window.removeEventListener('unauthorized', handleUnauthorized)
+    window.addEventListener('forbidden', handleForbidden)
+    return () => {
+      window.removeEventListener('unauthorized', handleUnauthorized)
+      window.removeEventListener('forbidden', handleForbidden)
+    }
   }, [navigate, pathname, location, queryClient])
 
   // Auto-check token expiration every 10 seconds
@@ -68,6 +76,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute'
 import HomePage from './pages/HomePage'
 import RecipeDetailPage from './pages/RecipeDetailPage'
 const NotFound = lazy(() => import('./pages/NotFound'))
+const ForbiddenPage = lazy(() => import('./pages/ForbiddenPage'))
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
 const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
@@ -95,6 +104,7 @@ function App() {
         <AppBehaviorHandler />
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div></div>}>
           <Routes>
+            <Route path="/403" element={<ForbiddenPage />} />
             {/* Public & User Routes with MainLayout */}
             <Route element={<MainLayout />}>
               <Route path="/" element={<HomePage />} />
@@ -127,6 +137,7 @@ function App() {
               <Route path="users" element={<AdminUsersPage />} />
               <Route path="ingredients" element={<AdminIngredientsPage />} />
               <Route path="units" element={<AdminUnitsPage />} />
+              <Route path="*" element={<NotFound />} />
             </Route>
 
             {/* Fallback 404 Route */}

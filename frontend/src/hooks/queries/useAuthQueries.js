@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import authApi from '../../api/auth.api';
-import { clearAuthSession } from '../../lib/authSession';
+import { clearAuthSession, startAuthSession } from '../../lib/authSession';
 
 // --- AUTH MUTATIONS ---
 
@@ -18,11 +18,8 @@ export const useLogin = () => {
     onSuccess: (response) => {
       // API spec says response.DT contains accessToken and user
       if (response.DT && response.DT.accessToken) {
-        localStorage.setItem('token', response.DT.accessToken);
-        // Tùy thuộc bạn lưu user info ở đâu (localStorage, Zustand)
-        // localStorage.setItem('user', JSON.stringify(response.DT.user));
-        
-        // Invalidate profile query to refetch after login
+        startAuthSession(queryClient, response.DT.accessToken);
+        // Load the profile for the new session rather than reuse the previous user.
         queryClient.invalidateQueries({ queryKey: ['profile'] });
       }
     },

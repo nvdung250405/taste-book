@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { isAdminPath } from '../lib/navigation';
 
 // Get base URL from env if available, otherwise default to local backend
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
@@ -40,6 +41,9 @@ axiosClient.interceptors.response.use(
   },
   (error) => {
     // Tự động chuyển hướng về trang login khi có lỗi 401 Unauthorized (Hết token)
+    if (error.response?.status === 403 && isAdminPath(window.location.pathname)) {
+      window.dispatchEvent(new Event('forbidden'));
+    }
     if (error.response && error.response.status === 401) {
       const currentPath = window.location.pathname;
       // Không chuyển hướng nếu đang ở trang login hoặc register (để tránh loop khi đăng nhập sai pass)

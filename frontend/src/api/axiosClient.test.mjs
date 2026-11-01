@@ -62,3 +62,24 @@ test('transport failures preserve their API error message', async () => {
     (error) => error === data,
   )
 })
+
+test('API 403 signals forbidden navigation only inside the admin path segment', async () => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'window')
+  const browser = new EventTarget()
+  let denied = 0
+  browser.addEventListener('forbidden', () => denied++)
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: browser })
+  const data = { EC: 4, EM: 'Forbidden' }
+  try {
+    for (const pathname of ['/admin/users', '/admin/unknown/deep', '/administrator', '/search']) {
+      browser.location = { pathname }
+      await assert.rejects(api.get('/admin/users', {
+        adapter: async () => { throw { response: { status: 403, data } } },
+      }), error => error === data)
+    }
+    assert.equal(denied, 2)
+  } finally {
+    if (descriptor) Object.defineProperty(globalThis, 'window', descriptor)
+    else delete globalThis.window
+  }
+})
