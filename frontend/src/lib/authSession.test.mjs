@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, test } from 'node:test'
 import { QueryClient, QueryObserver } from '@tanstack/react-query'
-import { clearAuthSession } from './authSession.js'
+import { activeAccessToken, clearAuthSession, startAuthSession } from './authSession.js'
 
 let queryClient
 let storageDescriptor
@@ -18,9 +18,31 @@ beforeEach(() => {
     value: {
       getItem: (key) => storage.get(key) ?? null,
       removeItem: (key) => storage.delete(key),
+      setItem: (key, value) => storage.set(key, value),
     },
   })
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+})
+
+test('new login clears previous user data before storing the next token', () => {
+  queryClient.setQueryData(['profile'], { DT: { role: 'Admin' } })
+  queryClient.setQueryData(['admin-access', 'old'], { DT: { role: 'Admin' } })
+  const token = 'h.' + btoa(JSON.stringify({ exp: Date.now() / 1000 + 60 })) + '.s'
+  startAuthSession(queryClient, token)
+  assert.equal(localStorage.getItem('token'), token)
+  assert.equal(activeAccessToken(), token)
+  assert.equal(queryClient.getQueryCache().getAll().length, 0)
+})
+
+test('invalid, missing, expired and nonnumeric expiry tokens are not active', () => {
+  for (const payload of [{}, { exp: 1 }, { exp: '9999999999' }]) {
+    localStorage.setItem('token', 'h.' + btoa(JSON.stringify(payload)) + '.s')
+    assert.equal(activeAccessToken(), null)
+  }
+  for (const token of ['', 'invalid', 'h.invalid.s', '.e30.s']) {
+    localStorage.setItem('token', token)
+    assert.equal(activeAccessToken(), null)
+  }
 })
 
 afterEach(() => {
