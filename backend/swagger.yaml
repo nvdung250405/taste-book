@@ -1920,6 +1920,9 @@ paths:
               properties:
                 unitName:
                   type: string
+                  minLength: 1
+                  maxLength: 30
+                  description: Tên đơn vị không được rỗng sau khi trim, tối đa 30 ký tự sau khi trim.
                   example: muỗng cà phê
       responses:
         "429":
@@ -1937,15 +1940,22 @@ paths:
                   unitId: 4
                   unitName: muỗng canh
         "400":
-          description: Tên đơn vị rỗng
+          description: Tên đơn vị rỗng, sai kiểu hoặc vượt quá 30 ký tự
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 1
-                EM: Tên đơn vị không được để trống!
-                DT: null
+              examples:
+                emptyName:
+                  value:
+                    EC: 1
+                    EM: Tên đơn vị không được để trống!
+                    DT: null
+                nameTooLong:
+                  value:
+                    EC: 1
+                    EM: Tên đơn vị không được vượt quá 30 ký tự!
+                    DT: null
         "401":
           description: Chưa xác thực Token
           content:
@@ -2011,6 +2021,9 @@ paths:
               properties:
                 unitName:
                   type: string
+                  minLength: 1
+                  maxLength: 30
+                  description: Tên đơn vị không được rỗng sau khi trim, tối đa 30 ký tự sau khi trim.
                   example: tsp
       responses:
         "429":
@@ -2026,15 +2039,22 @@ paths:
                 EM: Cập nhật đơn vị thành công!
                 DT: null
         "400":
-          description: Tên đơn vị rỗng
+          description: Tên đơn vị rỗng, sai kiểu hoặc vượt quá 30 ký tự
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 1
-                EM: Tên đơn vị không được để trống!
-                DT: null
+              examples:
+                emptyName:
+                  value:
+                    EC: 1
+                    EM: Tên đơn vị không được để trống!
+                    DT: null
+                nameTooLong:
+                  value:
+                    EC: 1
+                    EM: Tên đơn vị không được vượt quá 30 ký tự!
+                    DT: null
         "401":
           description: Chưa xác thực Token
           content:
