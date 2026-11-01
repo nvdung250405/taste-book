@@ -1457,6 +1457,9 @@ paths:
               properties:
                 ingredientName:
                   type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Tên nguyên liệu không được rỗng sau khi trim, tối đa 255 ký tự sau khi trim.
                   example: Nấm bào ngư
                 ingredientCategoryId:
                   type: integer
@@ -1481,15 +1484,22 @@ paths:
                   ingredientName: Thịt gà phi lê
                   categoryName: Thịt cá
         "400":
-          description: Tên nguyên liệu rỗng
+          description: Tên nguyên liệu rỗng, sai kiểu, vượt quá 255 ký tự hoặc dữ liệu tham chiếu không hợp lệ
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 1
-                EM: Tên nguyên liệu không được để trống!
-                DT: null
+              examples:
+                emptyName:
+                  value:
+                    EC: 1
+                    EM: Tên nguyên liệu không được để trống!
+                    DT: null
+                nameTooLong:
+                  value:
+                    EC: 1
+                    EM: Tên nguyên liệu không được vượt quá 255 ký tự!
+                    DT: null
         "401":
           description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
           content:
@@ -1554,6 +1564,9 @@ paths:
               properties:
                 ingredientName:
                   type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Tên nguyên liệu không được rỗng sau khi trim, tối đa 255 ký tự sau khi trim.
                   example: Nấm bào ngư trắng
                 ingredientCategoryId:
                   type: integer
@@ -1575,15 +1588,22 @@ paths:
                 EM: Cập nhật nguyên liệu thành công!
                 DT: null
         "400":
-          description: Tên nguyên liệu rỗng
+          description: Tên nguyên liệu rỗng, sai kiểu, vượt quá 255 ký tự hoặc dữ liệu tham chiếu không hợp lệ
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 1
-                EM: Tên nguyên liệu không được để trống!
-                DT: null
+              examples:
+                emptyName:
+                  value:
+                    EC: 1
+                    EM: Tên nguyên liệu không được để trống!
+                    DT: null
+                nameTooLong:
+                  value:
+                    EC: 1
+                    EM: Tên nguyên liệu không được vượt quá 255 ký tự!
+                    DT: null
         "401":
           description: Chưa xác thực hoặc phiên đăng nhập đã hết hạn
           content:
