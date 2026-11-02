@@ -18,6 +18,7 @@ import {
 } from '../hooks/queries/useRecipeListQueries'
 import RecipePicker from '../components/menu/RecipePicker'
 import CustomMenus from '../components/menu/CustomMenus'
+import MenuItemDeleteDialog from '../components/menu/MenuItemDeleteDialog'
 import { useSearchParams } from 'react-router-dom'
 import api from '../api/recipeLists.api'
 
@@ -41,6 +42,7 @@ function MealCell({ list, date, meal, onAdd }) {
   const client = useQueryClient()
   const query = useRecipeListItems(list?.recipeListId)
   const [busy, setBusy] = useState(false)
+  const [deleting, setDeleting] = useState(null)
   const items = query.data?.DT?.items || []
   const update = async (item, servings) => {
     if (busy) return
@@ -65,9 +67,11 @@ function MealCell({ list, date, meal, onAdd }) {
       },
     }))
     try {
-      if (servings === null)
+      if (servings === null) {
         await api.removeRecipeFromMenu(list.recipeListId, item.recipeListItemId)
-      else
+        toast.success('Đã xóa món khỏi thực đơn')
+        setDeleting(null)
+      } else
         await api.updateRecipePortion(
           list.recipeListId,
           item.recipeListItemId,
@@ -89,7 +93,7 @@ function MealCell({ list, date, meal, onAdd }) {
     >
       {query.isLoading && list ? (
         <Loader2 className="mx-auto my-6 size-5 animate-spin text-orange-500" />
-      ) : query.isError ? (
+      ) : query.isError && !query.data ? (
         <button
           onClick={() => query.refetch()}
           className="text-sm text-red-500"
@@ -145,7 +149,7 @@ function MealCell({ list, date, meal, onAdd }) {
                 </label>
                 <button
                   disabled={busy}
-                  onClick={() => update(item, null)}
+                  onClick={() => setDeleting(item)}
                   aria-label={`Xóa ${item.title}`}
                   className="rounded p-2 text-slate-400 hover:text-red-500 disabled:opacity-40"
                 >
@@ -163,6 +167,14 @@ function MealCell({ list, date, meal, onAdd }) {
       >
         <Plus className="size-4" /> Thêm món
       </button>
+      <MenuItemDeleteDialog
+        item={deleting}
+        pending={busy}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => {
+          if (deleting) update(deleting, null)
+        }}
+      />
     </div>
   )
 }
@@ -281,7 +293,7 @@ export default function MenuPage() {
               </Button>
             </div>
           </div>
-          {query.isError ? (
+          {query.isError && !query.data ? (
             <QueryError
               title="Không thể tải lịch thực đơn"
               onRetry={query.refetch}

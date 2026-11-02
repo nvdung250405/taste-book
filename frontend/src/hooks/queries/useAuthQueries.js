@@ -14,6 +14,7 @@ export const useLogin = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['login'],
     mutationFn: (data) => authApi.login(data),
     onSuccess: (response) => {
       // API spec says response.DT contains accessToken and user

@@ -34,7 +34,7 @@ function MyCategories() {
         <div><h1 className="text-3xl font-bold flex items-center gap-3"><FolderHeart className="text-orange-500" />Danh mục của tôi</h1><p className="text-slate-500 mt-2">Sắp xếp công thức theo các danh mục riêng của bạn.</p></div>
         <Button onClick={() => setEditor({})} className="bg-orange-500 hover:bg-orange-600"><Plus />Thêm danh mục</Button>
       </div>
-      {isPending ? <div role="status" className="flex justify-center py-16"><Loader2 className="animate-spin" /><span className="sr-only">Đang tải danh mục</span></div> : isError ?
+      {isPending ? <div role="status" className="flex justify-center py-16"><Loader2 className="animate-spin" /><span className="sr-only">Đang tải danh mục</span></div> : isError && !data ?
         <QueryError title="Không thể tải danh mục cá nhân" onRetry={refetch} isRetrying={isFetching} /> : categories.length === 0 ?
         <div className="rounded-2xl border border-dashed p-10 text-center space-y-3"><FolderHeart className="mx-auto w-12 h-12 text-orange-400" /><h2 className="text-xl font-semibold">Bạn chưa có danh mục cá nhân</h2><p className="text-slate-500">Tạo danh mục để dễ chọn khi viết công thức.</p><Button variant="outline" onClick={() => setEditor({})}>Tạo danh mục đầu tiên</Button></div> :
         <div className="grid sm:grid-cols-2 gap-4">{categories.map(category => (

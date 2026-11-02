@@ -55,8 +55,8 @@ export default function FavoritesPage() {
           duration: 2500,
         })
       },
-      onError: () => {
-        toast.error('Không thể bỏ lưu công thức. Vui lòng thử lại!')
+      onError: (error) => {
+        toast.error(error?.EM || 'Không thể bỏ lưu công thức. Vui lòng thử lại!')
       },
       onSettled: () => {
         setRemovingIds((prev) => {
@@ -80,7 +80,7 @@ export default function FavoritesPage() {
           toast.success('Đã lưu ghi chú thành công')
           setNoteDialog(null)
         },
-        onError: () => toast.error('Lưu ghi chú thất bại'),
+        onError: (error) => toast.error(error?.EM || 'Lưu ghi chú thất bại'),
       },
     )
   }
@@ -156,7 +156,7 @@ export default function FavoritesPage() {
             <RecipeCardSkeleton key={idx} />
           ))}
         </div>
-      ) : isError ? (
+      ) : isError && !res ? (
         <QueryError
           title="Không thể tải danh sách yêu thích"
           onRetry={() => refetch()}

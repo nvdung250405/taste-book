@@ -7,6 +7,14 @@ import { toast } from 'sonner'
 import { Button } from '../ui/button'
 import CategoryFormDialog from '../category/CategoryFormDialog'
 import QueryError from '../ui/QueryError'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../ui/dialog'
 
 const DIFFICULTIES = ['Dễ', 'Trung bình', 'Khó']
 
@@ -22,8 +30,10 @@ export default function RecipeBasicInfoForm({
   fetchingCategories,
   refetchCategories,
   admin = false,
+  confirmPublic = false,
 }) {
   const [creatingCategory, setCreatingCategory] = useState(false)
+  const [publicConfirmation, setPublicConfirmation] = useState(false)
 
   const handleFileChange = async (e) => {
     if (isUploading) return
@@ -47,8 +57,7 @@ export default function RecipeBasicInfoForm({
         toast.error('Không thể lấy đường dẫn ảnh')
       }
     } catch (error) {
-      console.error(error)
-      toast.error('Lỗi khi tải ảnh lên')
+      toast.error(error?.EM || 'Lỗi khi tải ảnh lên')
     } finally {
       setIsUploading(false)
       // Reset input value so same file can be uploaded again if needed
@@ -152,11 +161,19 @@ export default function RecipeBasicInfoForm({
               <Input
                 id="recipe-title"
                 name="title"
+                maxLength={255}
+                aria-describedby="recipe-title-count"
                 value={formData.title}
                 onChange={handleChange}
                 placeholder="VD: Phở bò gia truyền, Salad gà nướng..."
                 className="text-lg font-medium"
               />
+              <p
+                id="recipe-title-count"
+                className="mt-1 text-right text-xs text-slate-500"
+              >
+                {formData.title.length}/255 ký tự
+              </p>
             </div>
 
             <div>
@@ -330,12 +347,14 @@ export default function RecipeBasicInfoForm({
                     <input
                       type="checkbox"
                       checked={formData.isPublic !== false} // default to true if undefined
-                      onChange={(e) =>
-                        setFormData((p) => ({
-                          ...p,
-                          isPublic: e.target.checked,
-                        }))
-                      }
+                      onChange={(e) => {
+                        const checked = e.target.checked
+                        if (checked && confirmPublic) {
+                          setPublicConfirmation(true)
+                          return
+                        }
+                        setFormData((p) => ({ ...p, isPublic: checked }))
+                      }}
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-500/20 dark:peer-focus:ring-orange-500/30 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"></div>
@@ -355,6 +374,35 @@ export default function RecipeBasicInfoForm({
           </div>
         </div>
       </CardContent>
+      <Dialog open={publicConfirmation} onOpenChange={setPublicConfirmation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chuyển công thức sang công khai?</DialogTitle>
+            <DialogDescription>
+              Sau khi lưu, công thức sẽ được gửi để kiểm duyệt. Khi được Admin
+              phê duyệt công khai, bạn sẽ không thể chỉnh sửa lại công thức.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPublicConfirmation(false)}
+            >
+              Giữ riêng tư
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setFormData((p) => ({ ...p, isPublic: true }))
+                setPublicConfirmation(false)
+              }}
+            >
+              Xác nhận công khai
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

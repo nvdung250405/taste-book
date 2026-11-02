@@ -63,6 +63,48 @@ test('transport failures preserve their API error message', async () => {
   )
 })
 
+test('network/timeout errors become Vietnamese messages and cancellation stays cancellation', async () => {
+  for (const [code, pattern] of [['ERR_NETWORK', /đường truyền mạng/], ['ECONNABORTED', /quá lâu/]]) {
+    await assert.rejects(api.post('/test', {}, { adapter: async config => {
+      assert.equal(config.timeout, 15000)
+      throw Object.assign(new Error('Network Error'), { code })
+    } }), error => error.isNetworkError && pattern.test(error.EM))
+  }
+  const cancelled = { __CANCEL__: true, message: 'canceled' }
+  await assert.rejects(api.get('/test', { adapter: async () => { throw cancelled } }), error => error === cancelled)
+})
+
+test('offline writes fail immediately before a request is sent', async () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { onLine: false } })
+  let requests = 0
+  try {
+    await assert.rejects(api.post('/test', {}, { adapter: async () => { requests++; return {} } }), error => /đường truyền mạng/.test(error.EM))
+    assert.equal(requests, 0)
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'navigator', previous)
+    else delete globalThis.navigator
+  }
+})
+
+test('rate limiting retains Retry-After for permission checks without retrying early', async () => {
+  await assert.rejects(api.get('/users/me', { adapter: async () => {
+    throw { response: { status: 429, headers: { 'retry-after': '180', 'x-ratelimit-policy': 'login' }, data: { EC: 6 } } }
+  } }), error => error.httpStatus === 429 && error.retryAfterSeconds === 180 && /180 giây/.test(error.EM))
+})
+
+test('a global429 blocks further API requests locally until the cooldown expires', async () => {
+  let requests = 0
+  await assert.rejects(api.get('/categories', { adapter: async () => {
+    requests++
+    throw { response: { status: 429, headers: { 'retry-after': '0.05', 'x-ratelimit-policy': 'api' }, data: {} } }
+  } }), error => error.httpStatus === 429)
+  await assert.rejects(api.get('/recipes', { adapter: async () => { requests++; return {} } }), error => error.httpStatus === 429)
+  assert.equal(requests, 1)
+  await new Promise(resolve => setTimeout(resolve, 70))
+  assert.deepEqual(await api.get('/recipes', { adapter: adapter({ EC: 0, DT: [] }) }), { EC: 0, DT: [] })
+})
+
 test('API 403 signals forbidden navigation only inside the admin path segment', async () => {
   const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'window')
   const browser = new EventTarget()

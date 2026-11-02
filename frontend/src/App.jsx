@@ -4,6 +4,7 @@ import { Toaster, toast } from 'sonner'
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { clearAuthSession } from './lib/authSession'
 import { isAdminPath } from './lib/navigation'
+import ApiRateLimitNotice from './components/ui/ApiRateLimitNotice'
 
 function AppBehaviorHandler() {
   const location = useLocation()
@@ -71,6 +72,7 @@ import MainLayout from './components/layouts/MainLayout'
 import AdminLayout from './components/layouts/AdminLayout'
 import AdminRoute from './components/auth/AdminRoute'
 import ProtectedRoute from './components/auth/ProtectedRoute'
+import PublicOnlyRoute from './components/auth/PublicOnlyRoute'
 
 // Pages (Lazy loaded for better performance, except HomePage)
 import HomePage from './pages/HomePage'
@@ -79,6 +81,7 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 const ForbiddenPage = lazy(() => import('./pages/ForbiddenPage'))
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
 const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
 const AdminApprovalsPage = lazy(() => import('./pages/admin/AdminApprovalsPage'))
 const AdminRecipesPage = lazy(() => import('./pages/admin/AdminRecipesPage'))
@@ -102,14 +105,18 @@ function App() {
 
       <BrowserRouter>
         <AppBehaviorHandler />
+        <ApiRateLimitNotice />
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div></div>}>
           <Routes>
             <Route path="/403" element={<ForbiddenPage />} />
             {/* Public & User Routes with MainLayout */}
             <Route element={<MainLayout />}>
               <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
+              <Route element={<PublicOnlyRoute />}>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              </Route>
               {/* User routes */}
               <Route path="/search" element={<RecipeSearchPage />} />
               <Route path="/recipe/:id" element={<RecipeDetailPage />} />

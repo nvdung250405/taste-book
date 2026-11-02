@@ -109,7 +109,7 @@ export default function MyRecipesPage() {
         toast.success(`Đã xóa công thức "${toDelete.title}"`)
         setToDelete(null)
       },
-      onError: () => toast.error('Xóa công thức thất bại, vui lòng thử lại!'),
+      onError: (error) => toast.error(error?.EM || 'Xóa công thức thất bại, vui lòng thử lại!'),
     })
   }
 
@@ -208,7 +208,7 @@ export default function MyRecipesPage() {
             <RecipeCardSkeleton key={idx} />
           ))}
         </div>
-      ) : isError ? (
+      ) : isError && !res ? (
         <QueryError onRetry={() => refetch()} isRetrying={isFetching} />
       ) : recipes.length === 0 && activeTab === 'all' && !search ? (
         /* Empty State: Chưa tạo công thức nào */
