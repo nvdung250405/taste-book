@@ -16,6 +16,7 @@ import {
   useShoppingLists,
   useCreateShoppingList,
   useDeleteShoppingList,
+  useUpdateShoppingListStatus,
 } from '../hooks/queries/useShoppingListQueries'
 import { useRecipeLists } from '../hooks/queries/useRecipeListQueries'
 import ShoppingListDetail from '../components/shopping-list/ShoppingListDetail'
@@ -126,6 +127,8 @@ function CreateDialog({ onClose, onCreated }) {
 export default function ShoppingListPage() {
   const query = useShoppingLists()
   const deletion = useDeleteShoppingList()
+  const statusChange = useUpdateShoppingListStatus()
+  const [statusTarget, setStatusTarget] = useState(null)
   const [selectedId, setSelectedId] = useState(null)
   const [creating, setCreating] = useState(false)
   const [toDelete, setToDelete] = useState(null)
@@ -217,11 +220,32 @@ export default function ShoppingListPage() {
                 size="icon"
                 className="size-11 shrink-0 text-slate-400 hover:text-red-500"
                 aria-label="Xóa danh sách này"
+                disabled={statusChange.isPending}
                 onClick={() => setToDelete(selected)}
               >
                 <Trash2 className="size-4" />
               </Button>
             </div>
+            <Button
+              variant="outline"
+              className="min-h-11 w-full"
+              disabled={statusChange.isPending || deletion.isPending}
+              onClick={() =>
+                setStatusTarget({
+                  ...selected,
+                  nextStatus:
+                    selected.status === 'Completed'
+                      ? 'In_Progress'
+                      : 'Completed',
+                })
+              }
+            >
+              {statusChange.isPending
+                ? 'Đang cập nhật…'
+                : selected.status === 'Completed'
+                  ? 'Mở lại chuyến đi chợ'
+                  : 'Hoàn tất chuyến đi chợ'}
+            </Button>
             <ShoppingListDetail key={selected.shoppingListId} list={selected} />
           </section>
         </>
@@ -263,6 +287,73 @@ export default function ShoppingListPage() {
               className="bg-red-600 text-white hover:bg-red-700"
             >
               {deletion.isPending ? 'Đang xóa…' : 'Xóa danh sách'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={!!statusTarget}
+        onOpenChange={(open) => {
+          if (!open && !statusChange.isPending) setStatusTarget(null)
+        }}
+      >
+        <DialogContent
+          showCloseButton={!statusChange.isPending}
+          onEscapeKeyDown={(e) => {
+            if (statusChange.isPending) e.preventDefault()
+          }}
+          onInteractOutside={(e) => {
+            if (statusChange.isPending) e.preventDefault()
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>
+              {statusTarget?.nextStatus === 'Completed'
+                ? 'Hoàn tất chuyến đi chợ?'
+                : 'Mở lại chuyến đi chợ?'}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="break-words text-sm text-slate-500">
+            {statusTarget?.nextStatus === 'Completed'
+              ? 'Chuyển chuyến đi sang trạng thái đã hoàn tất. Bạn vẫn có thể mở lại khi cần.'
+              : 'Chuyển chuyến đi về trạng thái đang mua sắm.'}
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={statusChange.isPending}
+              onClick={() => setStatusTarget(null)}
+            >
+              Hủy
+            </Button>
+            <Button
+              disabled={statusChange.isPending}
+              onClick={() => {
+                if (!statusTarget || statusChange.isPending) return
+                statusChange.mutate(
+                  {
+                    shoppingListId: statusTarget.shoppingListId,
+                    data: { status: statusTarget.nextStatus },
+                  },
+                  {
+                    onSuccess: () => {
+                      toast.success(
+                        statusTarget.nextStatus === 'Completed'
+                          ? 'Đã hoàn tất chuyến đi chợ'
+                          : 'Đã mở lại chuyến đi chợ',
+                      )
+                      setStatusTarget(null)
+                    },
+                    onError: (error) =>
+                      toast.error(
+                        error?.EM ||
+                          'Không thể cập nhật chuyến đi chợ. Vui lòng thử lại.',
+                      ),
+                  },
+                )
+              }}
+            >
+              {statusChange.isPending ? 'Đang cập nhật…' : 'Xác nhận'}
             </Button>
           </DialogFooter>
         </DialogContent>

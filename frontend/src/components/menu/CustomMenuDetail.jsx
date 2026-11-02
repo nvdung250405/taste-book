@@ -10,12 +10,14 @@ import { validServings } from '../../lib/menuLists'
 import { Button } from '../ui/button'
 import QueryError from '../ui/QueryError'
 import RecipePicker from './RecipePicker'
+import MenuItemDeleteDialog from './MenuItemDeleteDialog'
 
 export default function CustomMenuDetail({ list, onClose }) {
   const query = useRecipeListItems(list.recipeListId)
   const remove = useRemoveRecipeFromMenu()
   const portion = useUpdateRecipePortion()
   const [picker, setPicker] = useState(false)
+  const [deleting, setDeleting] = useState(null)
   const busy = remove.isPending || portion.isPending
   const failure = (error) =>
     toast.error(error?.EM || 'Không thể cập nhật món ăn. Vui lòng thử lại.')
@@ -103,15 +105,7 @@ export default function CustomMenuDetail({ list, onClose }) {
                   className="text-red-600"
                   disabled={busy}
                   aria-label={`Bỏ ${item.title} khỏi thực đơn`}
-                  onClick={() =>
-                    remove.mutate(
-                      {
-                        listId: list.recipeListId,
-                        itemId: item.recipeListItemId,
-                      },
-                      { onError: failure },
-                    )
-                  }
+                  onClick={() => setDeleting(item)}
                 >
                   Bỏ món
                 </Button>
@@ -123,6 +117,24 @@ export default function CustomMenuDetail({ list, onClose }) {
       {picker && (
         <RecipePicker slot={{ list }} onClose={() => setPicker(false)} />
       )}
+      <MenuItemDeleteDialog
+        item={deleting}
+        pending={remove.isPending}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => {
+          if (!deleting || busy) return
+          remove.mutate(
+            { listId: list.recipeListId, itemId: deleting.recipeListItemId },
+            {
+              onSuccess: () => {
+                toast.success('Đã xóa món khỏi thực đơn')
+                setDeleting(null)
+              },
+              onError: failure,
+            },
+          )
+        }}
+      />
     </section>
   )
 }

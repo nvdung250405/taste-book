@@ -37,6 +37,13 @@ export const useUpdateShoppingListStatus = () => {
   return useMutation({
     mutationFn: ({ shoppingListId, data }) => shoppingListsApi.updateShoppingListStatus(shoppingListId, data),
     onSuccess: (_, variables) => {
+      queryClient.setQueryData(['shopping-lists'], old => old ? {
+        ...old, DT: old.DT.map(list => list.shoppingListId === variables.shoppingListId
+          ? { ...list, status: variables.data.status } : list),
+      } : old);
+      queryClient.setQueryData(['shopping-list', variables.shoppingListId], old => old ? {
+        ...old, DT: { ...old.DT, status: variables.data.status },
+      } : old);
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] });
       queryClient.invalidateQueries({ queryKey: ['shopping-list', variables.shoppingListId] });
     },
