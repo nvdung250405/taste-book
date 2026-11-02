@@ -57,8 +57,7 @@ export default function RecipeBasicInfoForm({
         toast.error('Không thể lấy đường dẫn ảnh')
       }
     } catch (error) {
-      console.error(error)
-      toast.error('Lỗi khi tải ảnh lên')
+      toast.error(error?.EM || 'Lỗi khi tải ảnh lên')
     } finally {
       setIsUploading(false)
       // Reset input value so same file can be uploaded again if needed

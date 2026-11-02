@@ -163,14 +163,14 @@ export default function RecipeSearchPage() {
       if (isFavorited(recipeId)) {
         removeFav(recipeId, {
           onSuccess: () => toast.success('Đã bỏ lưu khỏi yêu thích'),
-          onError: () => toast.error('Không thể bỏ lưu. Vui lòng thử lại!'),
+          onError: (error) => toast.error(error?.EM || 'Không thể bỏ lưu. Vui lòng thử lại!'),
         })
       } else {
         addFav(
           { recipeId, data: {} },
           {
             onSuccess: () => toast.success('Đã thêm vào yêu thích ❤️'),
-            onError: () => toast.error('Không thể thêm. Vui lòng thử lại!'),
+            onError: (error) => toast.error(error?.EM || 'Không thể thêm. Vui lòng thử lại!'),
           },
         )
       }

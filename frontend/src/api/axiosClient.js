@@ -1,11 +1,13 @@
 import axios from 'axios';
 import { isAdminPath } from '../lib/navigation';
+import { connectionError } from '../lib/networkErrors';
 
 // Get base URL from env if available, otherwise default to local backend
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 
 const axiosClient = axios.create({
   baseURL,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -14,6 +16,9 @@ const axiosClient = axios.create({
 // Interceptor to attach Authorization header if token exists
 axiosClient.interceptors.request.use(
   (config) => {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return Promise.reject(connectionError());
+    }
     // Note: Depends on how you store your token (localStorage, cookies, Zustand, etc.)
     // Assuming localStorage for this implementation
     const token = localStorage.getItem('token');
@@ -41,6 +46,9 @@ axiosClient.interceptors.response.use(
   },
   (error) => {
     // Tự động chuyển hướng về trang login khi có lỗi 401 Unauthorized (Hết token)
+    if (axios.isCancel(error)) return Promise.reject(error);
+    if (error.isNetworkError) return Promise.reject(error);
+    if (!error.response) return Promise.reject(connectionError(error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT'));
     if (error.response?.status === 403 && isAdminPath(window.location.pathname)) {
       window.dispatchEvent(new Event('forbidden'));
     }

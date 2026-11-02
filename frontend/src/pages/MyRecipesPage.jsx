@@ -109,7 +109,7 @@ export default function MyRecipesPage() {
         toast.success(`Đã xóa công thức "${toDelete.title}"`)
         setToDelete(null)
       },
-      onError: () => toast.error('Xóa công thức thất bại, vui lòng thử lại!'),
+      onError: (error) => toast.error(error?.EM || 'Xóa công thức thất bại, vui lòng thử lại!'),
     })
   }
 

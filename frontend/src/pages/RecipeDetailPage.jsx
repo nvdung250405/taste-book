@@ -80,14 +80,14 @@ function RecipeDetail({ id }) {
     if (isFavorited) {
       removeFav(id, {
         onSuccess: () => toast.success('Đã xóa khỏi yêu thích'),
-        onError: () => toast.error('Thất bại'),
+        onError: (error) => toast.error(error?.EM || 'Không thể bỏ yêu thích. Vui lòng thử lại!'),
       })
     } else {
       addFav(
         { recipeId: id, data: {} },
         {
           onSuccess: () => toast.success('Đã thêm vào yêu thích ❤️'),
-          onError: () => toast.error('Thất bại'),
+          onError: (error) => toast.error(error?.EM || 'Không thể thêm yêu thích. Vui lòng thử lại!'),
         },
       )
     }

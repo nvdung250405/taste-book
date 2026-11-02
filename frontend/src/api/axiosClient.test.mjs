@@ -63,6 +63,30 @@ test('transport failures preserve their API error message', async () => {
   )
 })
 
+test('network/timeout errors become Vietnamese messages and cancellation stays cancellation', async () => {
+  for (const [code, pattern] of [['ERR_NETWORK', /đường truyền mạng/], ['ECONNABORTED', /quá lâu/]]) {
+    await assert.rejects(api.post('/test', {}, { adapter: async config => {
+      assert.equal(config.timeout, 15000)
+      throw Object.assign(new Error('Network Error'), { code })
+    } }), error => error.isNetworkError && pattern.test(error.EM))
+  }
+  const cancelled = { __CANCEL__: true, message: 'canceled' }
+  await assert.rejects(api.get('/test', { adapter: async () => { throw cancelled } }), error => error === cancelled)
+})
+
+test('offline writes fail immediately before a request is sent', async () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { onLine: false } })
+  let requests = 0
+  try {
+    await assert.rejects(api.post('/test', {}, { adapter: async () => { requests++; return {} } }), error => /đường truyền mạng/.test(error.EM))
+    assert.equal(requests, 0)
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'navigator', previous)
+    else delete globalThis.navigator
+  }
+})
+
 test('API 403 signals forbidden navigation only inside the admin path segment', async () => {
   const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'window')
   const browser = new EventTarget()
