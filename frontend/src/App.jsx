@@ -71,6 +71,7 @@ import MainLayout from './components/layouts/MainLayout'
 import AdminLayout from './components/layouts/AdminLayout'
 import AdminRoute from './components/auth/AdminRoute'
 import ProtectedRoute from './components/auth/ProtectedRoute'
+import PublicOnlyRoute from './components/auth/PublicOnlyRoute'
 
 // Pages (Lazy loaded for better performance, except HomePage)
 import HomePage from './pages/HomePage'
@@ -79,6 +80,7 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 const ForbiddenPage = lazy(() => import('./pages/ForbiddenPage'))
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
 const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
 const AdminApprovalsPage = lazy(() => import('./pages/admin/AdminApprovalsPage'))
 const AdminRecipesPage = lazy(() => import('./pages/admin/AdminRecipesPage'))
@@ -108,8 +110,11 @@ function App() {
             {/* Public & User Routes with MainLayout */}
             <Route element={<MainLayout />}>
               <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
+              <Route element={<PublicOnlyRoute />}>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              </Route>
               {/* User routes */}
               <Route path="/search" element={<RecipeSearchPage />} />
               <Route path="/recipe/:id" element={<RecipeDetailPage />} />
