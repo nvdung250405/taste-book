@@ -282,7 +282,10 @@ const collectionStatus = (value = "all") => {
 
 const recipeStatusWhere = (status) => {
   if (status === "all") return {};
-  if (status === "private") return { isPublic: false };
+  if (status === "rejected") return { approvalStatus: "Rejected" };
+  if (status === "private") {
+    return { isPublic: false, approvalStatus: { [Op.ne]: "Rejected" } };
+  }
   return { isPublic: true, approvalStatus: status[0].toUpperCase() + status.slice(1) };
 };
 
@@ -368,7 +371,9 @@ const getMyRecipes = async (user, query = {}) => {
     const totals = { total: 0, approved: 0, pending: 0, rejected: 0, private: 0 };
     for (const group of groups) {
       const amount = Number(group.count);
-      const key = group.isPublic ? group.approvalStatus.toLowerCase() : "private";
+      const key = group.approvalStatus === "Rejected"
+        ? "rejected"
+        : group.isPublic ? group.approvalStatus.toLowerCase() : "private";
       totals.total += amount;
       if (Object.prototype.hasOwnProperty.call(totals, key)) totals[key] += amount;
     }
