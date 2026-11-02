@@ -836,6 +836,50 @@ describe("#100: authenticated recipe search API", () => {
     }));
   });
 
+  test.each(["rejected", "private", "draft", "all"])("#113: mine classifies rejected recipes separately from private recipes (%s)", async (status) => {
+    const recipes = [
+      { id: 201, authorId: 10, isDeleted: false, isPublic: false, approvalStatus: "Rejected" },
+      { id: 202, authorId: 10, isDeleted: false, isPublic: true, approvalStatus: "Rejected" },
+      { id: 203, authorId: 10, isDeleted: false, isPublic: false, approvalStatus: "Approved" },
+      { id: 204, authorId: 10, isDeleted: false, isPublic: false, approvalStatus: "Pending" },
+      { id: 205, authorId: 99, isDeleted: false, isPublic: false, approvalStatus: "Rejected" },
+      { id: 206, authorId: 10, isDeleted: true, isPublic: false, approvalStatus: "Rejected" },
+    ];
+    const owned = recipes.filter(recipe => recipe.authorId === 10 && !recipe.isDeleted);
+    db.Recipe.findAndCountAll.mockImplementation(async ({ where }) => {
+      expect(where).toEqual({
+        authorId: 10,
+        isDeleted: false,
+        ...(status === "rejected" ? { approvalStatus: "Rejected" }
+          : status === "all" ? {}
+            : { isPublic: false, approvalStatus: { [Op.ne]: "Rejected" } }),
+      });
+      const rows = owned.filter(recipe => {
+        if (where.isPublic !== undefined && recipe.isPublic !== where.isPublic) return false;
+        if (typeof where.approvalStatus === "string") return recipe.approvalStatus === where.approvalStatus;
+        if (where.approvalStatus?.[Op.ne]) return recipe.approvalStatus !== where.approvalStatus[Op.ne];
+        return true;
+      });
+      return { count: rows.length, rows };
+    });
+    db.Recipe.findAll.mockImplementation(async ({ where }) => {
+      expect(where).toEqual({ authorId: 10, isDeleted: false });
+      return owned.map(recipe => ({ ...recipe, count: "1" }));
+    });
+
+    const response = await request(app).get("/api/v1/recipes/mine")
+      .query({ status }).set("Authorization", `Bearer ${token}`);
+    const expectedIds = status === "rejected" ? [201, 202]
+      : status === "all" ? [201, 202, 203, 204] : [203, 204];
+    expect(response.status).toBe(200);
+    expect(response.body.DT).toMatchObject({
+      total: expectedIds.length,
+      totalPages: 1,
+      totals: { total: 4, approved: 0, pending: 0, rejected: 2, private: 2 },
+    });
+    expect(response.body.DT.items.map(recipe => recipe.recipeId)).toEqual(expectedIds);
+  });
+
   test.each([
     "/recipes/mine?status=invalid", "/recipes/mine?status[]=approved",
     "/recipes/mine?search[]=pho", "/recipes/mine?keyword[x]=pho",

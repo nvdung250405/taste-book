@@ -1417,6 +1417,7 @@ describe("#100: personal recipe search at the database", () => {
       { isPublic: true, approvalStatus: "Approved", count: "13" },
       { isPublic: true, approvalStatus: "Pending", count: "2" },
       { isPublic: true, approvalStatus: "Rejected", count: "1" },
+      { isPublic: false, approvalStatus: "Rejected", count: "2" },
       { isPublic: false, approvalStatus: "Approved", count: "3" },
       { isPublic: false, approvalStatus: "Pending", count: "4" },
     ]);
@@ -1425,7 +1426,7 @@ describe("#100: personal recipe search at the database", () => {
   test.each(["search", "keyword"])("mine combines %s, ownership, status and pagination; badges ignore status", async (alias) => {
     const result = await recipeService.getMyRecipes({ id: 10 }, { [alias]: " PHỞ ", status: "approved", page: 2, limit: 12 });
     expect(result.DT).toMatchObject({ page: 2, limit: 12, total: 13, totalPages: 2,
-      totals: { total: 23, approved: 13, pending: 2, rejected: 1, private: 7 } });
+      totals: { total: 25, approved: 13, pending: 2, rejected: 3, private: 7 } });
     const options = mine.mock.calls[0][0];
     expect(options).toMatchObject({ where: { authorId: 10, isDeleted: false, isPublic: true, approvalStatus: "Approved" }, limit: 12, offset: 12 });
     expect(options.where[Op.and]).toEqual([collectionTextMatch("Recipe.title", "PHỞ")]);
@@ -1439,8 +1440,9 @@ describe("#100: personal recipe search at the database", () => {
     expect(mine.mock.calls[0][0].where).toEqual({ authorId: 7, isDeleted: false, ...({
       all: {}, approved: { isPublic: true, approvalStatus: "Approved" },
       pending: { isPublic: true, approvalStatus: "Pending" },
-      rejected: { isPublic: true, approvalStatus: "Rejected" },
-      private: { isPublic: false }, draft: { isPublic: false },
+      rejected: { approvalStatus: "Rejected" },
+      private: { isPublic: false, approvalStatus: { [Op.ne]: "Rejected" } },
+      draft: { isPublic: false, approvalStatus: { [Op.ne]: "Rejected" } },
     }[status]) });
   });
 
