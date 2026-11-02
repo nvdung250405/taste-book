@@ -87,6 +87,12 @@ test('offline writes fail immediately before a request is sent', async () => {
   }
 })
 
+test('rate limiting retains Retry-After for permission checks without retrying early', async () => {
+  await assert.rejects(api.get('/users/me', { adapter: async () => {
+    throw { response: { status: 429, headers: { 'retry-after': '180' }, data: { EC: 6 } } }
+  } }), error => error.httpStatus === 429 && error.retryAfterSeconds === 180 && /180 giây/.test(error.EM))
+})
+
 test('API 403 signals forbidden navigation only inside the admin path segment', async () => {
   const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'window')
   const browser = new EventTarget()

@@ -49,6 +49,17 @@ axiosClient.interceptors.response.use(
     if (axios.isCancel(error)) return Promise.reject(error);
     if (error.isNetworkError) return Promise.reject(error);
     if (!error.response) return Promise.reject(connectionError(error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT'));
+    if (error.response.status === 429) {
+      const seconds = Number(error.response.headers?.['retry-after']);
+      return Promise.reject({
+        ...error.response.data,
+        httpStatus: 429,
+        ...(Number.isFinite(seconds) && seconds > 0 ? { retryAfterSeconds: seconds } : {}),
+        EM: Number.isFinite(seconds) && seconds > 0
+          ? `Máy chủ đang giới hạn yêu cầu. Vui lòng thử lại sau ${Math.ceil(seconds)} giây.`
+          : 'Máy chủ đang giới hạn yêu cầu. Vui lòng chờ một lúc rồi thử lại.',
+      });
+    }
     if (error.response?.status === 403 && isAdminPath(window.location.pathname)) {
       window.dispatchEvent(new Event('forbidden'));
     }
