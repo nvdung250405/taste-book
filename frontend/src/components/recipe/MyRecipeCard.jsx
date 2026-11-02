@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Card, CardContent } from '../ui/card'
+import { recipeStatus } from '../../lib/collectionFilters'
 import {
   recipeImageProps,
   handleRecipeImageError,
@@ -55,17 +56,7 @@ const STATUS_CONFIG = {
 }
 
 export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
-  // Xác định trạng thái của từng công thức
-  const getRecipeStatusKey = (recipe) => {
-    if (!recipe.isPublic) return 'draft'
-    const status = (recipe.approvalStatus || '').toLowerCase()
-    if (status === 'approved') return 'approved'
-    if (status === 'pending') return 'pending'
-    if (status === 'rejected') return 'rejected'
-    return 'draft'
-  }
-
-  const statusKey = getRecipeStatusKey(recipe)
+  const statusKey = recipeStatus(recipe)
   const status = STATUS_CONFIG[statusKey] || STATUS_CONFIG.draft
   const StatusIcon = status.icon
   const rId = recipe.recipeId || recipe.id || recipe._id
@@ -110,7 +101,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
             {status.label}
           </span>
 
-          {!recipe.isPublic && (
+          {!recipe.isPublic && !isRejected && (
             <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm bg-slate-900/80 text-white backdrop-blur-md">
               <Lock className="w-3 h-3" /> Riêng tư
             </span>
