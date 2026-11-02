@@ -89,8 +89,20 @@ test('offline writes fail immediately before a request is sent', async () => {
 
 test('rate limiting retains Retry-After for permission checks without retrying early', async () => {
   await assert.rejects(api.get('/users/me', { adapter: async () => {
-    throw { response: { status: 429, headers: { 'retry-after': '180' }, data: { EC: 6 } } }
+    throw { response: { status: 429, headers: { 'retry-after': '180', 'x-ratelimit-policy': 'login' }, data: { EC: 6 } } }
   } }), error => error.httpStatus === 429 && error.retryAfterSeconds === 180 && /180 giây/.test(error.EM))
+})
+
+test('a global429 blocks further API requests locally until the cooldown expires', async () => {
+  let requests = 0
+  await assert.rejects(api.get('/categories', { adapter: async () => {
+    requests++
+    throw { response: { status: 429, headers: { 'retry-after': '0.05', 'x-ratelimit-policy': 'api' }, data: {} } }
+  } }), error => error.httpStatus === 429)
+  await assert.rejects(api.get('/recipes', { adapter: async () => { requests++; return {} } }), error => error.httpStatus === 429)
+  assert.equal(requests, 1)
+  await new Promise(resolve => setTimeout(resolve, 70))
+  assert.deepEqual(await api.get('/recipes', { adapter: adapter({ EC: 0, DT: [] }) }), { EC: 0, DT: [] })
 })
 
 test('API 403 signals forbidden navigation only inside the admin path segment', async () => {

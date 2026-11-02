@@ -70,7 +70,7 @@ export default function ShoppingListDetail({ list }) {
     finally { setClearing(false); client.invalidateQueries({ queryKey: key }) }
   }
   if (query.isLoading) return <div role="status" className="flex justify-center p-12"><Loader2 className="size-6 animate-spin text-orange-500" /><span className="sr-only">Đang tải danh sách</span></div>
-  if (query.isError) return <QueryError title="Không thể tải nguyên liệu" onRetry={query.refetch} />
+  if (query.isError && !query.data) return <QueryError title="Không thể tải nguyên liệu" onRetry={query.refetch} />
   return <div className="space-y-5">
     <div className="rounded-2xl bg-orange-50 p-4 dark:bg-orange-950/20"><div className="mb-3 flex items-center justify-between gap-2"><span className="text-sm font-medium" aria-live="polite">Đã mua {purchased}/{items.length} mục</span><span role="status" className="text-xs text-slate-500">{pendingIds.size || clearing || adding ? 'Đang lưu…' : 'Đã đồng bộ'}</span></div><div role="progressbar" aria-label="Tiến độ mua sắm" aria-valuemin={0} aria-valuemax={items.length || 1} aria-valuenow={purchased} className="h-2 overflow-hidden rounded-full bg-orange-100 dark:bg-slate-800"><div className="h-full rounded-full bg-orange-500 transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${items.length ? purchased / items.length * 100 : 0}%` }} /></div></div>
     {!!conflicts.size && <p role="note" className="flex gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"><AlertTriangle className="size-5 shrink-0" /> Có nguyên liệu trùng tên nhưng khác đơn vị. Các lượng được giữ riêng, không tự cộng hoặc quy đổi.</p>}

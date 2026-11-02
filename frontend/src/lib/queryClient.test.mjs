@@ -28,3 +28,23 @@ test('offline mutations settle with error instead of pausing and replaying on re
     onlineManager.setOnline(previous)
   }
 })
+
+test('a rate-limited read is not retried automatically', async () => {
+  const client = createAppQueryClient()
+  let calls = 0
+  try {
+    await assert.rejects(
+      client.fetchQuery({
+        queryKey: ['limited'],
+        queryFn: async () => {
+          calls++
+          throw { httpStatus: 429, retryAfterSeconds: 10 }
+        },
+      }),
+      (error) => error.httpStatus === 429,
+    )
+    assert.equal(calls, 1)
+  } finally {
+    client.clear()
+  }
+})

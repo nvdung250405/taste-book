@@ -208,7 +208,7 @@ export default function MyRecipesPage() {
             <RecipeCardSkeleton key={idx} />
           ))}
         </div>
-      ) : isError ? (
+      ) : isError && !res ? (
         <QueryError onRetry={() => refetch()} isRetrying={isFetching} />
       ) : recipes.length === 0 && activeTab === 'all' && !search ? (
         /* Empty State: Chưa tạo công thức nào */

@@ -170,7 +170,7 @@ export default function ShoppingListPage() {
           className="h-80 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800"
           aria-label="Đang tải danh sách"
         />
-      ) : query.isError ? (
+      ) : query.isError && !query.data ? (
         <QueryError
           title="Không thể tải danh sách đi chợ"
           onRetry={query.refetch}

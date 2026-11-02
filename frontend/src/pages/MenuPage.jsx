@@ -93,7 +93,7 @@ function MealCell({ list, date, meal, onAdd }) {
     >
       {query.isLoading && list ? (
         <Loader2 className="mx-auto my-6 size-5 animate-spin text-orange-500" />
-      ) : query.isError ? (
+      ) : query.isError && !query.data ? (
         <button
           onClick={() => query.refetch()}
           className="text-sm text-red-500"
@@ -293,7 +293,7 @@ export default function MenuPage() {
               </Button>
             </div>
           </div>
-          {query.isError ? (
+          {query.isError && !query.data ? (
             <QueryError
               title="Không thể tải lịch thực đơn"
               onRetry={query.refetch}

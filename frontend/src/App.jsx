@@ -4,6 +4,7 @@ import { Toaster, toast } from 'sonner'
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { clearAuthSession } from './lib/authSession'
 import { isAdminPath } from './lib/navigation'
+import ApiRateLimitNotice from './components/ui/ApiRateLimitNotice'
 
 function AppBehaviorHandler() {
   const location = useLocation()
@@ -104,6 +105,7 @@ function App() {
 
       <BrowserRouter>
         <AppBehaviorHandler />
+        <ApiRateLimitNotice />
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div></div>}>
           <Routes>
             <Route path="/403" element={<ForbiddenPage />} />

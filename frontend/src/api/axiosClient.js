@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { isAdminPath } from '../lib/navigation';
 import { connectionError } from '../lib/networkErrors';
+import { apiCooldownSeconds, pauseApiRequests, rateLimitError } from '../lib/apiRateLimit';
 
 // Get base URL from env if available, otherwise default to local backend
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
@@ -16,6 +17,8 @@ const axiosClient = axios.create({
 // Interceptor to attach Authorization header if token exists
 axiosClient.interceptors.request.use(
   (config) => {
+    const seconds = apiCooldownSeconds();
+    if (seconds) return Promise.reject(rateLimitError(seconds));
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       return Promise.reject(connectionError());
     }
@@ -47,10 +50,16 @@ axiosClient.interceptors.response.use(
   (error) => {
     // Tự động chuyển hướng về trang login khi có lỗi 401 Unauthorized (Hết token)
     if (axios.isCancel(error)) return Promise.reject(error);
+    if (error.httpStatus === 429) return Promise.reject(error);
     if (error.isNetworkError) return Promise.reject(error);
     if (!error.response) return Promise.reject(connectionError(error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT'));
     if (error.response.status === 429) {
-      const seconds = Number(error.response.headers?.['retry-after']);
+      const rawRetryAfter = error.response.headers?.['retry-after'];
+      const seconds = Number.isFinite(Number(rawRetryAfter)) ? Number(rawRetryAfter)
+        : Math.ceil((Date.parse(rawRetryAfter) - Date.now()) / 1000);
+      const policy = error.response.headers?.['x-ratelimit-policy'];
+      // An auth-specific limiter must not pause the rest of the website.
+      if (policy === 'api' || (!policy && !error.config?.url?.startsWith('/auth/'))) pauseApiRequests(seconds);
       return Promise.reject({
         ...error.response.data,
         httpStatus: 429,

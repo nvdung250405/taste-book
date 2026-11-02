@@ -242,7 +242,7 @@ export default function RecipeSearchPage() {
             <RecipeCardSkeleton key={idx} />
           ))}
         </div>
-      ) : isError ? (
+      ) : isError && !recipesRes ? (
         <QueryError onRetry={() => refetch()} isRetrying={isFetching} />
       ) : allRecipes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">

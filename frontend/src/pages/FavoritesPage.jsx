@@ -156,7 +156,7 @@ export default function FavoritesPage() {
             <RecipeCardSkeleton key={idx} />
           ))}
         </div>
-      ) : isError ? (
+      ) : isError && !res ? (
         <QueryError
           title="Không thể tải danh sách yêu thích"
           onRetry={() => refetch()}
