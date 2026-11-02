@@ -4,7 +4,31 @@ import {
   filterFavorites,
   filterRecipes,
   recipeCounts,
+  recipeStatus,
 } from './collectionFilters.js'
+
+test('rejected private recipes belong to rejected counts and filters, not drafts', () => {
+  const rejected = {
+    title: 'Cá kho',
+    isPublic: false,
+    approvalStatus: 'Rejected',
+  }
+  const draft = { title: 'Phở', isPublic: false, approvalStatus: 'Pending' }
+  assert.equal(recipeStatus(rejected), 'rejected')
+  assert.equal(
+    recipeStatus({ ...rejected, approvalStatus: 'REJECTED' }),
+    'rejected',
+  )
+  assert.deepEqual(recipeCounts([rejected, draft]), {
+    all: 2,
+    approved: 0,
+    pending: 0,
+    rejected: 1,
+    draft: 1,
+  })
+  assert.deepEqual(filterRecipes([rejected, draft], 'rejected', ''), [rejected])
+  assert.deepEqual(filterRecipes([rejected, draft], 'draft', ''), [draft])
+})
 
 test('recipe filters and tab counts cover the whole collection before pagination', () => {
   const recipes = [

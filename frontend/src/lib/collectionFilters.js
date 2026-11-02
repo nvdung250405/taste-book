@@ -1,6 +1,7 @@
 export function recipeStatus(recipe) {
-  if (!recipe.isPublic) return 'draft'
   const status = (recipe.approvalStatus || '').toLowerCase()
+  if (status === 'rejected') return 'rejected'
+  if (!recipe.isPublic) return 'draft'
   return ['approved', 'pending', 'rejected'].includes(status) ? status : 'draft'
 }
 

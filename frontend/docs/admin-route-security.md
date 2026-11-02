@@ -2,7 +2,7 @@
 
 ## Phạm vi
 
-Frontend chặn `/admin`, mọi trang con đã đăng ký và URL con không tồn tại. Guest, token thiếu/sai cấu trúc/hết hạn, tài khoản có role khác chính xác `Admin` được chuyển đến `/403` bằng replace. Admin hợp lệ vào URL không tồn tại nhận trang 404 bên trong layout đã bảo vệ. Không sửa Backend.
+Frontend chặn `/admin`, mọi trang con đã đăng ký và URL con không tồn tại. Guest và token thiếu/sai cấu trúc/hết hạn được chuyển đến `/login` bằng replace; tài khoản đã xác thực có role khác chính xác `Admin` chuyển `/403`. Admin hợp lệ vào URL không tồn tại nhận trang 404 bên trong layout đã bảo vệ. Không sửa Backend.
 
 ## Xác thực và phiên
 
@@ -10,7 +10,7 @@ Frontend chặn `/admin`, mọi trang con đã đăng ký và URL con không t�
 - Kiểm tra exp phía client chỉ để chặn sớm; chữ ký token và role hiện tại do Backend xác thực.
 - Query xác thực tách khỏi `profile`, theo token và dùng chung giữa các URL Admin. Xác thực lần đầu khi mount; kiểm tra lại định kỳ 60 giây và khi focus/reconnect nếu dữ liệu đã stale. Chuyển giữa các trang Admin không gọi lại profile khi phiên đã xác thực. Cache không được giữ khi không còn observer.
 - Đăng nhập mới xóa cache của phiên cũ trước khi ghi token. Guard theo dõi thay đổi phiên, storage khác tab và hết hạn token. Thay đổi storage cùng tab ngoài luồng đăng nhập cũng được phát hiện qua nhịp kiểm tra 1 giây; Backend vẫn phải kiểm tra mọi request trong khoảng đó.
-- Lần xác thực đầu tiên chưa thành công vẫn chặn trang con và hiển thị thử lại. Sau khi cùng token đã được xác nhận Admin, kiểm tra nền chậm/lỗi tạm thời không unmount layout hoặc làm mất bản nháp; lỗi có banner thử lại. Không dùng dữ liệu phiên khác hoặc role tự lưu để cấp quyền. HTTP 401 xóa phiên và chuyển 403; HTTP 403 hoặc role mới khác Admin chuyển 403.
+- Lần xác thực đầu tiên chưa thành công vẫn chặn trang con và hiển thị thử lại. Sau khi cùng token đã được xác nhận Admin, kiểm tra nền chậm/lỗi tạm thời không unmount layout hoặc làm mất bản nháp; lỗi có banner thử lại. Không dùng dữ liệu phiên khác hoặc role tự lưu để cấp quyền. HTTP 401 xóa phiên và chuyển login; HTTP 403 hoặc role mới khác Admin chuyển 403.
 - HTTP 429 được ghi nhận kèm Retry-After; polling chờ ít nhất khoảng này và không refetch do focus/reconnect khi đang chờ. Không tự retry ngay, không tăng hoặc vô hiệu hóa giới hạn Backend.
 - `/403` là route độc lập, có đường về trang chủ và đăng nhập. Đường quay lại sau đăng nhập được kiểm tra: chỉ nhận path nội bộ, loại URL ngoài, dấu backslash/ký tự điều khiển và vòng lặp vào trang xác thực.
 
@@ -28,7 +28,7 @@ Frontend guard bảo vệ điều hướng và tránh tải giao diện trái qu
 - `npm run lint`: đạt.
 - `npm test`: lần kiểm tra gần nhất 114/114 đạt (gồm thay đổi các issue #106–#109).
 - `npm run build`: đạt.
-- Edge headless với API giả lập: Guest, token malformed/expired, User với role Admin giả trong localStorage/JWT, token bị Backend trả 401 đều chuyển 403; không gửi request `/admin/*`.
+- Edge headless với API giả lập: Guest, token malformed/expired, User với role Admin giả trong localStorage/JWT, token bị Backend trả 401: guest/token sai/hết hạn/401 chuyển login, role User chuyển 403; không gửi request `/admin/*`.
 - Kiểm tra URL `/admin`, `/admin/users`, `/admin/recipes/123/edit`, `/admin/unknown/deep`, `/ADMIN/users` cho từng nhóm bị từ chối.
 - Profile chậm/lỗi không mount trang con; thử lại thành công cho phép Admin. Đổi token Admin sang User, đăng xuất tab khác, hết hạn khi trang đang mở và API trả 403 đều bị chặn. Admin hợp lệ vào URL không tồn tại nhận 404.
 - Dashboard, Users, Categories, Ingredients, Units, Approvals, Recipes và form tạo công thức ở 768×1024, 820×1180, 1024×768, 1366×768: không có tràn ngang toàn trang hoặc lỗi JavaScript; drawer đóng sau điều hướng và highlight đúng mục.

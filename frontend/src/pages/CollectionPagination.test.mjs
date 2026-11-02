@@ -38,6 +38,30 @@ const render = (client, Page, url) =>
       ),
     ),
   )
+
+test('rejected tab renders private rejected API items, feedback and server counts', () => {
+  const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } })
+  const params = { page: 1, limit: 12, status: 'rejected' }
+  client.setQueryData(['my-recipes', params], {
+    DT: {
+      items: [{ recipeId: 42, title: 'Cá kho bị từ chối', isPublic: false,
+        approvalStatus: 'Rejected', rejectionReason: 'Thiếu bước chế biến' }],
+      total: 1, totalPages: 1,
+      totals: { total: 9, approved: 5, pending: 1, rejected: 1, private: 2 },
+    },
+  })
+  try {
+    const html = render(client, MyRecipes, '/my-recipes?status=rejected')
+    assert.match(html, /Cá kho bị từ chối/)
+    assert.match(html, /Thiếu bước chế biến/)
+    assert.match(html, /bg-rose-50 text-rose-700/)
+    assert.doesNotMatch(html, /Không có công thức nào bị từ chối/)
+    assert.match(html, /Bị từ chối<\/span><span[^>]*>1<\/span>/)
+    assert.match(html, /Riêng tư \/ Nháp<\/span><span[^>]*>2<\/span>/)
+    assert.equal(client.getQueryCache().getAll().length, 1)
+    assert.deepEqual(client.getQueryCache().getAll()[0].queryKey, ['my-recipes', params])
+  } finally { client.clear() }
+})
 for (const [Page, key, url] of [
   [() => MyRecipes, 'my-recipes', '/my-recipes'],
   [() => Favorites, 'favorites', '/favorites'],

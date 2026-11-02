@@ -37,7 +37,7 @@ export default function AdminRoute({ children }) {
   })
 
   if (!token) {
-    return <Navigate to="/403" replace state={{ from: location }} />
+    return <Navigate to="/login" replace state={{ from: location }} />
   }
 
   // Block the initial verification, but never destroy a verified session's form
