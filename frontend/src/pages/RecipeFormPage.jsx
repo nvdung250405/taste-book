@@ -276,6 +276,10 @@ function RecipeForm({ id, recipe, admin }) {
 
     // Validate
     if (!formData.title.trim()) return toast.error('Vui lòng nhập tên món')
+    if (formData.title.length > 255) {
+      setSubmitError('Tên món ăn không được vượt quá 255 ký tự.')
+      return
+    }
     if (!formData.description.trim())
       return toast.error('Vui lòng nhập mô tả món ăn')
     if (!formData.prepTime || Number(formData.prepTime) <= 0)
@@ -382,6 +386,7 @@ function RecipeForm({ id, recipe, admin }) {
         <fieldset disabled={creating || updating} className="min-w-0 space-y-8">
           <RecipeBasicInfoForm
             admin={admin}
+            confirmPublic={isEdit && !admin && recipe?.isPublic === false}
             isUploading={isUploading}
             setIsUploading={setIsUploading}
             formData={formData}
