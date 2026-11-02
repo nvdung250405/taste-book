@@ -53,6 +53,11 @@ afterEach(() => {
 
 function renderGuard() {
   let adminRendered = false
+  let guardResult
+  function GuardProbe() {
+    guardResult = AdminRoute({ children: createElement(AdminPage) })
+    return guardResult
+  }
   function AdminPage() {
     adminRendered = true
     return createElement('p', null, 'Admin content')
@@ -64,11 +69,11 @@ function renderGuard() {
       createElement(
         MemoryRouter,
         { initialEntries: ['/admin/users'] },
-        createElement(AdminRoute, null, createElement(AdminPage)),
+        createElement(GuardProbe),
       ),
     ),
   )
-  return { html, adminRendered }
+  return { html, adminRendered, redirect: guardResult.props }
 }
 
 const accessKey = () => ['admin-access', token]
@@ -76,9 +81,12 @@ const accessKey = () => ['admin-access', token]
 test('guest cannot mount admin pages even with a cached Admin profile', () => {
   token = null
   queryClient.setQueryData(['profile'], { DT: { role: 'Admin' } })
-  const { html, adminRendered } = renderGuard()
+  const { html, adminRendered, redirect } = renderGuard()
   assert.equal(adminRendered, false)
   assert.equal(html, '')
+  assert.equal(redirect.to, '/login')
+  assert.equal(redirect.replace, true)
+  assert.equal(redirect.state.from.pathname, '/admin/users')
 })
 
 test('waits for the profile without mounting admin pages', () => {
@@ -93,6 +101,7 @@ for (const role of ['User', undefined, 'admin']) {
     const { html, adminRendered } = renderGuard()
     assert.equal(adminRendered, false)
     assert.equal(html, '')
+    assert.equal(renderGuard().redirect.to, '/403')
   })
 }
 
@@ -164,5 +173,6 @@ for (const invalidToken of [
     token = invalidToken
     queryClient.setQueryData(accessKey(), { DT: { role: 'Admin' } })
     assert.equal(renderGuard().adminRendered, false)
+    assert.equal(renderGuard().redirect.to, '/login')
   })
 }

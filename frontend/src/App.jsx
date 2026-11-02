@@ -23,7 +23,7 @@ function AppBehaviorHandler() {
       clearAuthSession(queryClient)
       if (pathname !== '/login' && pathname !== '/register') {
         toast.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại')
-        navigate(isAdminPath(pathname) ? '/403' : '/login', { replace: true, state: { from: location } })
+        navigate('/login', { replace: true, state: { from: location } })
       }
     }
     const handleForbidden = () => {
