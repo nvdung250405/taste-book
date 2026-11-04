@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import {
   Plus,
   BookOpen,
@@ -24,6 +24,7 @@ import useRecipeGridColumns from '../hooks/useRecipeGridColumns'
 import MyRecipeCard from '../components/recipe/MyRecipeCard'
 
 export default function MyRecipesPage() {
+  const location = useLocation()
   const gridColumns = useRecipeGridColumns()
   const {
     page,
@@ -123,6 +124,7 @@ export default function MyRecipesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {location.state?.notice && <p role="alert" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{location.state.notice}</p>}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>

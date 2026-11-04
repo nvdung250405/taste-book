@@ -60,9 +60,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
   const status = STATUS_CONFIG[statusKey] || STATUS_CONFIG.draft
   const StatusIcon = status.icon
   const rId = recipe.recipeId || recipe.id || recipe._id
-  const isApproved =
-    recipe.isPublic &&
-    (recipe.approvalStatus || '').toLowerCase() === 'approved'
+  const locked = ['pending', 'approved'].includes(statusKey)
   const isRejected = (recipe.approvalStatus || '').toLowerCase() === 'rejected'
 
   return (
@@ -73,7 +71,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
       {/* Ảnh cover & Badges */}
       <div className="relative h-48 sm:h-52 overflow-hidden bg-slate-100 dark:bg-slate-800">
         <Link
-          to={isApproved ? `/recipe/${rId}` : `/recipe/${rId}/edit`}
+          to={locked ? `/recipe/${rId}` : `/recipe/${rId}/edit`}
           className="block w-full h-full"
         >
           <img
@@ -113,7 +111,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
       <CardContent className="p-4 sm:p-5 flex flex-col flex-1">
         <h2 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-2 mb-2 text-base sm:text-lg group-hover:text-orange-500 transition-colors">
           <Link
-            to={isApproved ? `/recipe/${rId}` : `/recipe/${rId}/edit`}
+            to={locked ? `/recipe/${rId}` : `/recipe/${rId}/edit`}
             className="hover:underline"
           >
             {recipe.title}
@@ -173,7 +171,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
 
         {/* Action buttons (Sửa / Xóa / Xem) */}
         <div className="flex items-center gap-2 mt-auto pt-3 border-t border-slate-100 dark:border-slate-800">
-          {isApproved && (
+          {locked && (
             <Button
               size="sm"
               variant="outline"
@@ -187,6 +185,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
             </Button>
           )}
 
+          {!locked && <>
           <Button
             size="sm"
             variant="outline"
@@ -206,6 +205,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
           >
             <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Xóa
           </Button>
+          </>}
         </div>
       </CardContent>
     </Card>

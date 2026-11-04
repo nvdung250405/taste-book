@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Loader2, Save } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { Button } from '../components/ui/button'
 import {
   useCategories,
@@ -18,6 +19,7 @@ import { toast } from 'sonner'
 import QueryError from '../components/ui/QueryError'
 import { useSearchIngredients, useUnits } from '../hooks/queries/useIngredientQueries'
 import { changeRecipeIngredient, recipeIngredientPayload } from '../lib/recipeIngredientSelection'
+import { recipeStatus } from '../lib/collectionFilters'
 import { isQualitativeUnit } from '../lib/shoppingList'
 import { adminRecipePayload } from '../lib/adminRecipeForm'
 
@@ -99,6 +101,9 @@ export default function RecipeFormPage({ admin = false }) {
     )
   }
 
+  if (!admin && id && ['pending', 'approved'].includes(recipeStatus(recipeRes.DT))) {
+    return <Navigate to="/my-recipes" replace state={{ notice: 'Công thức đang chờ duyệt hoặc đã duyệt công khai, không thể sửa/xóa.' }} />
+  }
   // A different recipe (or create mode) gets its own form state.
   return (
     <RecipeForm
@@ -134,6 +139,7 @@ function RecipeForm({ id, recipe, admin }) {
     ? adminUpdate
     : userUpdate
   const [submitError, setSubmitError] = useState('')
+  const [confirmSubmission, setConfirmSubmission] = useState(false)
   const back = () => (admin ? navigate('/admin/recipes') : navigate(-1))
 
   const categories = categoriesRes?.DT || []
@@ -258,8 +264,8 @@ function RecipeForm({ id, recipe, admin }) {
     })
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  const handleSubmit = (e, confirmed = false) => {
+    e?.preventDefault()
     if (creating || updating) return
     if (isUploading) return toast.error('Vui lòng đợi ảnh tải lên hoàn tất')
     setSubmitError('')
@@ -320,6 +326,8 @@ function RecipeForm({ id, recipe, admin }) {
       })),
     }
 
+    if (!admin && formData.isPublic && !confirmed) { setConfirmSubmission(true); return }
+    setConfirmSubmission(false)
     if (isEdit) {
       updateRecipe(
         { recipeId: id, data: payload },
@@ -457,6 +465,7 @@ function RecipeForm({ id, recipe, admin }) {
           </Button>
         </div>
       </form>
+      <Dialog open={confirmSubmission} onOpenChange={setConfirmSubmission}><DialogContent><DialogHeader><DialogTitle>Gửi công thức để kiểm duyệt?</DialogTitle><DialogDescription>Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa, xóa hoặc chuyển công thức về riêng tư trong thời gian chờ kết quả.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setConfirmSubmission(false)}>Hủy</Button><Button onClick={() => handleSubmit(null, true)}>Xác nhận gửi duyệt</Button></DialogFooter></DialogContent></Dialog>
     </div>
   )
 }
