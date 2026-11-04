@@ -30,7 +30,7 @@ test('dashboard uses global totals rather than the size of the five-row preview'
     assert.match(html, />87</)
     assert.match(html, /Lan/)
     assert.doesNotMatch(html, /API chưa hỗ trợ|Lượt truy cập|Dữ liệu thật/)
-    assert.equal(cache.getQueryCache().getAll().length, 2)
+    assert.equal(cache.getQueryCache().getAll().length, 3)
   } finally { cache.clear() }
 })
 test('dashboard renders real zero counts and errors without confusing them with empty data', () => {
@@ -45,6 +45,24 @@ test('dashboard renders real zero counts and errors without confusing them with 
     assert.doesNotMatch(html, /Chưa có người dùng nào/)
   } finally { cache.clear() }
 })
+test('pending queue card shows count, zero, loading and errors with a moderation link', () => {
+  const cache = client()
+  try {
+    assert.match(render(cache, Dashboard), /Công thức chờ duyệt/)
+    assert.match(render(cache, Dashboard), /…/)
+    cache.setQueryData(['pending-recipes'], { DT: [{ recipeId: 1 }, { recipeId: 2 }] })
+    let html = render(cache, Dashboard)
+    assert.match(html, />2</)
+    assert.match(html, /href="\/admin\/approvals"/)
+    cache.setQueryData(['pending-recipes'], { DT: [] })
+    assert.match(render(cache, Dashboard), />0</)
+    cache.getQueryCache().find({ queryKey: ['pending-recipes'] }).setState({ status: 'error', error: new Error('Offline') })
+    html = render(cache, Dashboard)
+    assert.match(html, /Không thể tải số bài chờ duyệt/)
+    assert.match(html, /—/)
+  } finally { cache.clear() }
+})
+
 test('users page applies server pagination and URL filters rather than slicing the first page', () => {
   const cache = client()
   const params = { page: 3, limit: 20, keyword: 'Lan', role: 'User' }

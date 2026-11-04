@@ -1,6 +1,7 @@
 ﻿import { Link } from 'react-router-dom'
 import {
   Users,
+  Clock3,
   UtensilsCrossed,
   ArrowRight,
   RefreshCw,
@@ -15,7 +16,10 @@ import {
 } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { useAdminUsers } from '../../hooks/queries/useUserQueries'
-import { useRecipes } from '../../hooks/queries/useRecipeQueries'
+import {
+  useRecipes,
+  usePendingRecipes,
+} from '../../hooks/queries/useRecipeQueries'
 import QueryError from '../../components/ui/QueryError'
 import {
   recipeImageProps,
@@ -28,8 +32,18 @@ export default function DashboardPage() {
     { page: 1, limit: 5, sortBy: 'createdAt', sortOrder: 'DESC' },
     { staleTime: 60 * 1000 },
   )
-  const busy = users.isFetching || recipes.isFetching
+  const pending = usePendingRecipes()
+  const busy = users.isFetching || recipes.isFetching || pending.isFetching
   const stats = [
+    {
+      title: 'Công thức chờ duyệt',
+      query: pending,
+      icon: Clock3,
+      value: pending.data?.DT?.length,
+      href: '/admin/approvals',
+      note: 'Xem hàng đợi kiểm duyệt',
+      color: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+    },
     {
       title: 'Tổng người dùng',
       query: users,
@@ -67,14 +81,15 @@ export default function DashboardPage() {
           onClick={() => {
             users.refetch()
             recipes.refetch()
+            pending.refetch()
           }}
         >
           <RefreshCw className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} />
           Làm mới
         </Button>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {stats.map(({ title, query, icon: Icon, note, color }) => (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {stats.map(({ title, query, icon: Icon, note, color, value, href }) => (
           <Card key={title} className="rounded-2xl">
             <CardContent className="flex items-center justify-between gap-4 px-6">
               <div>
@@ -87,9 +102,28 @@ export default function DashboardPage() {
                     ? '…'
                     : query.isError
                       ? '—'
-                      : (query.data?.DT?.total ?? 0).toLocaleString('vi-VN')}
+                      : (value ?? query.data?.DT?.total ?? 0).toLocaleString(
+                          'vi-VN',
+                        )}
                 </p>
-                <p className="text-xs text-slate-500">{note}</p>
+                {href ? (
+                  <Link
+                    to={href}
+                    className="text-xs font-medium text-amber-700 hover:underline"
+                  >
+                    {note} →
+                  </Link>
+                ) : (
+                  <p className="text-xs text-slate-500">{note}</p>
+                )}
+                {href && query.isError && (
+                  <button
+                    onClick={() => query.refetch()}
+                    className="mt-2 block text-xs text-red-600 underline"
+                  >
+                    Không thể tải số bài chờ duyệt. Thử lại
+                  </button>
+                )}
               </div>
               <span
                 className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${color}`}
