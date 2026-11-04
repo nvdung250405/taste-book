@@ -231,16 +231,76 @@ describe("Recipe Lists HTTP integration (mock DB only)", () => {
     expect(db.RecipeList.create).not.toHaveBeenCalled();
     expect(list.save).not.toHaveBeenCalled();
   });
-  test("POST duplicate recipe item returns 409", async () => {
+  test.each([4, 6])("#134: POST trùng, khẩu phần mới %i trả metadata, không tự cập nhật", async targetServings => {
     db.RecipeListItem.findOne.mockResolvedValue(item);
-    const res = await send("post", "/1/items", { recipeId: 2, targetServings: 4 });
+    const res = await send("post", "/1/items", { recipeId: 2, targetServings });
     expect(res.status).toBe(409);
     expect(res.body).toEqual({
       EC: 2,
-      EM: "Món ăn đã có trong thực đơn, vui lòng điều chỉnh số lượng!",
-      DT: null,
+      EM: targetServings === 4
+        ? "Món ăn đã có trong thực đơn với cùng số khẩu phần này!"
+        : "Món ăn đã có trong thực đơn, bạn có muốn cập nhật khẩu phần?",
+      DT: targetServings === 4
+        ? { isDuplicateSameServings: true, recipeListItemId: 10, currentServings: 4 }
+        : { isDuplicateDifferentServings: true, recipeListItemId: 10, currentServings: 4, newServings: 6 },
     });
     expect(db.RecipeListItem.create).not.toHaveBeenCalled();
+    expect(item.update).not.toHaveBeenCalled();
+    expect(item.targetServings).toBe(4);
+  });
+
+  test("#134: POST trùng → xác nhận PUT thay khẩu phần → POST cùng khẩu phần", async () => {
+    db.RecipeListItem.findOne.mockResolvedValue(item);
+    item.update.mockImplementation(async values => Object.assign(item, values));
+    const duplicate = await send("post", "/1/items", { recipeId: 2, targetServings: 6 });
+    expect(duplicate.status).toBe(409);
+    expect(duplicate.body.DT).toMatchObject({ recipeListItemId: 10, currentServings: 4, newServings: 6 });
+    expect(item.targetServings).toBe(4);
+    const updated = await send("put", `/1/items/${duplicate.body.DT.recipeListItemId}`, {
+      targetServings: duplicate.body.DT.newServings,
+    });
+    expect(updated.status).toBe(200);
+    expect(updated.body).toMatchObject({ EC: 0, EM: "Cập nhật khẩu phần thành công!", DT: null });
+    expect(item.targetServings).toBe(6);
+    expect(item.update).toHaveBeenCalledWith({ targetServings: 6 });
+    const same = await send("post", "/1/items", { recipeId: 2, targetServings: 6 });
+    expect(same.status).toBe(409);
+    expect(same.body.DT).toEqual({ isDuplicateSameServings: true, recipeListItemId: 10, currentServings: 6 });
+    expect(db.RecipeListItem.create).not.toHaveBeenCalled();
+    expect(item.update).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([4, 7])("#134: hai POST đồng thời, khẩu phần request thứ hai %i: chỉ một dòng", async secondServings => {
+    let savedItem = null;
+    let reads = 0;
+    let releaseReaders;
+    const bothRead = new Promise(resolve => { releaseReaders = resolve; });
+    db.RecipeListItem.findOne.mockImplementation(async () => {
+      if (reads < 2) {
+        reads += 1;
+        if (reads === 2) releaseReaders();
+        await bothRead;
+        return null;
+      }
+      return savedItem;
+    });
+    db.RecipeListItem.create.mockImplementation(async values => {
+      if (savedItem) throw Object.assign(new Error("Duplicate"), { name: "SequelizeUniqueConstraintError" });
+      savedItem = { id: 10, ...values };
+      return savedItem;
+    });
+    const responses = await Promise.all([
+      send("post", "/1/items", { recipeId: 2, targetServings: 4 }),
+      send("post", "/1/items", { recipeId: 2, targetServings: secondServings }),
+    ]);
+    expect(responses.map(response => response.status).sort()).toEqual([201, 409]);
+    const conflict = responses.find(response => response.status === 409);
+    const winner = responses.find(response => response.status === 201);
+    expect(conflict.body.DT).toMatchObject({ recipeListItemId: 10, currentServings: winner.body.DT.targetServings });
+    const same = winner.body.DT.targetServings === (responses[0].status === 409 ? 4 : secondServings);
+    expect(conflict.body.DT[same ? "isDuplicateSameServings" : "isDuplicateDifferentServings"]).toBe(true);
+    expect(db.RecipeListItem.create).toHaveBeenCalledTimes(2);
+    expect(savedItem).toMatchObject({ recipeListId: 1, recipeId: 2 });
   });
   test.each(["put", "delete"])("%s missing item returns 404", async (method) => {
     db.RecipeListItem.findOne.mockResolvedValue(null);

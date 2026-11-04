@@ -4576,6 +4576,11 @@ paths:
         (targetServings). Công thức phải chưa bị xóa và thuộc người dùng hiện tại
         hoặc công khai, đã duyệt. Công thức không tồn tại hoặc không được truy cập
         đều trả 404. Một món chỉ xuất hiện một lần trong mỗi thực đơn.
+        Nếu món đã có, trả HTTP 409/EC=2 kèm recipeListItemId và currentServings.
+        Cùng khẩu phần trả isDuplicateSameServings=true; khác khẩu phần trả
+        isDuplicateDifferentServings=true và newServings để FE hỏi xác nhận cập nhật.
+        POST không tự cập nhật hoặc cộng dồn khẩu phần. Unique index bảo đảm không tạo
+        dòng trùng khi có request đồng thời; request thua nhận cùng metadata 409.
       security:
         - bearerAuth: []
       parameters:
@@ -4696,15 +4701,52 @@ paths:
                     EM: Không tìm thấy công thức món ăn!
                     DT: null
         "409":
-          description: Món ăn đã có trong thực đơn
+          description: Món ăn đã có trong thực đơn; kèm metadata để hiển thị hoặc xác nhận cập nhật
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 2
-                EM: Món ăn đã có trong thực đơn, vui lòng điều chỉnh số lượng!
-                DT: null
+                type: object
+                properties:
+                  EC:
+                    type: integer
+                    enum: [2]
+                  EM:
+                    type: string
+                  DT:
+                    type: object
+                    required: [recipeListItemId, currentServings]
+                    properties:
+                      recipeListItemId:
+                        type: integer
+                      currentServings:
+                        type: integer
+                      newServings:
+                        type: integer
+                        description: Chỉ có khi khẩu phần mới khác hiện tại.
+                      isDuplicateSameServings:
+                        type: boolean
+                      isDuplicateDifferentServings:
+                        type: boolean
+              examples:
+                sameServings:
+                  summary: Món đã có cùng khẩu phần; không cập nhật
+                  value:
+                    EC: 2
+                    EM: Món ăn đã có trong thực đơn với cùng số khẩu phần này!
+                    DT:
+                      isDuplicateSameServings: true
+                      recipeListItemId: 10
+                      currentServings: 4
+                differentServings:
+                  summary: Món đã có khác khẩu phần; FE hỏi xác nhận trước khi gọi PUT
+                  value:
+                    EC: 2
+                    EM: Món ăn đã có trong thực đơn, bạn có muốn cập nhật khẩu phần?
+                    DT:
+                      isDuplicateDifferentServings: true
+                      recipeListItemId: 10
+                      currentServings: 4
+                      newServings: 6
         "500":
           description: Lỗi hệ thống server hoặc CSDL
           content:
@@ -4721,7 +4763,9 @@ paths:
         - Recipe Lists
       summary: "UC-16: Đổi khẩu phần N món trong thực đơn"
       description: Cập nhật lại số lượng khẩu phần ăn N người (targetServings) cho một
-        món ăn đã có trong thực đơn.
+        món ăn đã có trong thực đơn. Thay thế giá trị cũ, không cộng dồn và không tạo dòng mới.
+        FE gọi sau khi người dùng xác nhận đề xuất newServings từ POST trùng món.
+        Kiểm tra lại quyền sở hữu, item thuộc đúng thực đơn và khẩu phần nguyên dương trước khi lưu.
       security:
         - bearerAuth: []
       parameters:

@@ -192,6 +192,29 @@ describe("RecipeListService (mock DB only)", () => {
     expect((await service.addRecipeToRecipeList(1, "1", { recipeId: 2, targetServings: 4 })).EC).toBe(2);
     expect(db.RecipeListItem.create).not.toHaveBeenCalled();
   });
+  test.each([4, 8])("#134: trùng món trả khẩu phần hiện tại và đề xuất %i", async servings => {
+    db.RecipeListItem.findOne.mockResolvedValue(item);
+    const result = await service.addRecipeToRecipeList(1, "1", { recipeId: 2, targetServings: servings });
+    expect(result.EC).toBe(2);
+    expect(result.DT).toEqual(servings === 4
+      ? { isDuplicateSameServings: true, recipeListItemId: 10, currentServings: 4 }
+      : { isDuplicateDifferentServings: true, recipeListItemId: 10, currentServings: 4, newServings: 8 });
+    expect(db.RecipeListItem.create).not.toHaveBeenCalled();
+    expect(item.update).not.toHaveBeenCalled();
+  });
+  test("#134: trả metadata khi unique index chặn một POST cạnh tranh", async () => {
+    db.RecipeListItem.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce(item);
+    db.RecipeListItem.create.mockRejectedValue({ name: "SequelizeUniqueConstraintError" });
+    const result = await service.addRecipeToRecipeList(1, "1", { recipeId: 2, targetServings: 6 });
+    expect(result).toMatchObject({ EC: 2, DT: { currentServings: 4, newServings: 6, recipeListItemId: 10 } });
+  });
+  test("#134: PUT thay thế khẩu phần, không cộng dồn hoặc tạo dòng", async () => {
+    item.update.mockImplementation(async values => Object.assign(item, values));
+    expect((await service.updateRecipeListItemServings(1, "1", "10", { targetServings: 6 })).EC).toBe(0);
+    expect(item.targetServings).toBe(6);
+    expect(db.RecipeListItem.findOne).toHaveBeenCalledWith({ where: { id: 10, recipeListId: 1 } });
+    expect(db.RecipeListItem.create).not.toHaveBeenCalled();
+  });
   test("list response filters user and counts items", async () => {
     list.createdAt = "2026-10-13T00:00:00.000Z";
     list.recipeListItems = [{ id: 10 }, { id: 11 }];

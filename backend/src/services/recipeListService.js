@@ -15,6 +15,23 @@ const parsePathId = (value) => {
   return isPositiveInteger(id) ? id : null;
 };
 
+const duplicateRecipeListItem = (item, newServings) => {
+  const currentServings = Number(item.targetServings);
+  const sameServings = currentServings === newServings;
+  return {
+    EC: 2,
+    EM: sameServings
+      ? "Món ăn đã có trong thực đơn với cùng số khẩu phần này!"
+      : "Món ăn đã có trong thực đơn, bạn có muốn cập nhật khẩu phần?",
+    DT: {
+      ...(sameServings ? { isDuplicateSameServings: true } : { isDuplicateDifferentServings: true }),
+      recipeListItemId: item.id,
+      currentServings,
+      ...(!sameServings ? { newServings } : {}),
+    },
+  };
+};
+
 /**
  * 6.1 Lấy danh sách thực đơn của người dùng đang đăng nhập (UC-13)
  * @param {number} userId
@@ -553,18 +570,26 @@ const addRecipeToRecipeList = async (userId, listId, rawData = {}) => {
     });
 
     if (existingItem) {
-      return {
-        EC: 2,
-        EM: "Món ăn đã có trong thực đơn, vui lòng điều chỉnh số lượng!",
-        DT: null,
-      };
+      return duplicateRecipeListItem(existingItem, servings);
     }
 
-    const newItem = await db.RecipeListItem.create({
-      recipeListId: lId,
-      recipeId: rId,
-      targetServings: servings,
-    });
+    let newItem;
+    try {
+      newItem = await db.RecipeListItem.create({
+        recipeListId: lId,
+        recipeId: rId,
+        targetServings: servings,
+      });
+    } catch (error) {
+      // Hai POST có thể cùng vượt qua bước kiểm tra; unique index quyết định lượt thắng.
+      if (error.name === "SequelizeUniqueConstraintError") {
+        const concurrentItem = await db.RecipeListItem.findOne({
+          where: { recipeListId: lId, recipeId: rId },
+        });
+        if (concurrentItem) return duplicateRecipeListItem(concurrentItem, servings);
+      }
+      throw error;
+    }
 
     return {
       EC: 0,
