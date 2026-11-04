@@ -152,6 +152,112 @@ describe("UC-19/20: quyền Admin và kiểm duyệt công thức", () => {
     }));
   });
 
+  test.each([
+    [{ status: "pending" }, "Pending", true],
+    [{ status: " Approved " }, "Approved", true],
+    [{ approvalStatus: "REJECTED" }, "Rejected", false],
+    [{ status: "rejected", approvalStatus: "Rejected" }, "Rejected", false],
+  ])("lọc danh sách kiểm duyệt theo %j", async (query, approvalStatus, isPublic) => {
+    db.Recipe.findAll.mockResolvedValue([{
+      id: 105, approvalStatus, isPublic, rejectionReason: "Lý do đã lưu", authorId: 10,
+    }]);
+    const res = await request(app).get("/api/v1/admin/recipes/pending")
+      .set("Authorization", `Bearer ${token()}`).query(query);
+    expect(res.status).toBe(200);
+    expect(res.body.DT[0]).toMatchObject({
+      recipeId: 105, approvalStatus, isPublic, rejectionReason: "Lý do đã lưu",
+    });
+    expect(db.Recipe.findAll).toHaveBeenCalledWith(expect.objectContaining({
+      where: { isDeleted: false, isPublic, approvalStatus },
+    }));
+    if (approvalStatus === "Approved") {
+      expect(db.Recipe.findAll.mock.calls[0][0].include[0]).toMatchObject({
+        as: "author", required: true, where: { role: "User" },
+      });
+    }
+  });
+
+  test.each([
+    { status: "private" }, { status: "" }, { status: ["pending", "rejected"] },
+    { "status[nested]": "pending" }, { approvalStatus: "invalid" },
+    { status: "pending", approvalStatus: "approved" },
+  ])("từ chối bộ lọc trạng thái không hợp lệ: %j", async query => {
+    const res = await request(app).get("/api/v1/admin/recipes/pending")
+      .set("Authorization", `Bearer ${token()}`).query(query);
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ EC: 1, DT: null });
+    expect(db.Recipe.findAll).not.toHaveBeenCalled();
+  });
+
+  test("#119: Pending → Approved → Rejected → Approved; ẩn công khai, giữ quyền tác giả", async () => {
+    const recipe = {
+      id: 105, authorId: 10, author: { id: 10, role: "User", username: "Tác giả" },
+      title: "Canh rau", isDeleted: false, isPublic: true, approvalStatus: "Pending",
+      rejectionReason: null, categories: [], ingredients: [], cookingSteps: [],
+      get: () => 1,
+    };
+    recipe.update = jest.fn(async values => Object.assign(recipe, values));
+    const matches = where => Object.entries(where).every(([key, value]) => recipe[key] === value);
+    db.Recipe.findOne.mockImplementation(async ({ where }) => matches(where) ? recipe : null);
+    db.Recipe.findAll.mockImplementation(async ({ where }) => matches(where) ? [recipe] : []);
+    jest.spyOn(db.Recipe, "findAndCountAll").mockImplementation(async ({ where }) => ({
+      count: matches(where) ? 1 : 0, rows: matches(where) ? [recipe] : [],
+    }));
+    jest.spyOn(db.Recipe, "findByPk").mockResolvedValue(recipe);
+    jest.spyOn(db.Category, "findOne").mockResolvedValue({ id: 8 });
+    const categoryLinks = new Set();
+    jest.spyOn(db.RecipeCategory, "findOrCreate").mockImplementation(async ({ where }) => {
+      const key = `${where.recipeId}:${where.categoryId}`;
+      const created = !categoryLinks.has(key);
+      categoryLinks.add(key);
+      return [where, created];
+    });
+    const moderate = body => request(app).patch("/api/v1/admin/recipes/105/moderation")
+      .set("Authorization", `Bearer ${token()}`).send(body);
+    const list = status => request(app).get("/api/v1/admin/recipes/pending")
+      .set("Authorization", `Bearer ${token()}`).query({ status });
+
+    expect((await list("pending")).body.DT).toHaveLength(1);
+    expect((await moderate({ approvalStatus: "Approved" })).status).toBe(200);
+    expect((await list("pending")).body.DT).toEqual([]);
+    expect((await list("approved")).body.DT).toHaveLength(1);
+    expect((await request(app).get("/api/v1/recipes")).body.DT.recipes).toHaveLength(1);
+
+    for (const rejectionReason of [undefined, "   "]) {
+      expect((await moderate({ approvalStatus: "Rejected", rejectionReason })).status).toBe(400);
+      expect(recipe.approvalStatus).toBe("Approved");
+    }
+    const revoked = await moderate({ approvalStatus: "Rejected", rejectionReason: "  Cần kiểm tra lại  " });
+    expect(revoked.status).toBe(200);
+    expect(recipe).toMatchObject({
+      authorId: 10, title: "Canh rau", isDeleted: false,
+      isPublic: false, approvalStatus: "Rejected", rejectionReason: "Cần kiểm tra lại",
+    });
+    expect((await list("approved")).body.DT).toEqual([]);
+    expect((await list("rejected")).body.DT[0].rejectionReason).toBe("Cần kiểm tra lại");
+    expect((await request(app).get("/api/v1/recipes")).body.DT.recipes).toEqual([]);
+    const home = await request(app).get("/api/v1/home");
+    expect(home.status).toBe(200);
+    expect(home.body.DT).toMatchObject({ latestRecipes: [], trendingRecipes: [] });
+    expect((await request(app).get("/api/v1/recipes/105")).status).toBe(404);
+    db.User.findOne.mockResolvedValue({ id: 10, role: "User" });
+    expect((await request(app).get("/api/v1/recipes/105")
+      .set("Authorization", `Bearer ${token("User", 10)}`)).status).toBe(200);
+
+    db.User.findOne.mockResolvedValue({ id: 1, role: "Admin" });
+    const approvedAgain = await moderate({ approvalStatus: "Approved" });
+    expect(approvedAgain.status).toBe(200);
+    expect(approvedAgain.body.DT.rejectionReason).toBeNull();
+    expect(recipe.isPublic).toBe(true);
+    expect((await list("rejected")).body.DT).toEqual([]);
+    expect((await list("approved")).body.DT).toHaveLength(1);
+    expect((await request(app).get("/api/v1/recipes")).body.DT.recipes).toHaveLength(1);
+    expect(categoryLinks.size).toBe(1);
+    expect(db.RecipeCategory.findOrCreate).toHaveBeenCalledTimes(2);
+    expect(recipe.update).toHaveBeenCalledTimes(3);
+    expect(transaction.commit).toHaveBeenCalledTimes(3);
+  });
+
   test.each(["Approved", "Rejected"])("Admin kiểm duyệt %s thành công", async (approvalStatus) => {
     jest.spyOn(db.Recipe, "findByPk").mockResolvedValue({ id: 105, author: { role: "Admin" } });
     const res = await request(app).patch("/api/v1/admin/recipes/105/moderation")

@@ -58,7 +58,7 @@ router.put("/recipes/:recipeId", checkUserJWT, checkAdminPermission, recipeContr
 // 4.11 DELETE /api/v1/admin/recipes/:recipeId - Admin xóa công thức chuẩn hệ thống (UC-19)
 router.delete("/recipes/:recipeId", checkUserJWT, checkAdminPermission, recipeController.handleAdminDeleteRecipe);
 
-// 4.12 GET /api/v1/admin/recipes/pending - Xem danh sách công thức chờ duyệt (UC-20)
+// 4.12 GET /api/v1/admin/recipes/pending?status=pending|approved|rejected (UC-20)
 router.get("/recipes/pending", checkUserJWT, checkAdminPermission, recipeController.handleAdminGetPendingRecipes);
 
 // 4.13 PATCH /api/v1/admin/recipes/:recipeId/moderation - Kiểm duyệt công thức (UC-20)

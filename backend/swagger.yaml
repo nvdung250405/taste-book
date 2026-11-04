@@ -3508,11 +3508,35 @@ paths:
     get:
       tags:
         - Admin Recipes
-      summary: "UC-20: Xem danh sách chờ duyệt"
-      description: "Quản trị viên (Admin) xem danh sách công thức chưa bị xóa, được gửi công khai và đang chờ duyệt (isPublic = true, approvalStatus = 'Pending', isDeleted = false). Bao gồm công thức User hoặc Admin gửi qua API cá nhân. Công thức của Admin sau khi được duyệt công khai sẽ trở thành công thức chuẩn hệ thống."
+      summary: "UC-20: Xem danh sách kiểm duyệt theo trạng thái"
+      description: >-
+        Mặc định lấy bài Pending công khai của User hoặc Admin. status=approved lấy bài cộng đồng
+        có tác giả là User, công khai và Approved; không lấy công thức chuẩn hoặc bài riêng tư Approved.
+        status=rejected lấy bài Rejected riêng tư kèm rejectionReason. Luôn loại bài đã xóa.
+        Chấp nhận khác hoa/thường và khoảng trắng đầu/cuối. approvalStatus là tên tham số thay thế;
+        nếu truyền cả hai thì giá trị phải tương đương, nếu không trả 400. DT vẫn là mảng như API cũ.
       security:
         - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+            default: pending
+        - name: approvalStatus
+          in: query
+          description: Tên thay thế cho status; chỉ dùng một tham số hoặc truyền cùng giá trị.
+          schema:
+            type: string
+            enum: [Pending, Approved, Rejected]
       responses:
+        "400":
+          description: Trạng thái lọc sai kiểu, sai giá trị hoặc hai tham số mâu thuẫn.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "200":
@@ -3534,6 +3558,7 @@ paths:
                     defaultServings: 4
                     isPublic: true
                     approvalStatus: "Pending"
+                    rejectionReason: null
                     authorId: 8
                     authorName: "Nguyễn Văn A"
                     authorEmail: "vana@gmail.com"
@@ -3589,12 +3614,16 @@ paths:
       summary: "UC-20: Kiểm duyệt công thức"
       description: >-
         Chỉ tài khoản còn tồn tại và có quyền Admin hiện tại trong DB được kiểm duyệt.
-        Chỉ xử lý công thức công khai, đang Pending và chưa bị xóa, bao gồm bài của User hoặc Admin.
+        Xử lý công thức chưa bị xóa, bao gồm bài của User hoặc Admin.
+        Các chuyển trạng thái hợp lệ: Pending công khai → Approved công khai hoặc Rejected riêng tư;
+        Approved công khai → Rejected riêng tư (hủy duyệt); Rejected riêng tư → Approved công khai (duyệt lại).
+        Không kiểm duyệt bài riêng tư Approved hoặc yêu cầu lặp lại cùng trạng thái đích.
         Khi phê duyệt, lưu isPublic = true, approvalStatus = 'Approved' và xóa rejectionReason;
         bài có tác giả Admin trở thành công thức chuẩn hệ thống, bài của User được gắn danh mục đóng góp cộng đồng.
-        Khi từ chối, lưu isPublic = false, approvalStatus = 'Rejected' và lý do từ chối đã bỏ khoảng trắng đầu/cuối.
+        Khi từ chối hoặc hủy duyệt, bắt buộc có lý do; lưu isPublic = false, approvalStatus = 'Rejected'
+        và lý do đã bỏ khoảng trắng đầu/cuối. Bài bị ẩn khỏi tìm kiếm/trang chủ, giữ tác giả và nội dung.
         Trạng thái và danh mục được lưu trong cùng transaction; chỉ trả thành công sau commit, lỗi thì rollback.
-        Khóa bản ghi khi kiểm duyệt để tránh ghi đè quyết định; yêu cầu sau đọc trạng thái mới và trả 400 nếu không còn Pending.
+        Khóa bản ghi khi kiểm duyệt; yêu cầu sau đọc trạng thái mới và trả 400 nếu chuyển trạng thái không hợp lệ.
         approvalStatus phải là chuỗi Approved hoặc Rejected (chấp nhận khác hoa/thường và khoảng trắng đầu/cuối).
         Hỗ trợ trường action thay approvalStatus cho client cũ; nếu truyền cả hai thì ưu tiên approvalStatus.
       security:
@@ -3657,7 +3686,7 @@ paths:
                       approvalStatus: Rejected
                       rejectionReason: "Hình ảnh không đúng quy chuẩn và định lượng chưa rõ ràng."
         "400":
-          description: ID không phải số nguyên dương an toàn, body/trạng thái/lý do sai kiểu hoặc công thức không còn chờ duyệt công khai
+          description: ID không phải số nguyên dương an toàn, body/trạng thái/lý do sai kiểu hoặc chuyển trạng thái không hợp lệ
           content:
             application/json:
               schema:
@@ -3675,11 +3704,11 @@ paths:
                     EC: 1
                     EM: "Vui lòng nhập lý do từ chối bài viết là chuỗi không rỗng!"
                     DT: null
-                notPending:
-                  summary: Công thức không ở trạng thái chờ duyệt
+                invalidTransition:
+                  summary: Trạng thái nguồn không phù hợp hoặc đã ở trạng thái đích
                   value:
                     EC: 1
-                    EM: "Công thức này đã được phê duyệt trước đó!"
+                    EM: "Trạng thái công thức không phù hợp với thao tác kiểm duyệt!"
                     DT: null
         "401":
           description: Thiếu token, token không hợp lệ/hết hạn hoặc tài khoản không còn tồn tại

@@ -1152,7 +1152,7 @@ describe("adminDeleteRecipe (UC-19)", () => {
   });
 });
 
-describe("moderateRecipe: bảo vệ công thức đã duyệt", () => {
+describe("moderateRecipe: vòng đời kiểm duyệt (#119)", () => {
   let transaction;
   beforeEach(() => {
     transaction = { LOCK: { UPDATE: "UPDATE" }, commit: jest.fn(), rollback: jest.fn() };
@@ -1168,7 +1168,7 @@ describe("moderateRecipe: bảo vệ công thức đã duyệt", () => {
     });
   });
 
-  test.each(["Rejected", "rejected"])("chặn từ chối bằng trạng thái %s", async (action) => {
+  test.each(["Rejected", "rejected"])("hủy duyệt bằng trạng thái %s", async (action) => {
     const recipe = {
       id: 105, isPublic: true, approvalStatus: "Approved", update: jest.fn(),
     };
@@ -1178,10 +1178,10 @@ describe("moderateRecipe: bảo vệ công thức đã duyệt", () => {
       action, rejectionReason: "Lý do từ chối",
     });
 
-    expect(result).toEqual({
-      EC: 1, EM: "Không thể từ chối công thức đã được phê duyệt!", DT: null,
-    });
-    expect(recipe.update).not.toHaveBeenCalled();
+    expect(result.EC).toBe(0);
+    expect(recipe.update).toHaveBeenCalledWith({
+      approvalStatus: "Rejected", isPublic: false, rejectionReason: "Lý do từ chối",
+    }, { transaction });
   });
 
   test("vẫn cho phép từ chối công thức đang chờ duyệt", async () => {
@@ -1229,9 +1229,10 @@ describe("moderateRecipe: bảo vệ công thức đã duyệt", () => {
   );
 
   test.each([null, { id: 105, isPublic: false, approvalStatus: "Pending" },
+    { id: 105, isPublic: false, approvalStatus: "Approved" },
     { id: 105, isPublic: true, approvalStatus: "Rejected" },
     { id: 105, isPublic: true, approvalStatus: "Unknown" }])(
-    "không duyệt bài không tồn tại hoặc không còn chờ duyệt: %j", async (recipe) => {
+    "không duyệt bài không tồn tại hoặc có trạng thái không phù hợp: %j", async (recipe) => {
       jest.spyOn(db.Recipe, "findOne").mockResolvedValue(recipe);
       const result = await recipeService.moderateRecipe(105, { approvalStatus: "Approved" });
       expect(result.EC).toBe(recipe ? 1 : 3);
@@ -1290,7 +1291,7 @@ describe("moderateRecipe: bảo vệ công thức đã duyệt", () => {
       approvalStatus: status, rejectionReason: "Nội dung chưa phù hợp",
     });
     const second = await recipeService.moderateRecipe(105, {
-      approvalStatus: status === "Approved" ? "Rejected" : "Approved",
+      approvalStatus: status,
       rejectionReason: "Quyết định khác",
     });
     expect(first.EC).toBe(0);

@@ -604,20 +604,30 @@ const adminDeleteRecipe = async (recipeId, user) => {
   }
 };
 
-// 4.12 GET /api/v1/admin/recipes/pending - Xem danh sách công thức chờ duyệt (UC-20)
-const adminGetPendingRecipes = async () => {
+// 4.12 GET /api/v1/admin/recipes/pending - Danh sách kiểm duyệt (UC-20)
+const adminGetPendingRecipes = async (query = {}) => {
   try {
+    const statuses = ["pending", "approved", "rejected"];
+    const suppliedStatuses = [query.status, query.approvalStatus].filter(value => value !== undefined);
+    if (suppliedStatuses.some(value => typeof value !== "string" || !statuses.includes(value.trim().toLowerCase())) ||
+        new Set(suppliedStatuses.map(value => value.trim().toLowerCase())).size > 1) {
+      return { EC: 1, EM: "Trạng thái lọc không hợp lệ (Pending, Approved hoặc Rejected)!", DT: null };
+    }
+    const status = suppliedStatuses[0]?.trim().toLowerCase() || "pending";
+    const approvalStatus = status[0].toUpperCase() + status.slice(1);
     const pendingRecipes = await db.Recipe.findAll({
       where: {
         isDeleted: false,
-        isPublic: true,
-        approvalStatus: "Pending",
+        isPublic: status !== "rejected",
+        approvalStatus,
       },
       include: [
         {
           model: db.User,
           as: "author",
           attributes: ["id", "username", "email", "role"],
+          // Danh sách đã duyệt chỉ gồm bài cộng đồng; bài chuẩn có màn hình riêng.
+          ...(status === "approved" ? { where: { role: "User" }, required: true } : {}),
         },
         {
           model: db.Category,
@@ -686,6 +696,7 @@ const adminGetPendingRecipes = async () => {
         defaultServings: recipe.defaultServings,
         isPublic: recipe.isPublic,
         approvalStatus: recipe.approvalStatus,
+        rejectionReason: recipe.rejectionReason || null,
         authorId: recipe.authorId,
         authorName: recipe.author ? recipe.author.username : "",
         authorEmail: recipe.author ? recipe.author.email : "",
@@ -763,37 +774,18 @@ const moderateRecipe = async (recipeId, data = {}) => {
         };
       }
 
-      // Chỉ kiểm duyệt công thức đang ở chế độ công khai
-      if (!recipe.isPublic) {
+      // Bài riêng tư Approved không phải bài đã qua kiểm duyệt.
+      // Kiểm tra trạng thái dưới khóa trước mỗi lần chuyển để chặn yêu cầu lặp.
+      const isPending = recipe.isPublic && recipe.approvalStatus === "Pending";
+      const isApproved = recipe.isPublic && recipe.approvalStatus === "Approved";
+      const isRejected = !recipe.isPublic && recipe.approvalStatus === "Rejected";
+      const canModerate = finalStatus === "Approved"
+        ? isPending || isRejected
+        : isPending || isApproved;
+      if (!canModerate) {
         return {
           EC: 1,
-          EM: "Công thức không ở trạng thái công khai để kiểm duyệt!",
-          DT: null,
-        };
-      }
-
-      if (recipe.approvalStatus === "Rejected") {
-        return {
-          EC: 1,
-          EM: "Công thức này đã bị từ chối trước đó!",
-          DT: null,
-        };
-      }
-
-      if (finalStatus === "Approved" && recipe.approvalStatus === "Approved") {
-        return {
-          EC: 1,
-          EM: "Công thức này đã được phê duyệt trước đó!",
-          DT: null,
-        };
-      }
-
-      if (recipe.approvalStatus !== "Pending") {
-        return {
-          EC: 1,
-          EM: recipe.approvalStatus === "Approved"
-            ? "Không thể từ chối công thức đã được phê duyệt!"
-            : "Công thức không ở trạng thái chờ duyệt!",
+          EM: "Trạng thái công thức không phù hợp với thao tác kiểm duyệt!",
           DT: null,
         };
       }
