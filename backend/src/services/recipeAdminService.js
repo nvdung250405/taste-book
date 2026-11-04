@@ -8,6 +8,12 @@ const isAdminRecipeId = (value) =>
   (typeof value === "number" || (typeof value === "string" && /^\d+$/.test(value))) &&
   Number.isSafeInteger(Number(value)) && Number(value) > 0;
 
+const recipeOwnershipError = (action) => ({
+  EC: 4,
+  EM: `Không được phép ${action} công thức của người dùng! Vui lòng dùng chức năng Hủy duyệt tại màn hình Kiểm duyệt công thức.`,
+  DT: null,
+});
+
 // Chỉ khóa bảng Recipes: author được LEFT JOIN nên không khóa phía nullable.
 const lockAdminRecipe = (recipeId, transaction) => db.Recipe.findOne({
   where: { id: recipeId, isDeleted: false },
@@ -156,6 +162,7 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
 
     // 2. Chỉ sửa công thức chuẩn hệ thống qua API quản trị.
     // Công thức cá nhân hoặc chờ duyệt phải đi qua luồng cá nhân/kiểm duyệt.
+    if (recipe.author?.role !== "Admin") return recipeOwnershipError("sửa");
     const isSystemRecipe =
       recipe.author?.role === "Admin" &&
       recipe.isPublic &&
@@ -411,7 +418,11 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
         await t.rollback();
         return { EC: 3, EM: "Không tìm thấy công thức cần cập nhật!", DT: null };
       }
-      if (lockedRecipe.author?.role !== "Admin" || !lockedRecipe.isPublic || lockedRecipe.approvalStatus !== "Approved") {
+      if (lockedRecipe.author?.role !== "Admin") {
+        await t.rollback();
+        return recipeOwnershipError("sửa");
+      }
+      if (!lockedRecipe.isPublic || lockedRecipe.approvalStatus !== "Approved") {
         await t.rollback();
         return { EC: 4, EM: "Bạn chỉ có thể chỉnh sửa công thức chuẩn hệ thống đã được duyệt!", DT: null };
       }
@@ -552,7 +563,8 @@ const adminDeleteRecipe = async (recipeId, user) => {
 
     // 2. Xử lý xóa theo loại công thức:
     // Công thức riêng tư của cả User và Admin chỉ được xóa qua API cá nhân
-    // với kiểm tra chủ sở hữu. API quản trị chỉ xóa công thức công khai đã duyệt.
+    // với kiểm tra chủ sở hữu. API quản trị chỉ xóa bài công khai đã duyệt có tác giả Admin.
+    if (recipe.author?.role !== "Admin") return recipeOwnershipError("xóa");
     if (!recipe.isPublic) {
       return {
         EC: 4,
@@ -578,6 +590,10 @@ const adminDeleteRecipe = async (recipeId, user) => {
       if (!lockedRecipe) {
         await t.rollback();
         return { EC: 3, EM: "Không tìm thấy công thức cần xoá!", DT: null };
+      }
+      if (lockedRecipe.author?.role !== "Admin") {
+        await t.rollback();
+        return recipeOwnershipError("xóa");
       }
       if (!lockedRecipe.isPublic || lockedRecipe.approvalStatus !== "Approved") {
         await t.rollback();

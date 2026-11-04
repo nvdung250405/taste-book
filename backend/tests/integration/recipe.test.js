@@ -100,7 +100,7 @@ describe("UC-19/20: quyền Admin và kiểm duyệt công thức", () => {
   test.each([
     ["User", "Pending", 403], ["Admin", "Pending", 403],
     ["User", "Rejected", 403], ["Admin", "Rejected", 403],
-    ["User", "Approved", 200], ["Admin", "Approved", 200],
+    ["User", "Approved", 403], ["Admin", "Approved", 200],
   ])("DELETE công thức công khai của %s, %s trả %s", async (role, approvalStatus, status) => {
     const update = jest.fn().mockResolvedValue();
     db.Recipe.findOne.mockResolvedValue({
@@ -801,6 +801,35 @@ describe("UC-19: Admin CRUD, validation và khóa công thức", () => {
   });
 
   describe.each(["put", "delete"])("%s validation và transaction", (method) => {
+    test.each([
+      [true, "Approved"], [true, "Pending"], [false, "Rejected"], [false, "Approved"],
+    ])("#126: bảo toàn bài User, isPublic=%s, status=%s", async (isPublic, approvalStatus) => {
+      Object.assign(recipe, { authorId: 10, author: { id: 10, role: "User" }, isPublic, approvalStatus });
+      const original = JSON.stringify(recipe);
+      const response = await send(method, `${base}/105`, {
+        ...body, title: "Ghi đè nội dung", authorId: 1, author: { role: "Admin" },
+      });
+      expect(response.status).toBe(403);
+      expect(response.body).toMatchObject({ EC: 4, DT: null });
+      expect(response.body.EM).toContain(method === "put"
+        ? "Không được phép sửa công thức của người dùng" : "Không được phép xóa công thức của người dùng");
+      expect(response.body.EM).toContain("Hủy duyệt");
+      expect(JSON.stringify(recipe)).toBe(original);
+      expect(update).not.toHaveBeenCalled();
+      expect(db.sequelize.transaction).not.toHaveBeenCalled();
+      for (const model of [db.RecipeCategory, db.RecipeIngredient, db.CookingStep]) {
+        expect(model.destroy).not.toHaveBeenCalled();
+        expect(model.bulkCreate).not.toHaveBeenCalled();
+      }
+    });
+
+    test.each([null, { role: "Unknown" }])("#126: từ chối khi không xác định được tác giả Admin: %j", async author => {
+      recipe.author = author;
+      expect((await send(method, `${base}/105`, body)).status).toBe(403);
+      expect(update).not.toHaveBeenCalled();
+      expect(db.sequelize.transaction).not.toHaveBeenCalled();
+    });
+
     test.each(["0", "-1", "1.5", "Infinity", "NaN", "9007199254740992", "1e2", "abc"])(
       "ID không hợp lệ %s trả 400 trước khi đọc DB", async (id) => {
         expect((await send(method, `${base}/${id}`, body)).status).toBe(400);
@@ -858,12 +887,19 @@ describe("UC-19: Admin CRUD, validation và khóa công thức", () => {
     });
   });
 
-  test("PUT kiểm tra lại tác giả sau khi lấy khóa", async () => {
+  test.each(["put", "delete"])("#126: %s kiểm tra lại tác giả sau khi lấy khóa", async method => {
     db.Recipe.findOne.mockResolvedValueOnce({ ...recipe, update })
       .mockResolvedValueOnce({ ...recipe, author: { role: "User" }, update });
-    expect((await send("put", `${base}/105`, body)).status).toBe(403);
+    const response = await send(method, `${base}/105`, body);
+    expect(response.status).toBe(403);
+    expect(response.body).toMatchObject({ EC: 4, DT: null });
     expect(update).not.toHaveBeenCalled();
     expect(transaction.rollback).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).not.toHaveBeenCalled();
+    for (const model of [db.RecipeCategory, db.RecipeIngredient, db.CookingStep]) {
+      expect(model.destroy).not.toHaveBeenCalled();
+      expect(model.bulkCreate).not.toHaveBeenCalled();
+    }
   });
 
   test.each([["put", "put"], ["put", "delete"], ["delete", "put"], ["delete", "delete"]])(

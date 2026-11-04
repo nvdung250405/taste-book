@@ -2839,7 +2839,7 @@ paths:
       tags:
         - User Recipes
       summary: "UC-11: Xóa mềm công thức"
-      description: "Người dùng thực hiện xóa công thức cá nhân do chính mình tạo ra. Áp dụng cơ chế Xóa an toàn (Soft Delete): Đặt cờ isDeleted = true trên bản ghi Recipes để ẩn khỏi danh sách cá nhân nhưng vẫn bảo toàn tính toàn vẹn dữ liệu ở các Thực đơn và Danh sách đi chợ cũ. Ràng buộc nghiệp vụ: API chỉ cho phép xóa đối với công thức đang ở chế độ Riêng tư (isPublic = false). Nếu công thức đã ở chế độ Công khai (isPublic = true), hệ thống từ chối xóa vì công thức đã thuộc về dữ liệu chung của hệ thống (chỉ Quản trị viên mới có quyền xóa)."
+      description: "Người dùng thực hiện xóa công thức cá nhân do chính mình tạo ra. Áp dụng cơ chế Xóa an toàn (Soft Delete): Đặt cờ isDeleted = true trên bản ghi Recipes để ẩn khỏi danh sách cá nhân nhưng vẫn bảo toàn tính toàn vẹn dữ liệu ở các Thực đơn và Danh sách đi chợ cũ. Ràng buộc nghiệp vụ: API chỉ cho phép xóa đối với công thức đang ở chế độ Riêng tư (isPublic = false). Nếu công thức đã ở chế độ Công khai (isPublic = true), hệ thống từ chối xóa. Admin muốn gỡ công khai bài User đã duyệt phải dùng chức năng Hủy duyệt; không được xóa bài User qua API quản trị."
       security:
         - bearerAuth: []
       parameters:
@@ -3421,7 +3421,16 @@ paths:
       tags:
         - Admin Recipes
       summary: "UC-19: Admin xóa công thức"
-      description: "Quản trị viên (Admin) chỉ xóa mềm công thức công khai (isPublic = true) đã duyệt (approvalStatus = 'Approved') của User hoặc Admin bằng cách đặt isDeleted = true. Công thức Pending hoặc Rejected không được xóa qua API quản trị (403); công thức chờ duyệt phải được xử lý qua chức năng kiểm duyệt. API quản trị từ chối xóa công thức riêng tư của cả User và Admin (403). Công thức riêng tư phải được xóa qua API cá nhân với kiểm tra chủ sở hữu. ID phải là số nguyên dương an toàn. API khóa dòng Recipes và kiểm tra lại điều kiện trong transaction; trả 409 nếu updatedAt thay đổi trong lúc xử lý, cần tải lại trước khi thử lại."
+      description: >-
+        Admin chỉ xóa mềm công thức có tác giả là Admin, công khai và đã duyệt
+        (isPublic = true, approvalStatus = 'Approved') bằng cách đặt isDeleted = true.
+        Công thức có tác giả là User hoặc không xác định được tác giả Admin bị từ chối với HTTP 403, EC = 4;
+        thông báo hướng dẫn dùng chức năng Hủy duyệt tại màn hình Kiểm duyệt công thức để gỡ công khai bài User.
+        Kiểm tra tác giả từ DB trước xử lý và kiểm tra lại trong transaction sau khi khóa dòng Recipes.
+        Không sửa nội dung, tác giả, trạng thái hoặc dữ liệu liên quan khi bị từ chối.
+        Công thức Pending, Rejected hoặc riêng tư cũng bị từ chối (403).
+        Công thức riêng tư phải được xóa qua API cá nhân với kiểm tra chủ sở hữu.
+        ID phải là số nguyên dương an toàn; trả 409 nếu updatedAt thay đổi trong lúc xử lý.
       security:
         - bearerAuth: []
       parameters:
@@ -3465,14 +3474,14 @@ paths:
                 EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
                 DT: null
         "403":
-          description: Không có quyền thao tác (không phải Admin, công thức riêng tư hoặc chưa được duyệt)
+          description: Không có quyền thao tác (không phải Admin, tác giả không phải Admin, công thức riêng tư hoặc chưa được duyệt)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
                 EC: 4
-                EM: "Công thức này đang ở chế độ riêng tư của người dùng, Admin không thể thao tác!"
+                EM: "Không được phép xóa công thức của người dùng! Vui lòng dùng chức năng Hủy duyệt tại màn hình Kiểm duyệt công thức."
                 DT: null
         "404":
           description: Không tìm thấy công thức cần xóa

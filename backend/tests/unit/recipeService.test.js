@@ -1093,7 +1093,7 @@ describe("adminDeleteRecipe (UC-19)", () => {
     expect(res.EM).toBe("Đã xóa mềm công thức thành công!");
   });
 
-  test("thành công: Admin xóa mềm công thức công khai của người dùng (EC: 0)", async () => {
+  test("#126: từ chối xóa công thức công khai đã duyệt của User (EC: 4)", async () => {
     const mockRecipe = {
       id: 2,
       author: { id: 10, role: "User" },
@@ -1104,9 +1104,11 @@ describe("adminDeleteRecipe (UC-19)", () => {
     jest.spyOn(db.Recipe, "findOne").mockResolvedValue(mockRecipe);
 
     const res = await recipeService.adminDeleteRecipe(2, { id: 1, role: "Admin" });
-    expect(res.EC).toBe(0);
-    expect(mockRecipe.update).toHaveBeenCalledWith({ isDeleted: true }, { transaction });
-    expect(res.EM).toBe("Đã xóa mềm công thức thành công!");
+    expect(res).toMatchObject({ EC: 4, DT: null });
+    expect(res.EM).toContain("Không được phép xóa công thức của người dùng");
+    expect(res.EM).toContain("Hủy duyệt");
+    expect(mockRecipe.update).not.toHaveBeenCalled();
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
   });
 
   test.each([
@@ -1121,7 +1123,8 @@ describe("adminDeleteRecipe (UC-19)", () => {
     const result = await recipeService.adminDeleteRecipe(3, { id: 1, role: "Admin" });
 
     expect(result).toMatchObject({ EC: 4, DT: null });
-    expect(result.EM).toContain("chỉ được xóa công thức đã duyệt");
+    expect(result.EM).toContain(role === "Admin"
+      ? "chỉ được xóa công thức đã duyệt" : "Không được phép xóa công thức của người dùng");
     expect(update).not.toHaveBeenCalled();
   });
 
@@ -1137,7 +1140,7 @@ describe("adminDeleteRecipe (UC-19)", () => {
     const res = await recipeService.adminDeleteRecipe(3, { id: 1, role: "Admin" });
     expect(res.EC).toBe(4);
     expect(mockRecipe.update).not.toHaveBeenCalled();
-    expect(res.EM).toContain("Công thức này đang ở chế độ riêng tư của người dùng");
+    expect(res.EM).toContain("Không được phép xóa công thức của người dùng");
   });
 
   test("thất bại: ID công thức không hợp lệ (EC: 1)", async () => {
