@@ -1,3 +1,4 @@
+import { normalizePhone } from '../../lib/phone'
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
@@ -23,7 +24,7 @@ export default function LoginPage() {
     }
 
     login(
-      { valueLogin: email, email, password },
+      { valueLogin: normalizePhone(email), email: email.trim(), password },
       {
         onSuccess: () => {
           toast.success('Đăng nhập thành công!')

@@ -163,7 +163,7 @@ export default function ProfileInfoForm({ user, profileForm, setProfileForm, han
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="profile-phone">Số điện thoại</label>
               <Input 
-                id="profile-phone" value={profileForm.phone}
+                id="profile-phone" type="tel" autoComplete="tel" placeholder="0912345678 hoặc +84912345678" value={profileForm.phone}
                 onChange={(e) => setProfileForm(p => ({ ...p, phone: e.target.value }))}
                 placeholder="09xx xxx xxx"
               />
