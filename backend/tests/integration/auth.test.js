@@ -6,6 +6,68 @@ import { ipKeyGenerator } from "express-rate-limit";
 import authService from "../../src/services/authService";
 import userService from "../../src/services/userService";
 import { loginLimiter, registerLimiter, passwordChangeLimiter } from "../../src/middleware/authRateLimit";
+import { Op } from "sequelize";
+
+describe("#136: SĐT chuẩn qua đăng ký, đăng nhập và hồ sơ (mock DB)", () => {
+  let users;
+  const register = (phone, email = "lan@example.com") => request(app).post("/api/v1/auth/register")
+    .send({ username: "Lan", email, password: "password123", confirmPassword: "password123", phone });
+  const login = valueLogin => request(app).post("/api/v1/auth/login").send({ valueLogin, password: "password123" });
+  beforeEach(async () => {
+    users = [];
+    for (const limiter of [loginLimiter, registerLimiter]) {
+      for (const ip of ["127.0.0.1", "::ffff:127.0.0.1", "::1"]) await limiter.resetKey(ipKeyGenerator(ip));
+    }
+    jest.spyOn(db.User, "findOne").mockImplementation(async ({ where }) => users.find(user => {
+      if (where[Op.or]) return where[Op.or].some(part => Object.entries(part).some(([key, value]) => user[key] === value));
+      if (where.phone) return user.phone === where.phone && user.id !== where.id?.[Op.ne];
+      if (where.email) return user.email === where.email;
+      return user.id === where.id;
+    }) || null);
+    jest.spyOn(db.User, "create").mockImplementation(async values => {
+      const user = { id: users.length + 1, ...values };
+      user.update = jest.fn(async changes => Object.assign(user, changes));
+      users.push(user);
+      return user;
+    });
+  });
+  test.each([
+    ["0912345678", "+84912345678"], ["+84912345678", "0912345678"],
+  ])("đăng ký %s rồi %s bị chặn trùng", async (first, second) => {
+    const created = await register(first);
+    expect(created.status).toBe(201);
+    expect(created.body.DT.phone).toBe("0912345678");
+    const duplicate = await register(second, "other@example.com");
+    expect(duplicate.status).toBe(409);
+    expect(duplicate.body).toMatchObject({ EC: 2, EM: "Số điện thoại đã được đăng ký trên hệ thống!", DT: null });
+    expect(users).toHaveLength(1);
+  });
+  test("đăng nhập cả 0, +84 và email; đổi định dạng số của mình vẫn lưu thành công", async () => {
+    expect((await register("+84912345678")).status).toBe(201);
+    for (const value of ["0912345678", "+84912345678", "lan@example.com"]) {
+      const response = await login(value);
+      expect(response.status).toBe(200);
+      expect(response.body.DT.user.phone).toBe("0912345678");
+    }
+    const token = (await login("0912345678")).body.DT.accessToken;
+    const updated = await request(app).put("/api/v1/users/me").set("Authorization", `Bearer ${token}`)
+      .send({ username: "Lan mới", phone: " +84912345678 " });
+    expect(updated.status).toBe(200);
+    expect(updated.body.DT.phone).toBe("0912345678");
+    expect(users[0].phone).toBe("0912345678");
+  });
+  test("hồ sơ từ chối số +84 đã thuộc tài khoản khác", async () => {
+    await register("0912345678");
+    await register("0988888888", "other@example.com");
+    const token = (await login("0988888888")).body.DT.accessToken;
+    const response = await request(app).put("/api/v1/users/me").set("Authorization", `Bearer ${token}`)
+      .send({ username: "Khác", phone: "+84912345678" });
+    expect(response.status).toBe(409);
+    expect(response.body.EC).toBe(2);
+    expect(users[1].phone).toBe("0988888888");
+    expect(users[1].update).not.toHaveBeenCalled();
+  });
+});
 
 describe("Auth & Core API Integration Tests (Supertest)", () => {
   beforeEach(() => {

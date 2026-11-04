@@ -193,6 +193,9 @@ paths:
       description: Tiếp nhận thông tin đăng ký, kiểm tra trùng lặp email/SĐT, mã hóa
         Bcrypt mật khẩu và tạo tài khoản với vai trò User. Tối đa 5 yêu cầu mỗi giờ/IP,
         tính cả yêu cầu thành công và thất bại; vượt ngưỡng trả HTTP 429.
+        SĐT nhận dạng 0 hoặc +84, trim hai đầu và chuẩn hóa về 10 chữ số bắt đầu bằng 0
+        trước khi tra trùng và lưu. Ví dụ 0912345678 và +84912345678 là cùng một số;
+        đăng ký lại trả HTTP 409/EC=2. Phải gửi SĐT dạng chuỗi, không nhận dấu cách bên trong.
       requestBody:
         required: true
         content:
@@ -279,6 +282,8 @@ paths:
       description: Xác thực người dùng bằng Email/SĐT và mật khẩu; trả về Access Token
         JWT và thông tin tài khoản. Tối đa 10 yêu cầu đăng nhập không thành công trong
         15 phút/IP; đăng nhập thành công không tính vào hạn mức. Vượt ngưỡng trả HTTP 429.
+        Nếu dùng SĐT, cả 0 và +84 đều được chuẩn hóa về dạng 0 trước khi tra cứu.
+        Đăng nhập bằng email giữ nguyên cách xử lý; SĐT trả về dùng dạng chuẩn bắt đầu bằng 0.
       requestBody:
         required: true
         content:
@@ -454,6 +459,11 @@ paths:
       tags:
         - User Profile
       summary: "UC-05: Cập nhật thông tin hồ sơ cá nhân"
+      description: >-
+        SĐT nếu được gửi phải là chuỗi hợp lệ dạng 0 hoặc +84. Chuẩn hóa về 10 chữ số
+        bắt đầu bằng 0 trước khi kiểm tra trùng và lưu. Đổi cách viết số của chính mình
+        không báo trùng; số đã thuộc tài khoản khác trả HTTP 409/EC=2.
+        Bỏ trường phone thì giữ nguyên; gửi null, rỗng hoặc sai định dạng trả 400.
       security:
         - bearerAuth: []
       requestBody:

@@ -44,6 +44,31 @@ describe("UserService Unit Tests", () => {
   });
 
   describe("updateUserProfile (UC-05)", () => {
+    test.each(["0912345678", "+84912345678"])("#136: cập nhật cùng số %s không tự báo trùng", async phone => {
+      const user = { id: 10, phone: "0912345678", update: jest.fn() };
+      user.update.mockImplementation(async values => Object.assign(user, values));
+      jest.spyOn(db.User, "findOne").mockResolvedValue(user);
+      const result = await userService.updateUserProfile(10, { username: "Lan", phone });
+      expect(result.EC).toBe(0);
+      expect(result.DT.phone).toBe("0912345678");
+      expect(db.User.findOne).toHaveBeenCalledTimes(1);
+      expect(user.update).toHaveBeenCalledWith({ username: "Lan", phone: "0912345678" });
+    });
+    test("#136: cập nhật tra số mới đã chuẩn hóa và loại chính mình", async () => {
+      const user = { id: 10, phone: "0988888888", update: jest.fn() };
+      jest.spyOn(db.User, "findOne").mockResolvedValueOnce(user).mockResolvedValueOnce({ id: 20 });
+      const result = await userService.updateUserProfile(10, { username: "Lan", phone: "+84912345678" });
+      expect(result.EC).toBe(2);
+      expect(db.User.findOne).toHaveBeenLastCalledWith({ where: { phone: "0912345678", id: { [Op.ne]: 10 } } });
+      expect(user.update).not.toHaveBeenCalled();
+    });
+    test("#136: unique constraint lúc lưu trả EC=2", async () => {
+      const user = { id: 10, phone: "0988888888", update: jest.fn().mockRejectedValue({
+        name: "SequelizeUniqueConstraintError", fields: { phone: "0912345678" },
+      }) };
+      jest.spyOn(db.User, "findOne").mockResolvedValueOnce(user).mockResolvedValueOnce(null);
+      expect((await userService.updateUserProfile(10, { username: "Lan", phone: "+84912345678" })).EC).toBe(2);
+    });
     beforeEach(() => {
       jest.replaceProperty(process, "env", { ...process.env, CLOUDINARY_CLOUD_NAME: "demo" });
     });

@@ -2,8 +2,74 @@ import authService from "../../src/services/authService";
 import { createJWT } from "../../src/middleware/JWTAction";
 import db from "../../src/models/index";
 import bcrypt from "bcryptjs";
+import { Op, QueryTypes } from "sequelize";
+import { normalizePhoneNumber } from "../../src/utils/phoneUtils";
+const phoneMigration = require("../../src/migrations/18-normalize-user-phones");
+
+describe("#136: migration chuẩn hóa SĐT cũ", () => {
+  let transaction;
+  let queryInterface;
+  beforeEach(() => {
+    transaction = {};
+    queryInterface = {
+      sequelize: { transaction: jest.fn(async work => work(transaction)), query: jest.fn() },
+      bulkUpdate: jest.fn(),
+    };
+    queryInterface.sequelize.query.mockResolvedValueOnce([]);
+  });
+  test("chuẩn hóa +84 và trim, không ghi lại số đã chuẩn", async () => {
+    queryInterface.sequelize.query.mockResolvedValueOnce([
+      { id: 1, phone: " +84912345678 " }, { id: 2, phone: "0988888888" },
+    ]);
+    await phoneMigration.up(queryInterface, { QueryTypes });
+    expect(queryInterface.bulkUpdate).toHaveBeenCalledTimes(1);
+    expect(queryInterface.bulkUpdate).toHaveBeenCalledWith("Users", { phone: "0912345678" }, { id: 1 }, { transaction });
+  });
+  test.each([
+    [[{ id: 1, phone: "+84912345678" }, { id: 2, phone: "0912345678" }], /trùng số điện thoại/],
+    [[{ id: 1, phone: "+84912345678" }, { id: 2, phone: "invalid" }], /không hợp lệ/],
+  ])("dừng trước khi ghi khi dữ liệu cũ có xung đột: %j", async (users, message) => {
+    queryInterface.sequelize.query.mockResolvedValueOnce(users);
+    await expect(phoneMigration.up(queryInterface, { QueryTypes })).rejects.toThrow(message);
+    expect(queryInterface.bulkUpdate).not.toHaveBeenCalled();
+  });
+});
 
 describe("AuthService Unit Tests", () => {
+  test.each(["0912345678", "+84912345678", "  +84912345678  "])("#136: chuẩn hóa %s thành 0912345678", phone => {
+    expect(normalizePhoneNumber(phone)).toBe("0912345678");
+  });
+  test.each([null, undefined, 912345678, true, [], {}, "", "12345", "+840912345678", "0212345678", "091 2345678"])("#136: không chấp nhận SĐT không hợp lệ %p", phone => {
+    expect(normalizePhoneNumber(phone)).toBeNull();
+  });
+  test("#136: đăng ký lưu dạng 0 và tra trùng bằng cùng dạng", async () => {
+    jest.spyOn(db.User, "findOne").mockResolvedValue(null);
+    jest.spyOn(db.User, "create").mockImplementation(async values => ({ id: 1, ...values }));
+    const result = await authService.registerNewUser({
+      username: "Lan", email: "lan@example.com", password: "password123", confirmPassword: "password123", phone: " +84912345678 ",
+    });
+    expect(result.EC).toBe(0);
+    expect(result.DT.phone).toBe("0912345678");
+    expect(db.User.findOne).toHaveBeenCalledWith({ where: { phone: "0912345678" } });
+    expect(db.User.create).toHaveBeenCalledWith(expect.objectContaining({ phone: "0912345678" }));
+  });
+  test.each(["0912345678", "+84912345678"])("#136: checkPhoneExist chuẩn hóa %s", async phone => {
+    jest.spyOn(db.User, "findOne").mockResolvedValue({ id: 1 });
+    expect(await authService.checkPhoneExist(phone)).toBe(true);
+    expect(db.User.findOne).toHaveBeenCalledWith({ where: { phone: "0912345678" } });
+  });
+  test.each(["0912345678", "+84912345678", "user@example.com"])("#136: đăng nhập tra cứu %s đúng dạng", async valueLogin => {
+    jest.spyOn(db.User, "findOne").mockResolvedValue(null);
+    await authService.handleUserLogin({ valueLogin, password: "password123" });
+    const expected = valueLogin.includes("@") ? valueLogin : "0912345678";
+    expect(db.User.findOne).toHaveBeenCalledWith({ where: { [Op.or]: [{ email: expected }, { phone: expected }] } });
+  });
+  test("#136: unique constraint chặn đăng ký cạnh tranh vẫn trả lỗi trùng", async () => {
+    jest.spyOn(db.User, "findOne").mockResolvedValue(null);
+    jest.spyOn(db.User, "create").mockRejectedValue({ name: "SequelizeUniqueConstraintError", fields: { phone: "0912345678" } });
+    expect(await authService.registerNewUser({ username: "Lan", email: "lan@example.com",
+      password: "password123", confirmPassword: "password123", phone: "+84912345678" })).toMatchObject({ EC: 2, DT: null });
+  });
   beforeEach(() => {
     jest.clearAllMocks();
   });
