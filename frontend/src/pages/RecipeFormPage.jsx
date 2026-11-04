@@ -18,6 +18,7 @@ import { toast } from 'sonner'
 import QueryError from '../components/ui/QueryError'
 import { useSearchIngredients, useUnits } from '../hooks/queries/useIngredientQueries'
 import { changeRecipeIngredient, recipeIngredientPayload } from '../lib/recipeIngredientSelection'
+import { isQualitativeUnit } from '../lib/shoppingList'
 import { adminRecipePayload } from '../lib/adminRecipeForm'
 
 import RecipeBasicInfoForm from '../components/recipe/RecipeBasicInfoForm'
@@ -293,6 +294,8 @@ function RecipeForm({ id, recipe, admin }) {
 
     const validIngs = formData.ingredients.filter((i) => i.name.trim())
     if (validIngs.length === 0) return toast.error('Cần ít nhất 1 nguyên liệu')
+    if (validIngs.some(i => !isQualitativeUnit(i.unit) && (!Number.isFinite(Number(i.quantity)) || Number(i.quantity) <= 0)))
+      return toast.error('Số lượng nguyên liệu định lượng phải lớn hơn 0')
     const validSteps = formData.steps.filter((s) => s.content.trim())
     if (validSteps.length === 0)
       return toast.error('Cần ít nhất 1 bước thực hiện')

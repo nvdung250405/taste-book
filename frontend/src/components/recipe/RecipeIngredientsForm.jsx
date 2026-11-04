@@ -1,3 +1,4 @@
+import { isQualitativeUnit } from '../../lib/shoppingList'
 import { useId } from 'react'
 import { GripVertical, Trash2, Plus } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
@@ -76,7 +77,8 @@ export default function RecipeIngredientsForm({
                 <Input
                   aria-label={`Số lượng nguyên liệu ${idx + 1}`}
                   placeholder="Số lượng"
-                  value={ing.quantity}
+                  disabled={isQualitativeUnit(ing.unit)}
+                  value={isQualitativeUnit(ing.unit) ? '' : ing.quantity}
                   onChange={(e) =>
                     handleIngChange(idx, 'quantity', e.target.value)
                   }

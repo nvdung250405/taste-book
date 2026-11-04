@@ -20,6 +20,17 @@ const form = () => ({
   ],
   isPublic: false,
 })
+
+test('qualitative ingredients accept blank amounts and always submit zero', () => {
+  const input = form()
+  input.ingredients = [{ name: 'Muối', unit: 'vừa đủ', quantity: '' }]
+  assert.equal(adminRecipePayload(input, categories).ingredients[0].quantity, 0)
+  input.ingredients[0].quantity = '12'
+  assert.equal(adminRecipePayload(input, categories).ingredients[0].quantity, 0)
+  input.ingredients[0].unit = 'gram'
+  input.ingredients[0].quantity = ''
+  assert.throws(() => adminRecipePayload(input, categories), /Định lượng/)
+})
 test('admin payload preserves system ingredient IDs and ordered steps, forces public and trims text', () => {
   const payload = adminRecipePayload(form(), categories)
   assert.equal(payload.isPublic, true)

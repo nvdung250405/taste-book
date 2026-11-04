@@ -1,3 +1,4 @@
+import { isQualitativeUnit } from './shoppingList.js'
 const sameName = (a, b) =>
   a.trim().toLocaleLowerCase('vi') === b.trim().toLocaleLowerCase('vi')
 
@@ -9,6 +10,9 @@ export function changeRecipeIngredient(row, field, value, ingredients, units) {
     const match = matches.length === 1 ? matches[0] : null
     return {
       ...row,
+      ...(match && isQualitativeUnit(match.defaultUnit?.unitName || '')
+        ? { quantity: '' }
+        : {}),
       name: value,
       ingredientId: match?.ingredientId || null,
       unit: match ? match.defaultUnit?.unitName || '' : row.unit,
@@ -19,6 +23,7 @@ export function changeRecipeIngredient(row, field, value, ingredients, units) {
     const match = units.find((item) => sameName(item.unitName, value))
     return {
       ...row,
+      ...(isQualitativeUnit(value) ? { quantity: '' } : {}),
       unit: value,
       unitId: match?.unitId || null,
       ingredientId: null,
@@ -28,7 +33,7 @@ export function changeRecipeIngredient(row, field, value, ingredients, units) {
 }
 
 export function recipeIngredientPayload(row) {
-  const quantity = Number(row.quantity)
+  const quantity = isQualitativeUnit(row.unit) ? 0 : Number(row.quantity)
   return row.ingredientId
     ? { ingredientId: Number(row.ingredientId), quantity }
     : {

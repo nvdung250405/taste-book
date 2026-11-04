@@ -40,13 +40,13 @@ export function adminRecipePayload(form, categories) {
   const ingredients = form.ingredients.map((item, index) => {
     const name = item.name.trim(),
       unit = item.unit.trim()
-    const quantity = Number(String(item.quantity).trim().replace(',', '.'))
+    const quantity = isQualitativeUnit(unit) ? 0 : Number(String(item.quantity).trim().replace(',', '.'))
     if (!name || name.length > 255 || !unit || unit.length > 255)
       throw new Error(
         `Vui lòng điền tên và đơn vị nguyên liệu ${index + 1} (tối đa 255 ký tự).`,
       )
     if (
-      String(item.quantity).trim() === '' ||
+      (!isQualitativeUnit(unit) && String(item.quantity).trim() === '') ||
       !Number.isFinite(quantity) ||
       quantity < 0 ||
       quantity > 99999999.99 ||

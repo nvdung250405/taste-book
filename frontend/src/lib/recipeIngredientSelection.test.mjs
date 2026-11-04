@@ -13,7 +13,38 @@ const ingredients = [
   },
 ]
 const units = [{ unitId: 2, unitName: 'gram' }]
-
+test('qualitative units clear old quantities and serialize zero for custom and standard ingredients', () => {
+  const qualitative = changeRecipeIngredient(
+    { name: 'Muối', quantity: '12', unit: 'gram' },
+    'unit',
+    'vừa đủ',
+    [],
+    [],
+  )
+  assert.equal(qualitative.quantity, '')
+  assert.equal(recipeIngredientPayload(qualitative).quantity, 0)
+  const selected = changeRecipeIngredient(
+    { name: '', quantity: '8', unit: '' },
+    'name',
+    'Muối',
+    [
+      {
+        ingredientId: 3,
+        ingredientName: 'Muối',
+        defaultUnit: { unitId: 4, unitName: 'nêm nếm' },
+      },
+    ],
+    [],
+  )
+  assert.equal(selected.quantity, '')
+  assert.deepEqual(recipeIngredientPayload(selected), {
+    ingredientId: 3,
+    quantity: 0,
+  })
+  const numeric = changeRecipeIngredient(qualitative, 'unit', 'gram', [], units)
+  assert.equal(numeric.quantity, '')
+  assert.equal(numeric.unitId, 2)
+})
 test('choosing a standard ingredient preserves quantity and submits its identity and default unit', () => {
   const row = changeRecipeIngredient(
     { name: '', quantity: '250', unit: 'chén' },
