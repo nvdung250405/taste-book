@@ -47,7 +47,7 @@ function render(cache, Component, route = '/admin/recipes', props = {}) {
 }
 test('admin recipe list renders search, edit/delete, client pagination and the correct create route', () => {
   const cache = client()
-  cache.setQueryData(['admin-recipes', {}], {
+  cache.setQueryData(['admin-recipes', { scope: 'all' }], {
     DT: {
       recipes: Array.from({ length: 12 }, (_, i) => ({
         recipeId: i + 1,
@@ -58,6 +58,7 @@ test('admin recipe list renders search, edit/delete, client pagination and the c
       })),
     },
   })
+  cache.setQueryData(['admin-recipes', { scope: 'admin' }], cache.getQueryData(['admin-recipes', { scope: 'all' }]))
   try {
     const html = render(cache, Page)
     assert.match(html, /href="\/admin\/recipes\/create"/)
@@ -69,6 +70,28 @@ test('admin recipe list renders search, edit/delete, client pagination and the c
     cache.clear()
   }
 })
+test('community recipes have no edit/delete actions and admin scope uses its own query', () => {
+  const cache = client()
+  const system = { recipeId: 1, title: 'Món hệ thống', authorName: 'Admin' }
+  const community = { recipeId: 2, title: 'Món cộng đồng', authorName: 'Lan' }
+  cache.setQueryData(['admin-recipes', { scope: 'all' }], { DT: { recipes: [system, community] } })
+  cache.setQueryData(['admin-recipes', { scope: 'admin' }], { DT: { recipes: [system] } })
+  try {
+    const html = render(cache, Page)
+    assert.match(html, /Cộng đồng: Lan/)
+    assert.match(html, /Hệ thống/)
+    assert.match(html, /aria-label="Sửa Món hệ thống"/)
+    assert.doesNotMatch(html, /aria-label="(?:Sửa|Xóa) Món cộng đồng"/)
+    const filtered = render(cache, Page, '/admin/recipes?scope=admin')
+    assert.doesNotMatch(filtered, /Món cộng đồng/)
+    assert.match(filtered, /Món hệ thống/)
+    cache.getQueryCache().find({ queryKey: ['admin-recipes', { scope: 'admin' }], exact: true }).setState({ status: 'error', error: new Error('Offline') })
+    assert.doesNotMatch(render(cache, Page), /aria-label="(?:Sửa|Xóa) Món/)
+    cache.removeQueries({ queryKey: ['admin-recipes', { scope: 'admin' }], exact: true })
+    assert.doesNotMatch(render(cache, Page), /aria-label="(?:Sửa|Xóa) Món/)
+  } finally { cache.clear() }
+})
+
 test('admin creation uses only master categories and hides personal visibility/category creation controls', () => {
   const cache = client()
   cache.setQueryData(['admin-categories'], {
