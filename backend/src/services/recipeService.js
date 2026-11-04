@@ -1,5 +1,6 @@
 import db from "../models/index";
 import { Op } from "sequelize";
+import { normalizeIngredientQuantity } from "./unitService";
 import { validateLockedReferences, isPositiveInteger, systemIngredientUnitError, cookingStepsError, ingredientQuantityError } from "./recipeValidation";
 import { getRecipes } from "./recipeSearchService";
 import { getRecipeById, scaleRecipeIngredients, getMyRecipes } from "./recipeReadService";
@@ -171,7 +172,7 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
         const unitId = foundIng.defaultUnitId;
         const customUnit = null;
         let unitName = foundIng.defaultUnit?.unitName || "";
-        if (Number(ing.quantity) === 0 && !unitName && unitId) {
+        if (!unitName && unitId) {
           unitName = (await db.Unit.findByPk(unitId))?.unitName || "";
         }
         const quantityError = ingredientQuantityError(
@@ -184,7 +185,7 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
         processedIngredients.push({
           ingredientId: foundIng.id,
           customIngredientName: null,
-          quantity: Number(ing.quantity),
+          quantity: normalizeIngredientQuantity(ing.quantity, unitName),
           unitId,
           customUnit,
         });
@@ -234,7 +235,7 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
         processedIngredients.push({
           ingredientId: null,
           customIngredientName: customIngName,
-          quantity: Number(ing.quantity),
+          quantity: normalizeIngredientQuantity(ing.quantity, unitName),
           unitId: unitId,
           customUnit: customUnit,
         });
@@ -569,7 +570,7 @@ const updateRecipe = async (recipeId, user, data) => {
         const unitId = foundIng.defaultUnitId;
         const customUnit = null;
         let unitName = foundIng.defaultUnit?.unitName || "";
-        if (Number(ing.quantity) === 0 && !unitName && unitId) {
+        if (!unitName && unitId) {
           unitName = (await db.Unit.findByPk(unitId))?.unitName || "";
         }
         const quantityError = ingredientQuantityError(
@@ -583,7 +584,7 @@ const updateRecipe = async (recipeId, user, data) => {
           ingredientId: foundIng.id,
           ingredientName: foundIng.ingredientName,
           customIngredientName: null,
-          quantity: Number(ing.quantity),
+          quantity: normalizeIngredientQuantity(ing.quantity, unitName),
           unitId,
           unit: unitName,
           customUnit,
@@ -635,7 +636,7 @@ const updateRecipe = async (recipeId, user, data) => {
           ingredientId: null,
           ingredientName: customIngName,
           customIngredientName: customIngName,
-          quantity: Number(ing.quantity),
+          quantity: normalizeIngredientQuantity(ing.quantity, unitName),
           unitId: unitId,
           unit: unitName,
           customUnit: customUnit,

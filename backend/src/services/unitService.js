@@ -47,6 +47,10 @@ const isQualitativeUnit = (unitName) =>
       .toLowerCase(),
   );
 
+// Định tính chỉ lưu sentinel 0; không mang một lượng số để nhân khẩu phần.
+const normalizeIngredientQuantity = (quantity, unitName) =>
+  isQualitativeUnit(unitName) ? 0 : Number(quantity);
+
 // 3.7 GET /api/v1/units - Lấy danh sách đơn vị đo (UC-23)
 const getUnits = async () => {
   try {
@@ -254,6 +258,7 @@ module.exports = {
   isMasterDataId,
   isMasterDataName,
   isQualitativeUnit,
+  normalizeIngredientQuantity,
   getUnits,
   createAdminUnit,
   updateAdminUnit,

@@ -1,6 +1,6 @@
 import db from "../models/index";
 import { Op, Sequelize } from "sequelize";
-import { lockMasterData } from "./unitService";
+import { lockMasterData, normalizeIngredientQuantity } from "./unitService";
 import { validateLockedReferences, isPositiveInteger, systemIngredientUnitError, cookingStepsError, ingredientQuantityError, hasVietnameseAccents } from "./recipeValidation";
 import { ensureCommunityCategory } from "./recipeCategoryService";
 
@@ -328,7 +328,7 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
         const unitId = foundIng.defaultUnitId;
         const customUnit = null;
         let unitName = foundIng.defaultUnit?.unitName || "";
-        if (Number(ing.quantity) === 0 && !unitName && unitId) {
+        if (!unitName && unitId) {
           unitName = (await db.Unit.findByPk(unitId))?.unitName || "";
         }
         const quantityError = ingredientQuantityError(
@@ -341,7 +341,7 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
         processedIngredients.push({
           ingredientId: foundIng.id,
           customIngredientName: null,
-          quantity: Number(ing.quantity),
+          quantity: normalizeIngredientQuantity(ing.quantity, unitName),
           unitId,
           customUnit,
         });
@@ -388,7 +388,7 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
         processedIngredients.push({
           ingredientId: null,
           customIngredientName: customIngName,
-          quantity: Number(ing.quantity),
+          quantity: normalizeIngredientQuantity(ing.quantity, unitName),
           unitId: unitId,
           customUnit: customUnit,
         });
@@ -692,7 +692,7 @@ const adminGetPendingRecipes = async (query = {}) => {
         ingredientName: item.ingredient
           ? item.ingredient.ingredientName
           : item.customIngredientName || "",
-        quantity: Number(item.quantity),
+        quantity: normalizeIngredientQuantity(item.quantity, item.unitGroup?.unitName || item.customUnit || ""),
         unitId: item.unitId || (item.unitGroup ? item.unitGroup.id : null),
         unit: item.unitGroup ? item.unitGroup.unitName : item.customUnit || "",
       }));

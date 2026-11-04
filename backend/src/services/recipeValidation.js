@@ -1,6 +1,6 @@
 import db from "../models/index";
 import { Op } from "sequelize";
-import { isQualitativeUnit, lockMasterData } from "./unitService";
+import { isQualitativeUnit, normalizeIngredientQuantity, lockMasterData } from "./unitService";
 
 // Kiểm tra trước giao dịch chỉ giúp báo lỗi sớm. Kiểm tra lại sau khi lấy khóa
 // dùng chung để tránh ghi tham chiếu vừa bị xóa hoặc đổi đơn vị mặc định đồng thời.
@@ -27,6 +27,7 @@ const validateLockedReferences = async (transaction, categoryIds, ingredients) =
     }
     const error = ingredientQuantityError(item.quantity, unitName, index + 1);
     if (error) return error;
+    item.quantity = normalizeIngredientQuantity(item.quantity, unitName);
   }
   return null;
 };
@@ -90,11 +91,13 @@ const cookingStepsError = (steps) => {
 };
 
 const ingredientQuantityError = (quantity, unitName, position) => {
+  const isMissing = quantity === undefined || quantity === null ||
+    (typeof quantity === "string" && quantity.trim() === "");
+  if (isQualitativeUnit(unitName) && isMissing) return null;
   const value = Number(quantity);
   if (
-    quantity === undefined ||
-    quantity === null ||
-    String(quantity).trim() === "" ||
+    isMissing ||
+    (typeof quantity !== "number" && typeof quantity !== "string") ||
     !Number.isFinite(value) ||
     value < 0 ||
     (value === 0 && !isQualitativeUnit(unitName))

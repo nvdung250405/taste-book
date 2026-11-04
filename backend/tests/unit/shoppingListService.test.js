@@ -142,9 +142,9 @@ describe("RSK-01: tổng hợp chính xác và làm tròn half-up", () => {
     expect(savedItems()[0]).toMatchObject({ ingredientId: null, totalQuantity: 3 });
   });
 
-  test("đơn vị định tính giữ 0, không nhân hay cộng định lượng", async () => {
+  test.each(["vừa đủ", "tùy khẩu vị", "vừa vừa", "nêm nếm", "  VỪA ĐỦ  ", "nêm nếm".normalize("NFD")])("#130: %s giữ 0 khi gộp dữ liệu cũ và đổi khẩu phần", async unit => {
     db.RecipeList.findAll.mockResolvedValue([menu(1, [meal([
-      ingredient("0", "vừa đủ"), ingredient("10", "vừa đủ"),
+      ingredient("0", unit), ingredient("10", unit),
     ], 4, 2)])]);
     expect((await generate()).DT.totalItems).toBe(1);
     expect(savedItems()[0].totalQuantity).toBe(0);
