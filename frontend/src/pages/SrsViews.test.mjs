@@ -37,7 +37,36 @@ function render(client, Component, props, entry = '/') {
   )
 }
 
-
+test('deleted menu source retains its row and remove action but has no detail link or editable servings', () => {
+  const client = new QueryClient({
+    defaultOptions: { queries: { staleTime: Infinity } },
+  })
+  client.setQueryData(['recipe-list', 10], {
+    DT: {
+      items: [
+        {
+          recipeListItemId: 22,
+          recipeId: 2,
+          title: 'Deleted',
+          targetServings: 2,
+          isRecipeDeleted: true,
+        },
+      ],
+    },
+  })
+  try {
+    const html = render(client, Menu, {
+      list: { recipeListId: 10, listName: 'Menu' },
+      onClose() {},
+    })
+    assert.match(html, /Công thức đã bị xóa/)
+    assert.match(html, /aria-label="Khẩu phần Deleted" disabled=""/)
+    assert.match(html, /aria-label="Bỏ Deleted khỏi thực đơn"/)
+    assert.doesNotMatch(html, /href="\/recipe\/2"/)
+  } finally {
+    client.clear()
+  }
+})
 test('qualitative ingredients show their unit with no numeric amount when scaled', () => {
   const client = new QueryClient()
   try {

@@ -1,3 +1,4 @@
+import DeletedRecipesWarning from '../components/menu/DeletedRecipesWarning'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, ShoppingCart, Trash2 } from 'lucide-react'
@@ -25,19 +26,23 @@ function CreateDialog({ onClose, onCreated }) {
   const query = useRecipeLists()
   const mutation = useCreateShoppingList()
   const [title, setTitle] = useState('')
+  const [confirmation, setConfirmation] = useState(null)
   const [selected, setSelected] = useState([])
   const lists = (query.data?.DT || []).filter((list) => list.totalItems > 0)
   const submit = (event) => {
     event.preventDefault()
     if (mutation.isPending || !selected.length || !title.trim()) return
     mutation.mutate(
-      { title: title.trim(), recipeListIds: selected },
+      confirmation ? { ...confirmation.payload, confirmSkipDeleted: true } : { title: title.trim(), recipeListIds: selected },
       {
         onSuccess: (result) => {
           toast.success('Đã tạo danh sách đi chợ')
           onCreated(result.DT.shoppingListId)
         },
-        onError: (error) => toast.error(error?.EM || 'Không thể tạo danh sách'),
+        onError: (error) => {
+          if (error?.DT?.requiresConfirmation) setConfirmation({ payload: { title: title.trim(), recipeListIds: selected }, recipes: error.DT.skippedRecipes })
+          else toast.error(error?.EM || 'Không thể tạo danh sách')
+        },
       },
     )
   }
@@ -59,7 +64,7 @@ function CreateDialog({ onClose, onCreated }) {
               required
               maxLength={100}
               value={title}
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || !!confirmation}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ví dụ: Đi chợ cuối tuần"
               className="h-11 text-base"
@@ -109,6 +114,8 @@ function CreateDialog({ onClose, onCreated }) {
               ))}
             </div>
           )}
+          {confirmation && <DeletedRecipesWarning recipes={confirmation.recipes} />}
+          {confirmation && <Button type="button" variant="outline" disabled={mutation.isPending} onClick={onClose}>Hủy</Button>}
           <Button
             type="submit"
             disabled={!selected.length || !title.trim() || mutation.isPending}
@@ -116,7 +123,7 @@ function CreateDialog({ onClose, onCreated }) {
           >
             {mutation.isPending
               ? 'Đang tổng hợp…'
-              : `Tạo từ ${selected.length} thực đơn`}
+              : confirmation ? 'Tiếp tục' : `Tạo từ ${selected.length} thực đơn`}
           </Button>
         </form>
       </DialogContent>
