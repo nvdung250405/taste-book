@@ -36,7 +36,34 @@ function render(client, Component, props, entry = '/') {
     ),
   )
 }
-
+test('shopping navigation state selects the newly created ID instead of the first list', () => {
+  const client = new QueryClient({
+    defaultOptions: { queries: { staleTime: Infinity } },
+  })
+  client.setQueryData(['shopping-lists'], {
+    DT: [
+      { shoppingListId: 1, title: 'Old', status: 'In_Progress' },
+      { shoppingListId: 99, title: 'New', status: 'In_Progress' },
+    ],
+  })
+  try {
+    const html = render(
+      client,
+      Shopping,
+      {},
+      { pathname: '/shopping-list', state: { selectedId: 99 } },
+    )
+    assert.match(html, /value="99" selected=""/)
+    assert.match(html, /<h2[^>]*>New<\/h2>/)
+    assert.ok(
+      client
+        .getQueryCache()
+        .find({ queryKey: ['shopping-list', 99], exact: true }),
+    )
+  } finally {
+    client.clear()
+  }
+})
 test('deleted menu source retains its row and remove action but has no detail link or editable servings', () => {
   const client = new QueryClient({
     defaultOptions: { queries: { staleTime: Infinity } },

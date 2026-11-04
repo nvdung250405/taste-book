@@ -1,6 +1,6 @@
 import DeletedRecipesWarning from '../components/menu/DeletedRecipesWarning'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Plus, ShoppingCart, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '../components/ui/button'
@@ -132,21 +132,25 @@ function CreateDialog({ onClose, onCreated }) {
 }
 
 export default function ShoppingListPage() {
+  const location = useLocation()
   const query = useShoppingLists()
   const deletion = useDeleteShoppingList()
   const statusChange = useUpdateShoppingListStatus()
   const [statusTarget, setStatusTarget] = useState(null)
-  const [selectedId, setSelectedId] = useState(null)
+  const [selection, setSelection] = useState(null)
+  const selectedId = selection?.key === location.key ? selection.id : location.state?.selectedId || null
+  const setSelectedId = id => setSelection({ key: location.key, id })
   const [creating, setCreating] = useState(false)
   const [toDelete, setToDelete] = useState(null)
   const lists = Array.isArray(query.data?.DT) ? query.data.DT : []
   const selected =
-    lists.find((list) => list.shoppingListId === selectedId) || lists[0]
+    lists.find((list) => String(list.shoppingListId) === String(selectedId)) || (selectedId ? null : lists[0])
   const remove = () => {
     if (deletion.isPending) return
     deletion.mutate(toDelete.shoppingListId, {
       onSuccess: () => {
         toast.success('Đã xóa danh sách')
+        if (String(selectedId) === String(toDelete.shoppingListId)) setSelectedId(null)
         setToDelete(null)
       },
       onError: (error) => toast.error(error?.EM || 'Không thể xóa danh sách'),
@@ -182,7 +186,7 @@ export default function ShoppingListPage() {
           title="Không thể tải danh sách đi chợ"
           onRetry={query.refetch}
         />
-      ) : !selected ? (
+      ) : !selected && selectedId ? (<p role="status">Không tìm thấy danh sách đi chợ đã chọn. <button className="underline" onClick={() => { setSelectedId(null); query.refetch() }}>Tải lại danh sách</button></p>) : !selected ? (
         <div className="space-y-4 rounded-2xl border border-dashed border-slate-300 px-5 py-16 text-center dark:border-slate-700">
           <ShoppingCart className="mx-auto size-12 text-orange-400" />
           <h2 className="text-lg font-semibold">Sẵn sàng cho chuyến đi chợ?</h2>

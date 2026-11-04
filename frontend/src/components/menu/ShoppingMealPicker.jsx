@@ -31,13 +31,13 @@ export default function ShoppingMealPicker({ days, lists, refreshing, onClose })
     setSaving(true)
     try {
       const payload = confirmed ? { ...confirmation.payload, confirmSkipDeleted: true } : { title, recipeListIds: chosen.map(list => list.recipeListId) }
-      await shoppingApi.createShoppingList(payload)
+      const result = await shoppingApi.createShoppingList(payload)
       client.invalidateQueries({ queryKey: ['shopping-lists'] })
       toast.success('Đã tạo danh sách đi chợ')
-      navigate('/shopping-list')
+      navigate('/shopping-list', { state: { selectedId: result.DT.shoppingListId } })
      } catch (error) {
       if (error?.DT?.requiresConfirmation) setConfirmation({ payload: { title, recipeListIds: chosen.map(list => list.recipeListId) }, recipes: error.DT.skippedRecipes })
-      else toast.error(error?.EM || 'Không thể tạo danh sách đi chợ. Vui lòng thử lại.')
+      else toast.error(error?.EC === 2 ? 'Tiêu đề tự sinh cho các bữa này đã tồn tại. Vui lòng thay đổi lựa chọn bữa ăn để sinh tiêu đề khác, hoặc tạo danh sách tại trang Đi chợ với tiêu đề tùy chỉnh.' : error?.EM || 'Không thể tạo danh sách đi chợ. Vui lòng thử lại.')
     }
     finally { setSaving(false) }
   }
