@@ -10,6 +10,34 @@ beforeEach(() => {
   jest.spyOn(db.sequelize, "query").mockResolvedValue([[], {}]);
 });
 
+describe("#140: khóa công thức cá nhân Pending", () => {
+  test.each([
+    ["updateRecipe", true], ["updateRecipe", false], ["deleteRecipe", true], ["deleteRecipe", false],
+  ])("%s từ chối Pending dù isPublic=%s", async (method, isPublic) => {
+    const update = jest.fn();
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue({
+      id: 105, authorId: 10, isPublic, approvalStatus: "Pending", update,
+    });
+    jest.spyOn(db.sequelize, "transaction");
+    const result = await recipeService[method](105, { id: 10 }, { isPublic: false, approvalStatus: "Approved" });
+    expect(result).toMatchObject({ EC: 4, DT: null });
+    expect(result.EM).toContain("chờ kiểm duyệt");
+    expect(update).not.toHaveBeenCalled();
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+  });
+  test("xóa riêng tư lỗi ghi DB phải rollback", async () => {
+    const transaction = { commit: jest.fn(), rollback: jest.fn() };
+    jest.spyOn(db.sequelize, "transaction").mockResolvedValue(transaction);
+    jest.spyOn(db.Recipe, "findOne").mockResolvedValue({
+      id: 105, authorId: 10, isPublic: false, approvalStatus: "Rejected",
+      update: jest.fn().mockRejectedValue(new Error("Write failed")),
+    });
+    expect((await recipeService.deleteRecipe(105, { id: 10 })).EC).toBe(-1);
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).not.toHaveBeenCalled();
+  });
+});
+
 describe.each(["createRecipe", "updateRecipe", "adminCreateRecipe", "adminUpdateRecipe"])(
   "%s: kiểm tra lại dữ liệu sau khi lấy khóa", method => {
     let transaction;
@@ -389,6 +417,11 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
   });
 
   describe("deleteRecipe (UC-11 - Xóa công thức cá nhân)", () => {
+    let transaction;
+    beforeEach(() => {
+      transaction = { commit: jest.fn(), rollback: jest.fn() };
+      jest.spyOn(db.sequelize, "transaction").mockResolvedValue(transaction);
+    });
     test("thành công: xóa mềm công thức riêng tư (EC: 0)", async () => {
       const mockUpdate = jest.fn().mockResolvedValue(true);
       jest.spyOn(db.Recipe, "findOne").mockResolvedValue({
@@ -401,7 +434,7 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
       const res = await recipeService.deleteRecipe(101, { id: 10 });
       expect(res.EC).toBe(0);
       expect(res.EM).toBe("Đã xóa công thức thành công!");
-      expect(mockUpdate).toHaveBeenCalledWith({ isDeleted: true });
+      expect(mockUpdate).toHaveBeenCalledWith({ isDeleted: true }, { transaction });
     });
 
     test("thất bại: thiếu userId hoặc chưa đăng nhập (EC: 5)", async () => {

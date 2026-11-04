@@ -2659,7 +2659,12 @@ paths:
         - User Recipes
       summary: "UC-10: Sửa công thức cá nhân"
       description: |
-        User và Admin chỉ được chỉnh sửa công thức cá nhân do chính mình tạo. Nếu isPublic = false hoặc không truyền, công thức được lưu riêng tư với approvalStatus = 'Approved'. Nếu isPublic = true, công thức được lưu với approvalStatus = 'Pending' để chờ duyệt, kể cả khi tác giả là Admin.
+        User và Admin chỉ được chỉnh sửa công thức cá nhân do chính mình tạo khi đang riêng tư và không Pending, hoặc bị từ chối.
+        Nếu isPublic = false hoặc không truyền, công thức được lưu riêng tư với approvalStatus = 'Approved'. Nếu isPublic = true,
+        công thức được lưu với approvalStatus = 'Pending' để chờ duyệt, kể cả khi tác giả là Admin, và bị khóa ngay từ lần lưu này.
+        Công thức hiện đang Pending bị từ chối với HTTP 403/EC=4 trước khi xử lý nội dung, kể cả request chỉ gửi isPublic=false
+        hoặc giả approvalStatus. Không được sửa, xóa hoặc chuyển riêng tư trong thời gian chờ duyệt.
+        API đọc lại quyền và trạng thái dưới khóa dòng Recipes trong transaction trước khi ghi; không ghi bảng con nếu bị từ chối.
         Nguyên liệu định tính dùng quantity = 0 với unitId hoặc customUnit mang đơn vị như "vừa đủ", "tùy khẩu vị", "nêm nếm". Nguyên liệu định lượng phải có quantity > 0. Với ingredientId chuẩn, chỉ được sử dụng unitId bằng defaultUnitId của nguyên liệu; bỏ unitId thì dùng đơn vị mặc định. Không được nhập customUnit cho nguyên liệu chuẩn; vi phạm trả HTTP 400, EC: 1. Hệ thống lưu đúng tên đơn vị và không tự quy đổi giữa các đơn vị.
         Nếu công thức đã công khai và được duyệt (isPublic = true và approvalStatus = 'Approved'), API cá nhân từ chối chỉnh sửa (403 Forbidden). Công thức có tác giả là Admin sau khi được duyệt công khai trở thành công thức chuẩn hệ thống và có thể được sửa qua API quản trị.
         FE: Khi tài khoản Admin chọn gửi công khai, hiển thị xác nhận trước khi gọi API và chỉ gửi khi người dùng đồng ý:
@@ -2815,7 +2820,7 @@ paths:
                 EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
                 DT: null
         "403":
-          description: Không có quyền chỉnh sửa hoặc công thức đã được duyệt công khai
+          description: Không phải tác giả, công thức Pending hoặc đã được duyệt công khai
           content:
             application/json:
               schema:
@@ -2832,6 +2837,12 @@ paths:
                   value:
                     EC: 4
                     EM: "Công thức này đã được duyệt công khai lên hệ thống, bạn không có quyền chỉnh sửa!"
+                    DT: null
+                pendingLocked:
+                  summary: Đang chờ duyệt, không được sửa nội dung hoặc chuyển riêng tư
+                  value:
+                    EC: 4
+                    EM: "Công thức đang trong quá trình chờ kiểm duyệt, bạn không thể chỉnh sửa, xóa hoặc thay đổi trạng thái!"
                     DT: null
         "404":
           description: Không tìm thấy bài viết cần cập nhật
@@ -2857,7 +2868,14 @@ paths:
       tags:
         - User Recipes
       summary: "UC-11: Xóa mềm công thức"
-      description: "Người dùng thực hiện xóa công thức cá nhân do chính mình tạo ra. Áp dụng cơ chế Xóa an toàn (Soft Delete): Đặt cờ isDeleted = true trên bản ghi Recipes để ẩn khỏi danh sách cá nhân nhưng vẫn bảo toàn tính toàn vẹn dữ liệu ở các Thực đơn và Danh sách đi chợ cũ. Ràng buộc nghiệp vụ: API chỉ cho phép xóa đối với công thức đang ở chế độ Riêng tư (isPublic = false). Nếu công thức đã ở chế độ Công khai (isPublic = true), hệ thống từ chối xóa. Admin muốn gỡ công khai bài User đã duyệt phải dùng chức năng Hủy duyệt; không được xóa bài User qua API quản trị."
+      description: >-
+        Tác giả được xóa mềm công thức riêng tư (isPublic=false) và không Pending, kể cả bài bị từ chối.
+        Công thức đang Pending bị khóa xóa dù client gửi trạng thái khác hoặc isPublic=false trong body.
+        Bài công khai đã duyệt cũng bị từ chối. Các trường hợp bị khóa trả HTTP 403/EC=4, không đổi dữ liệu.
+        Server khóa dòng Recipes và kiểm tra lại quyền/trạng thái trong transaction trước khi đặt isDeleted=true.
+        Giữ nguyên công thức và dữ liệu liên quan khi lỗi; chỉ trả thành công sau commit.
+        Các mục món trong thực đơn và danh sách đi chợ cũ được bảo toàn.
+        Admin muốn gỡ công khai bài User đã duyệt phải dùng Hủy duyệt, không được xóa qua API quản trị.
       security:
         - bearerAuth: []
       parameters:
@@ -2918,6 +2936,12 @@ paths:
                   value:
                     EC: 4
                     EM: "Công thức đã công khai thuộc hệ thống, bạn không có quyền xóa!"
+                    DT: null
+                pendingLocked:
+                  summary: Công thức đang chờ duyệt không được xóa
+                  value:
+                    EC: 4
+                    EM: "Công thức đang trong quá trình chờ kiểm duyệt, bạn không thể chỉnh sửa, xóa hoặc thay đổi trạng thái!"
                     DT: null
         "404":
           description: Không tìm thấy công thức

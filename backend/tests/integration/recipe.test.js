@@ -557,7 +557,7 @@ describe("Recipe API Integration Tests (Supertest)", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.EC).toBe(0);
-      expect(mockUpdate).toHaveBeenCalledWith({ isDeleted: true });
+      expect(mockUpdate).toHaveBeenCalledWith({ isDeleted: true }, { transaction: mockTransaction });
     });
 
     test("trả về 403 khi người dùng không phải là tác giả", async () => {
@@ -672,6 +672,90 @@ describe("SP4-TASK-05: Recipe API transactions and author permissions", () => {
     expect(db.CookingStep.bulkCreate).not.toHaveBeenCalled();
     expect(transaction.rollback).toHaveBeenCalledTimes(1);
     expect(transaction.commit).not.toHaveBeenCalled();
+  });
+
+  test.each(["User", "Admin"])("#140: tác giả %s không sửa/xóa/đổi riêng tư bài Pending", async role => {
+    db.User.findOne.mockImplementation(async ({ where }) => ({ id: where.id, role }));
+    db.Recipe.findOne.mockResolvedValue({
+      id: recipeId, authorId: 10, isPublic: true, approvalStatus: "Pending", update,
+    });
+    for (const [method, body] of [
+      ["put", { ...recipeData, title: "Nội dung khác" }],
+      ["put", { isPublic: false, approvalStatus: "Approved" }],
+      ["delete", undefined],
+    ]) {
+      const response = await request(app)[method](`/api/v1/recipes/${recipeId}`)
+        .set("Authorization", `Bearer ${tokenFor(10)}`).send(body);
+      expect(response.status).toBe(403);
+      expect(response.body).toMatchObject({ EC: 4, DT: null });
+      expect(response.body.EM).toContain("chờ kiểm duyệt");
+    }
+    expect(update).not.toHaveBeenCalled();
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+    for (const model of [db.RecipeCategory, db.RecipeIngredient, db.CookingStep]) {
+      expect(model.destroy).not.toHaveBeenCalled();
+      expect(model.bulkCreate).not.toHaveBeenCalled();
+    }
+  });
+
+  test.each(["put", "delete"])("#140: %s vẫn khóa bài công khai Approved", async method => {
+    db.Recipe.findOne.mockResolvedValue({ id: recipeId, authorId: 10, isPublic: true, approvalStatus: "Approved", update });
+    const response = await request(app)[method](`/api/v1/recipes/${recipeId}`)
+      .set("Authorization", `Bearer ${tokenFor(10)}`).send(recipeData);
+    expect(response.status).toBe(403);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["put", "Approved"], ["delete", "Approved"], ["put", "Rejected"], ["delete", "Rejected"],
+  ])("#140: %s bài riêng tư %s vẫn thành công", async (method, approvalStatus) => {
+    db.Recipe.findOne.mockResolvedValue({ id: recipeId, authorId: 10, isPublic: false, approvalStatus, update });
+    const response = await request(app)[method](`/api/v1/recipes/${recipeId}`)
+      .set("Authorization", `Bearer ${tokenFor(10)}`).send(recipeData);
+    expect(response.status).toBe(200);
+    expect(update).toHaveBeenCalledWith(expect.objectContaining(method === "put"
+      ? { title: recipeData.title, isPublic: false, approvalStatus: "Approved", rejectionReason: null }
+      : { isDeleted: true }), { transaction });
+    expect(transaction.commit).toHaveBeenCalledTimes(1);
+  });
+
+  test.each(["put", "delete"])("#140: %s kiểm tra lại Pending khi chờ khóa, không ghi dữ liệu", async method => {
+    const before = { id: recipeId, authorId: 10, isPublic: false, approvalStatus: "Approved", update };
+    db.Recipe.findOne.mockResolvedValueOnce(before)
+      .mockResolvedValueOnce({ ...before, isPublic: true, approvalStatus: "Pending" });
+    const response = await request(app)[method](`/api/v1/recipes/${recipeId}`)
+      .set("Authorization", `Bearer ${tokenFor(10)}`).send(recipeData);
+    expect(response.status).toBe(403);
+    expect(response.body.EM).toContain("chờ kiểm duyệt");
+    expect(db.Recipe.findOne).toHaveBeenLastCalledWith({
+      where: { id: recipeId, isDeleted: false }, transaction, lock: "UPDATE",
+    });
+    expect(update).not.toHaveBeenCalled();
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).not.toHaveBeenCalled();
+    for (const model of [db.RecipeCategory, db.RecipeIngredient, db.CookingStep]) {
+      expect(model.destroy).not.toHaveBeenCalled();
+      expect(model.bulkCreate).not.toHaveBeenCalled();
+    }
+  });
+
+  test("#140: gửi duyệt khóa ngay các yêu cầu sửa/xóa tiếp theo", async () => {
+    const recipe = { id: recipeId, authorId: 10, isPublic: false, approvalStatus: "Approved", update };
+    update.mockImplementation(async values => Object.assign(recipe, values));
+    db.Recipe.findOne.mockResolvedValue(recipe);
+    const submitted = await request(app).put(`/api/v1/recipes/${recipeId}`)
+      .set("Authorization", `Bearer ${tokenFor(10)}`).send({ ...recipeData, isPublic: true });
+    expect(submitted.status).toBe(200);
+    expect(recipe.approvalStatus).toBe("Pending");
+    for (const method of ["put", "delete"]) {
+      const response = await request(app)[method](`/api/v1/recipes/${recipeId}`)
+        .set("Authorization", `Bearer ${tokenFor(10)}`).send({ ...recipeData, isPublic: false });
+      expect(response.status).toBe(403);
+    }
+    expect(recipe.isPublic).toBe(true);
+    expect(recipe.isDeleted).toBeUndefined();
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).toHaveBeenCalledTimes(1);
   });
 
   test("allows the author to update all steps", async () => {
