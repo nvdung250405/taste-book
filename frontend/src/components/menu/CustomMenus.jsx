@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { Plus, Pencil, Trash2, BookOpen } from 'lucide-react'
 import {
   useRecipeLists,
+  useRecipeListItems,
   useDeleteRecipeList,
 } from '../../hooks/queries/useRecipeListQueries'
 import { isWeeklyList } from '../../lib/menuLists'
@@ -24,13 +25,14 @@ export default function CustomMenus() {
   const remove = useDeleteRecipeList()
   const [editor, setEditor] = useState(null)
   const [deleting, setDeleting] = useState(null)
+  const deleteInfo = useRecipeListItems(deleting?.recipeListId, { staleTime: 0, refetchOnMount: 'always' })
   const [error, setError] = useState('')
   const [selected, setSelected] = useState(null)
   const lists = Array.isArray(query.data?.DT) ? query.data.DT : []
   const custom = lists.filter((list) => !isWeeklyList(list))
   const active = custom.find((list) => list.recipeListId === selected)
   const deleteList = () => {
-    if (remove.isPending) return
+    if (remove.isPending || !deleteInfo.isSuccess || deleteInfo.isFetching) return
     setError('')
     remove.mutate(deleting.recipeListId, {
       onSuccess: () => {
@@ -156,6 +158,9 @@ export default function CustomMenus() {
               này sẽ được gỡ. Công thức gốc vẫn được giữ lại.
             </DialogDescription>
           </DialogHeader>
+          {deleteInfo.isPending && <p role="status">Đang kiểm tra liên kết chuyến đi chợ…</p>}
+          {deleteInfo.isError && <QueryError title="Không thể kiểm tra liên kết chuyến đi chợ" onRetry={deleteInfo.refetch} />}
+          {deleteInfo.data?.DT?.activeShoppingTripCount > 0 && <p role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">Thực đơn này đang được liên kết với chuyến đi chợ chưa hoàn thành. Xóa thực đơn sẽ gỡ liên kết nguồn, nhưng danh sách đi chợ, số lượng mặt hàng và tiến độ mua sắm của bạn vẫn được giữ nguyên.</p>}
           {error && (
             <p role="alert" className="text-sm text-red-600">
               {error}
@@ -171,8 +176,8 @@ export default function CustomMenus() {
             </Button>
             <Button
               variant="destructive"
-              disabled={remove.isPending}
               onClick={deleteList}
+              disabled={!deleteInfo.isSuccess || deleteInfo.isFetching || remove.isPending}
             >
               {remove.isPending ? 'Đang xóa…' : 'Xác nhận xóa'}
             </Button>

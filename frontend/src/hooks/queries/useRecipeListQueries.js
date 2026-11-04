@@ -45,8 +45,11 @@ export const useDeleteRecipeList = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (listId) => recipeListsApi.deleteRecipeList(listId),
-    onSuccess: () => {
+    onSuccess: (_, listId) => {
+      queryClient.removeQueries({ queryKey: ['recipe-list', listId], exact: true });
       queryClient.invalidateQueries({ queryKey: ['recipe-lists'] });
+      queryClient.invalidateQueries({ queryKey: ['shopping-lists'] });
+      queryClient.invalidateQueries({ queryKey: ['shopping-list'] });
     },
   });
 };
