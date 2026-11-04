@@ -63,8 +63,8 @@ const recipesApi = {
   },
 
   // Xem danh sách chờ duyệt
-  getPendingRecipes() {
-    return axiosClient.get('/admin/recipes/pending');
+  getPendingRecipes(params = {}, options = {}) {
+    return axiosClient.get('/admin/recipes/pending', { ...options, params });
   },
 
   // Kiểm duyệt công thức

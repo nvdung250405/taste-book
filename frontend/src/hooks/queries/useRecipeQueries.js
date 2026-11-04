@@ -92,10 +92,10 @@ export const useAdminRecipes = (params = {}, options = {}) => {
   });
 };
 
-export const usePendingRecipes = () => {
+export const usePendingRecipes = (status = 'pending') => {
   return useQuery({
-    queryKey: ['pending-recipes'],
-    queryFn: () => recipesApi.getPendingRecipes(),
+    queryKey: status === 'pending' ? ['pending-recipes'] : ['pending-recipes', status],
+    queryFn: ({ signal }) => recipesApi.getPendingRecipes({ status }, { signal }),
     refetchInterval: 30000,
   });
 };
