@@ -100,7 +100,7 @@ describe("UC-19/20: quyền Admin và kiểm duyệt công thức", () => {
   test.each([
     ["User", "Pending", 403], ["Admin", "Pending", 403],
     ["User", "Rejected", 403], ["Admin", "Rejected", 403],
-    ["User", "Approved", 200], ["Admin", "Approved", 200],
+    ["User", "Approved", 403], ["Admin", "Approved", 200],
   ])("DELETE công thức công khai của %s, %s trả %s", async (role, approvalStatus, status) => {
     const update = jest.fn().mockResolvedValue();
     db.Recipe.findOne.mockResolvedValue({
@@ -150,6 +150,112 @@ describe("UC-19/20: quyền Admin và kiểm duyệt công thức", () => {
     expect(db.Recipe.findAll).toHaveBeenCalledWith(expect.objectContaining({
       where: { isDeleted: false, isPublic: true, approvalStatus: "Pending" },
     }));
+  });
+
+  test.each([
+    [{ status: "pending" }, "Pending", true],
+    [{ status: " Approved " }, "Approved", true],
+    [{ approvalStatus: "REJECTED" }, "Rejected", false],
+    [{ status: "rejected", approvalStatus: "Rejected" }, "Rejected", false],
+  ])("lọc danh sách kiểm duyệt theo %j", async (query, approvalStatus, isPublic) => {
+    db.Recipe.findAll.mockResolvedValue([{
+      id: 105, approvalStatus, isPublic, rejectionReason: "Lý do đã lưu", authorId: 10,
+    }]);
+    const res = await request(app).get("/api/v1/admin/recipes/pending")
+      .set("Authorization", `Bearer ${token()}`).query(query);
+    expect(res.status).toBe(200);
+    expect(res.body.DT[0]).toMatchObject({
+      recipeId: 105, approvalStatus, isPublic, rejectionReason: "Lý do đã lưu",
+    });
+    expect(db.Recipe.findAll).toHaveBeenCalledWith(expect.objectContaining({
+      where: { isDeleted: false, isPublic, approvalStatus },
+    }));
+    if (approvalStatus === "Approved") {
+      expect(db.Recipe.findAll.mock.calls[0][0].include[0]).toMatchObject({
+        as: "author", required: true, where: { role: "User" },
+      });
+    }
+  });
+
+  test.each([
+    { status: "private" }, { status: "" }, { status: ["pending", "rejected"] },
+    { "status[nested]": "pending" }, { approvalStatus: "invalid" },
+    { status: "pending", approvalStatus: "approved" },
+  ])("từ chối bộ lọc trạng thái không hợp lệ: %j", async query => {
+    const res = await request(app).get("/api/v1/admin/recipes/pending")
+      .set("Authorization", `Bearer ${token()}`).query(query);
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ EC: 1, DT: null });
+    expect(db.Recipe.findAll).not.toHaveBeenCalled();
+  });
+
+  test("#119: Pending → Approved → Rejected → Approved; ẩn công khai, giữ quyền tác giả", async () => {
+    const recipe = {
+      id: 105, authorId: 10, author: { id: 10, role: "User", username: "Tác giả" },
+      title: "Canh rau", isDeleted: false, isPublic: true, approvalStatus: "Pending",
+      rejectionReason: null, categories: [], ingredients: [], cookingSteps: [],
+      get: () => 1,
+    };
+    recipe.update = jest.fn(async values => Object.assign(recipe, values));
+    const matches = where => Object.entries(where).every(([key, value]) => recipe[key] === value);
+    db.Recipe.findOne.mockImplementation(async ({ where }) => matches(where) ? recipe : null);
+    db.Recipe.findAll.mockImplementation(async ({ where }) => matches(where) ? [recipe] : []);
+    jest.spyOn(db.Recipe, "findAndCountAll").mockImplementation(async ({ where }) => ({
+      count: matches(where) ? 1 : 0, rows: matches(where) ? [recipe] : [],
+    }));
+    jest.spyOn(db.Recipe, "findByPk").mockResolvedValue(recipe);
+    jest.spyOn(db.Category, "findOne").mockResolvedValue({ id: 8 });
+    const categoryLinks = new Set();
+    jest.spyOn(db.RecipeCategory, "findOrCreate").mockImplementation(async ({ where }) => {
+      const key = `${where.recipeId}:${where.categoryId}`;
+      const created = !categoryLinks.has(key);
+      categoryLinks.add(key);
+      return [where, created];
+    });
+    const moderate = body => request(app).patch("/api/v1/admin/recipes/105/moderation")
+      .set("Authorization", `Bearer ${token()}`).send(body);
+    const list = status => request(app).get("/api/v1/admin/recipes/pending")
+      .set("Authorization", `Bearer ${token()}`).query({ status });
+
+    expect((await list("pending")).body.DT).toHaveLength(1);
+    expect((await moderate({ approvalStatus: "Approved" })).status).toBe(200);
+    expect((await list("pending")).body.DT).toEqual([]);
+    expect((await list("approved")).body.DT).toHaveLength(1);
+    expect((await request(app).get("/api/v1/recipes")).body.DT.recipes).toHaveLength(1);
+
+    for (const rejectionReason of [undefined, "   "]) {
+      expect((await moderate({ approvalStatus: "Rejected", rejectionReason })).status).toBe(400);
+      expect(recipe.approvalStatus).toBe("Approved");
+    }
+    const revoked = await moderate({ approvalStatus: "Rejected", rejectionReason: "  Cần kiểm tra lại  " });
+    expect(revoked.status).toBe(200);
+    expect(recipe).toMatchObject({
+      authorId: 10, title: "Canh rau", isDeleted: false,
+      isPublic: false, approvalStatus: "Rejected", rejectionReason: "Cần kiểm tra lại",
+    });
+    expect((await list("approved")).body.DT).toEqual([]);
+    expect((await list("rejected")).body.DT[0].rejectionReason).toBe("Cần kiểm tra lại");
+    expect((await request(app).get("/api/v1/recipes")).body.DT.recipes).toEqual([]);
+    const home = await request(app).get("/api/v1/home");
+    expect(home.status).toBe(200);
+    expect(home.body.DT).toMatchObject({ latestRecipes: [], trendingRecipes: [] });
+    expect((await request(app).get("/api/v1/recipes/105")).status).toBe(404);
+    db.User.findOne.mockResolvedValue({ id: 10, role: "User" });
+    expect((await request(app).get("/api/v1/recipes/105")
+      .set("Authorization", `Bearer ${token("User", 10)}`)).status).toBe(200);
+
+    db.User.findOne.mockResolvedValue({ id: 1, role: "Admin" });
+    const approvedAgain = await moderate({ approvalStatus: "Approved" });
+    expect(approvedAgain.status).toBe(200);
+    expect(approvedAgain.body.DT.rejectionReason).toBeNull();
+    expect(recipe.isPublic).toBe(true);
+    expect((await list("rejected")).body.DT).toEqual([]);
+    expect((await list("approved")).body.DT).toHaveLength(1);
+    expect((await request(app).get("/api/v1/recipes")).body.DT.recipes).toHaveLength(1);
+    expect(categoryLinks.size).toBe(1);
+    expect(db.RecipeCategory.findOrCreate).toHaveBeenCalledTimes(2);
+    expect(recipe.update).toHaveBeenCalledTimes(3);
+    expect(transaction.commit).toHaveBeenCalledTimes(3);
   });
 
   test.each(["Approved", "Rejected"])("Admin kiểm duyệt %s thành công", async (approvalStatus) => {
@@ -451,7 +557,7 @@ describe("Recipe API Integration Tests (Supertest)", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.EC).toBe(0);
-      expect(mockUpdate).toHaveBeenCalledWith({ isDeleted: true });
+      expect(mockUpdate).toHaveBeenCalledWith({ isDeleted: true }, { transaction: mockTransaction });
     });
 
     test("trả về 403 khi người dùng không phải là tác giả", async () => {
@@ -566,6 +672,90 @@ describe("SP4-TASK-05: Recipe API transactions and author permissions", () => {
     expect(db.CookingStep.bulkCreate).not.toHaveBeenCalled();
     expect(transaction.rollback).toHaveBeenCalledTimes(1);
     expect(transaction.commit).not.toHaveBeenCalled();
+  });
+
+  test.each(["User", "Admin"])("#140: tác giả %s không sửa/xóa/đổi riêng tư bài Pending", async role => {
+    db.User.findOne.mockImplementation(async ({ where }) => ({ id: where.id, role }));
+    db.Recipe.findOne.mockResolvedValue({
+      id: recipeId, authorId: 10, isPublic: true, approvalStatus: "Pending", update,
+    });
+    for (const [method, body] of [
+      ["put", { ...recipeData, title: "Nội dung khác" }],
+      ["put", { isPublic: false, approvalStatus: "Approved" }],
+      ["delete", undefined],
+    ]) {
+      const response = await request(app)[method](`/api/v1/recipes/${recipeId}`)
+        .set("Authorization", `Bearer ${tokenFor(10)}`).send(body);
+      expect(response.status).toBe(403);
+      expect(response.body).toMatchObject({ EC: 4, DT: null });
+      expect(response.body.EM).toContain("chờ kiểm duyệt");
+    }
+    expect(update).not.toHaveBeenCalled();
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+    for (const model of [db.RecipeCategory, db.RecipeIngredient, db.CookingStep]) {
+      expect(model.destroy).not.toHaveBeenCalled();
+      expect(model.bulkCreate).not.toHaveBeenCalled();
+    }
+  });
+
+  test.each(["put", "delete"])("#140: %s vẫn khóa bài công khai Approved", async method => {
+    db.Recipe.findOne.mockResolvedValue({ id: recipeId, authorId: 10, isPublic: true, approvalStatus: "Approved", update });
+    const response = await request(app)[method](`/api/v1/recipes/${recipeId}`)
+      .set("Authorization", `Bearer ${tokenFor(10)}`).send(recipeData);
+    expect(response.status).toBe(403);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["put", "Approved"], ["delete", "Approved"], ["put", "Rejected"], ["delete", "Rejected"],
+  ])("#140: %s bài riêng tư %s vẫn thành công", async (method, approvalStatus) => {
+    db.Recipe.findOne.mockResolvedValue({ id: recipeId, authorId: 10, isPublic: false, approvalStatus, update });
+    const response = await request(app)[method](`/api/v1/recipes/${recipeId}`)
+      .set("Authorization", `Bearer ${tokenFor(10)}`).send(recipeData);
+    expect(response.status).toBe(200);
+    expect(update).toHaveBeenCalledWith(expect.objectContaining(method === "put"
+      ? { title: recipeData.title, isPublic: false, approvalStatus: "Approved", rejectionReason: null }
+      : { isDeleted: true }), { transaction });
+    expect(transaction.commit).toHaveBeenCalledTimes(1);
+  });
+
+  test.each(["put", "delete"])("#140: %s kiểm tra lại Pending khi chờ khóa, không ghi dữ liệu", async method => {
+    const before = { id: recipeId, authorId: 10, isPublic: false, approvalStatus: "Approved", update };
+    db.Recipe.findOne.mockResolvedValueOnce(before)
+      .mockResolvedValueOnce({ ...before, isPublic: true, approvalStatus: "Pending" });
+    const response = await request(app)[method](`/api/v1/recipes/${recipeId}`)
+      .set("Authorization", `Bearer ${tokenFor(10)}`).send(recipeData);
+    expect(response.status).toBe(403);
+    expect(response.body.EM).toContain("chờ kiểm duyệt");
+    expect(db.Recipe.findOne).toHaveBeenLastCalledWith({
+      where: { id: recipeId, isDeleted: false }, transaction, lock: "UPDATE",
+    });
+    expect(update).not.toHaveBeenCalled();
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).not.toHaveBeenCalled();
+    for (const model of [db.RecipeCategory, db.RecipeIngredient, db.CookingStep]) {
+      expect(model.destroy).not.toHaveBeenCalled();
+      expect(model.bulkCreate).not.toHaveBeenCalled();
+    }
+  });
+
+  test("#140: gửi duyệt khóa ngay các yêu cầu sửa/xóa tiếp theo", async () => {
+    const recipe = { id: recipeId, authorId: 10, isPublic: false, approvalStatus: "Approved", update };
+    update.mockImplementation(async values => Object.assign(recipe, values));
+    db.Recipe.findOne.mockResolvedValue(recipe);
+    const submitted = await request(app).put(`/api/v1/recipes/${recipeId}`)
+      .set("Authorization", `Bearer ${tokenFor(10)}`).send({ ...recipeData, isPublic: true });
+    expect(submitted.status).toBe(200);
+    expect(recipe.approvalStatus).toBe("Pending");
+    for (const method of ["put", "delete"]) {
+      const response = await request(app)[method](`/api/v1/recipes/${recipeId}`)
+        .set("Authorization", `Bearer ${tokenFor(10)}`).send({ ...recipeData, isPublic: false });
+      expect(response.status).toBe(403);
+    }
+    expect(recipe.isPublic).toBe(true);
+    expect(recipe.isDeleted).toBeUndefined();
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).toHaveBeenCalledTimes(1);
   });
 
   test("allows the author to update all steps", async () => {
@@ -695,6 +885,35 @@ describe("UC-19: Admin CRUD, validation và khóa công thức", () => {
   });
 
   describe.each(["put", "delete"])("%s validation và transaction", (method) => {
+    test.each([
+      [true, "Approved"], [true, "Pending"], [false, "Rejected"], [false, "Approved"],
+    ])("#126: bảo toàn bài User, isPublic=%s, status=%s", async (isPublic, approvalStatus) => {
+      Object.assign(recipe, { authorId: 10, author: { id: 10, role: "User" }, isPublic, approvalStatus });
+      const original = JSON.stringify(recipe);
+      const response = await send(method, `${base}/105`, {
+        ...body, title: "Ghi đè nội dung", authorId: 1, author: { role: "Admin" },
+      });
+      expect(response.status).toBe(403);
+      expect(response.body).toMatchObject({ EC: 4, DT: null });
+      expect(response.body.EM).toContain(method === "put"
+        ? "Không được phép sửa công thức của người dùng" : "Không được phép xóa công thức của người dùng");
+      expect(response.body.EM).toContain("Hủy duyệt");
+      expect(JSON.stringify(recipe)).toBe(original);
+      expect(update).not.toHaveBeenCalled();
+      expect(db.sequelize.transaction).not.toHaveBeenCalled();
+      for (const model of [db.RecipeCategory, db.RecipeIngredient, db.CookingStep]) {
+        expect(model.destroy).not.toHaveBeenCalled();
+        expect(model.bulkCreate).not.toHaveBeenCalled();
+      }
+    });
+
+    test.each([null, { role: "Unknown" }])("#126: từ chối khi không xác định được tác giả Admin: %j", async author => {
+      recipe.author = author;
+      expect((await send(method, `${base}/105`, body)).status).toBe(403);
+      expect(update).not.toHaveBeenCalled();
+      expect(db.sequelize.transaction).not.toHaveBeenCalled();
+    });
+
     test.each(["0", "-1", "1.5", "Infinity", "NaN", "9007199254740992", "1e2", "abc"])(
       "ID không hợp lệ %s trả 400 trước khi đọc DB", async (id) => {
         expect((await send(method, `${base}/${id}`, body)).status).toBe(400);
@@ -752,12 +971,19 @@ describe("UC-19: Admin CRUD, validation và khóa công thức", () => {
     });
   });
 
-  test("PUT kiểm tra lại tác giả sau khi lấy khóa", async () => {
+  test.each(["put", "delete"])("#126: %s kiểm tra lại tác giả sau khi lấy khóa", async method => {
     db.Recipe.findOne.mockResolvedValueOnce({ ...recipe, update })
       .mockResolvedValueOnce({ ...recipe, author: { role: "User" }, update });
-    expect((await send("put", `${base}/105`, body)).status).toBe(403);
+    const response = await send(method, `${base}/105`, body);
+    expect(response.status).toBe(403);
+    expect(response.body).toMatchObject({ EC: 4, DT: null });
     expect(update).not.toHaveBeenCalled();
     expect(transaction.rollback).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).not.toHaveBeenCalled();
+    for (const model of [db.RecipeCategory, db.RecipeIngredient, db.CookingStep]) {
+      expect(model.destroy).not.toHaveBeenCalled();
+      expect(model.bulkCreate).not.toHaveBeenCalled();
+    }
   });
 
   test.each([["put", "put"], ["put", "delete"], ["delete", "put"], ["delete", "delete"]])(

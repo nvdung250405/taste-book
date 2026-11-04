@@ -213,7 +213,7 @@ const handleAdminDeleteRecipe = async (req, res) => {
 // 4.12 GET /api/v1/admin/recipes/pending - Xem danh sách công thức chờ duyệt (UC-20)
 const handleAdminGetPendingRecipes = async (req, res) => {
   try {
-    let result = await recipeService.adminGetPendingRecipes();
+    let result = await recipeService.adminGetPendingRecipes(req.query);
     return res.status(mapEcToStatus(result.EC)).json(result);
   } catch (error) {
     console.log(error);

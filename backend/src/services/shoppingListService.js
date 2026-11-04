@@ -127,7 +127,11 @@ const generateShoppingList = async (userId, rawData = {}) => {
       };
     }
 
-    const { title, recipeListIds } = rawData || {};
+    const { title, recipeListIds, confirmSkipDeleted = false } = rawData || {};
+    if (typeof confirmSkipDeleted !== "boolean") {
+      await transaction.rollback();
+      return { EC: 1, EM: "confirmSkipDeleted phải là giá trị boolean!", DT: null };
+    }
 
     if (!isString(title) || !title.trim()) {
       await transaction.rollback();
@@ -193,7 +197,6 @@ const generateShoppingList = async (userId, rawData = {}) => {
             {
               model: db.Recipe,
               as: "recipe",
-              where: { isDeleted: false },
               required: false,
               include: [
                 {
@@ -232,12 +235,23 @@ const generateShoppingList = async (userId, rawData = {}) => {
     }
 
     const aggregatedMap = new Map();
+    const skippedRecipes = [];
     let totalRecipeCount = 0;
 
     for (const list of lists) {
       const items = list.recipeListItems || [];
       for (const item of items) {
-        if (!item.recipe) continue;
+        if (!item.recipe || item.recipe.isDeleted) {
+          skippedRecipes.push({
+            recipeListId: list.id,
+            recipeListName: list.listName || "",
+            recipeListItemId: item.id ?? null,
+            recipeId: item.recipeId ?? item.recipe?.id ?? null,
+            title: item.recipe?.title || "Công thức không còn tồn tại",
+            reason: item.recipe ? "deleted" : "unavailable",
+          });
+          continue;
+        }
         totalRecipeCount++;
 
         const targetServings = item.targetServings;
@@ -289,7 +303,9 @@ const generateShoppingList = async (userId, rawData = {}) => {
       await transaction.rollback();
       return {
         EC: 1,
-        EM: "Thực đơn được chọn chưa có món ăn nào để đi chợ!",
+        EM: skippedRecipes.length
+          ? "Tất cả các món trong thực đơn được chọn đã bị xóa hoặc không còn nguyên liệu hợp lệ!"
+          : "Thực đơn được chọn chưa có món ăn nào để đi chợ!",
         DT: null,
       };
     }
@@ -299,6 +315,15 @@ const generateShoppingList = async (userId, rawData = {}) => {
       ...item,
       totalQuantity: roundQuantity(item.totalQuantity, isQualitativeUnit(item.unit)),
     }));
+
+    if (skippedRecipes.length && !confirmSkipDeleted) {
+      await transaction.rollback();
+      return {
+        EC: 2,
+        EM: "Một số công thức đã bị xóa hoặc không còn tồn tại. Bạn có muốn bỏ qua và tiếp tục tạo danh sách đi chợ?",
+        DT: { requiresConfirmation: true, skippedRecipes },
+      };
+    }
 
     const newShoppingList = await db.ShoppingList.create(
       {
@@ -335,6 +360,7 @@ const generateShoppingList = async (userId, rawData = {}) => {
         title: newShoppingList.title,
         status: newShoppingList.status,
         totalItems: shoppingListItemsRecords.length,
+        ...(skippedRecipes.length ? { skippedRecipes } : {}),
       },
     };
   } catch (error) {

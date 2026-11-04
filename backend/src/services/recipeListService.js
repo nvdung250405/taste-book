@@ -15,6 +15,23 @@ const parsePathId = (value) => {
   return isPositiveInteger(id) ? id : null;
 };
 
+const duplicateRecipeListItem = (item, newServings) => {
+  const currentServings = Number(item.targetServings);
+  const sameServings = currentServings === newServings;
+  return {
+    EC: 2,
+    EM: sameServings
+      ? "Món ăn đã có trong thực đơn với cùng số khẩu phần này!"
+      : "Món ăn đã có trong thực đơn, bạn có muốn cập nhật khẩu phần?",
+    DT: {
+      ...(sameServings ? { isDuplicateSameServings: true } : { isDuplicateDifferentServings: true }),
+      recipeListItemId: item.id,
+      currentServings,
+      ...(!sameServings ? { newServings } : {}),
+    },
+  };
+};
+
 /**
  * 6.1 Lấy danh sách thực đơn của người dùng đang đăng nhập (UC-13)
  * @param {number} userId
@@ -270,6 +287,7 @@ const updateRecipeList = async (userId, listId, rawData = {}) => {
  * @returns {Promise<{ EC: number, EM: string, DT: any }>}
  */
 const deleteRecipeList = async (userId, listId) => {
+  let transaction;
   try {
     if (!userId) {
       return {
@@ -288,9 +306,13 @@ const deleteRecipeList = async (userId, listId) => {
       };
     }
 
-    const list = await db.RecipeList.findByPk(id);
+    transaction = await db.sequelize.transaction();
+    const list = await db.RecipeList.findByPk(id, {
+      transaction, lock: transaction.LOCK.UPDATE,
+    });
 
     if (!list) {
+      await transaction.rollback();
       return {
         EC: 3,
         EM: "Không tìm thấy thực đơn!",
@@ -299,6 +321,7 @@ const deleteRecipeList = async (userId, listId) => {
     }
 
     if (list.userId !== Number(userId)) {
+      await transaction.rollback();
       return {
         EC: 4,
         EM: "Bạn không có quyền xóa thực đơn này!",
@@ -306,7 +329,11 @@ const deleteRecipeList = async (userId, listId) => {
       };
     }
 
-    await list.destroy();
+    // Chỉ gỡ liên kết nguồn và mục món; không ghi vào danh sách/mặt hàng đi chợ.
+    await db.ShoppingListRecipeList.destroy({ where: { recipeListId: id }, transaction });
+    await db.RecipeListItem.destroy({ where: { recipeListId: id }, transaction });
+    await list.destroy({ transaction });
+    await transaction.commit();
 
     return {
       EC: 0,
@@ -314,6 +341,13 @@ const deleteRecipeList = async (userId, listId) => {
       DT: null,
     };
   } catch (error) {
+    if (transaction && !transaction.finished) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        console.error("deleteRecipeList rollback error:", rollbackError);
+      }
+    }
     console.error("deleteRecipeList error:", error);
     return {
       EC: -1,
@@ -358,6 +392,7 @@ const getRecipeListDetail = async (userId, listId) => {
             {
               model: db.Recipe,
               as: "recipe",
+              required: false,
               attributes: [
                 "id",
                 "title",
@@ -365,6 +400,7 @@ const getRecipeListDetail = async (userId, listId) => {
                 "defaultServings",
                 "cookTimeMinutes",
                 "difficulty",
+                "isDeleted",
               ],
               include: [
                 {
@@ -398,6 +434,16 @@ const getRecipeListDetail = async (userId, listId) => {
       };
     }
 
+    // Chỉ truy vấn liên kết sau khi xác nhận quyền sở hữu thực đơn.
+    const activeShoppingTripCount = await db.ShoppingListRecipeList.count({
+      where: { recipeListId: id },
+      include: [{
+        model: db.ShoppingList,
+        required: true,
+        where: { status: "In_Progress", userId: Number(userId) },
+      }],
+    });
+
     const items = (list.recipeListItems || []).map((item) => ({
       recipeListItemId: item.id,
       recipeId: item.recipeId,
@@ -408,6 +454,7 @@ const getRecipeListDetail = async (userId, listId) => {
       authorName: item.recipe && item.recipe.author ? item.recipe.author.username : "",
       defaultServings: item.recipe ? item.recipe.defaultServings : 2,
       targetServings: item.targetServings,
+      isRecipeDeleted: !item.recipe || Boolean(item.recipe.isDeleted),
     }));
 
     return {
@@ -416,6 +463,7 @@ const getRecipeListDetail = async (userId, listId) => {
       DT: {
         recipeListId: list.id,
         listName: list.listName,
+        activeShoppingTripCount,
         items: items,
       },
     };
@@ -525,18 +573,26 @@ const addRecipeToRecipeList = async (userId, listId, rawData = {}) => {
     });
 
     if (existingItem) {
-      return {
-        EC: 2,
-        EM: "Món ăn đã có trong thực đơn, vui lòng điều chỉnh số lượng!",
-        DT: null,
-      };
+      return duplicateRecipeListItem(existingItem, servings);
     }
 
-    const newItem = await db.RecipeListItem.create({
-      recipeListId: lId,
-      recipeId: rId,
-      targetServings: servings,
-    });
+    let newItem;
+    try {
+      newItem = await db.RecipeListItem.create({
+        recipeListId: lId,
+        recipeId: rId,
+        targetServings: servings,
+      });
+    } catch (error) {
+      // Hai POST có thể cùng vượt qua bước kiểm tra; unique index quyết định lượt thắng.
+      if (error.name === "SequelizeUniqueConstraintError") {
+        const concurrentItem = await db.RecipeListItem.findOne({
+          where: { recipeListId: lId, recipeId: rId },
+        });
+        if (concurrentItem) return duplicateRecipeListItem(concurrentItem, servings);
+      }
+      throw error;
+    }
 
     return {
       EC: 0,
@@ -632,6 +688,13 @@ const updateRecipeListItemServings = async (userId, listId, itemId, rawData = {}
         EM: "Không tìm thấy món ăn trong thực đơn!",
         DT: null,
       };
+    }
+
+    const sourceRecipe = await db.Recipe.findOne({
+      where: { id: item.recipeId, isDeleted: false },
+    });
+    if (!sourceRecipe) {
+      return { EC: 1, EM: "Công thức nguồn đã bị xóa, không thể điều chỉnh khẩu phần!", DT: null };
     }
 
     await item.update({ targetServings: servings });

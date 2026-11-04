@@ -1,7 +1,7 @@
 import db from "../models/index";
 import { Op, Sequelize } from "sequelize";
 import { collectionKeyword, collectionTextMatch } from "./recipeSearchService";
-import { isQualitativeUnit } from "./unitService";
+import { isQualitativeUnit, normalizeIngredientQuantity } from "./unitService";
 
 const getRecipeById = async (id, viewerId = null, viewerRole = null) => {
   try {
@@ -100,7 +100,7 @@ const getRecipeById = async (id, viewerId = null, viewerRole = null) => {
       ingredientName: item.ingredient
         ? item.ingredient.ingredientName
         : item.customIngredientName || "",
-      quantity: Number(item.quantity),
+      quantity: normalizeIngredientQuantity(item.quantity, item.unitGroup?.unitName || item.customUnit || ""),
       unitId: item.unitId || (item.unitGroup ? item.unitGroup.id : null),
       unit: item.unitGroup ? item.unitGroup.unitName : item.customUnit || "",
     }));
@@ -225,7 +225,7 @@ const scaleRecipeIngredients = async (
       Number(recipe.defaultServings) > 0 ? Number(recipe.defaultServings) : 1;
     let scaleFactor = Math.round((targetServings / baseServings) * 100) / 100;
 
-    // Đơn vị định tính theo chuẩn hệ thống (UC-07 - Luồng 2a): Giữ nguyên định lượng gốc, không nhân hệ số N
+    // Định tính luôn trả 0, kể cả dữ liệu cũ từng lưu lượng dương; không nhân khẩu phần.
 
     let ingredients = (recipe.ingredients || []).map((item) => {
       let baseQuantity = Number(item.quantity);
@@ -239,7 +239,7 @@ const scaleRecipeIngredients = async (
       const isQualitative = isQualitativeUnit(unitName);
 
       let scaledQuantity = isQualitative
-        ? baseQuantity
+        ? 0
         : Math.round(baseQuantity * (targetServings / baseServings) * 100) /
           100;
 

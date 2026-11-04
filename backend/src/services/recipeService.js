@@ -1,10 +1,27 @@
 import db from "../models/index";
 import { Op } from "sequelize";
+import { normalizeIngredientQuantity, lockMasterData } from "./unitService";
 import { validateLockedReferences, isPositiveInteger, systemIngredientUnitError, cookingStepsError, ingredientQuantityError } from "./recipeValidation";
 import { getRecipes } from "./recipeSearchService";
 import { getRecipeById, scaleRecipeIngredients, getMyRecipes } from "./recipeReadService";
 import { ensureCommunityCategory } from "./recipeCategoryService";
 import { adminGetRecipes, adminUpdateRecipe, adminDeleteRecipe, adminGetPendingRecipes, moderateRecipe } from "./recipeAdminService";
+
+const personalRecipeWriteError = (recipe, userId, isDelete = false) => {
+  if (!recipe) return { EC: 3, EM: isDelete ? "Không tìm thấy công thức cần xoá!" : "Không tìm thấy công thức cần cập nhật!", DT: null };
+  if (Number(recipe.authorId) !== Number(userId)) {
+    return { EC: 4, EM: isDelete ? "Bạn không có quyền xóa công thức này!" : "Bạn không có quyền chỉnh sửa công thức này!", DT: null };
+  }
+  if (recipe.approvalStatus === "Pending") {
+    return { EC: 4, EM: "Công thức đang trong quá trình chờ kiểm duyệt, bạn không thể chỉnh sửa, xóa hoặc thay đổi trạng thái!", DT: null };
+  }
+  if (recipe.isPublic && (isDelete || recipe.approvalStatus === "Approved")) {
+    return { EC: 4, EM: isDelete
+      ? "Công thức đã công khai thuộc hệ thống, bạn không có quyền xóa!"
+      : "Công thức này đã được duyệt công khai lên hệ thống, bạn không có quyền chỉnh sửa!", DT: null };
+  }
+  return null;
+};
 
 // 4.4 POST /api/v1/recipes - Người dùng tạo công thức mới (UC-08)
 const createRecipe = async (user, data = {}, isAdminCreate = false) => {
@@ -171,7 +188,7 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
         const unitId = foundIng.defaultUnitId;
         const customUnit = null;
         let unitName = foundIng.defaultUnit?.unitName || "";
-        if (Number(ing.quantity) === 0 && !unitName && unitId) {
+        if (!unitName && unitId) {
           unitName = (await db.Unit.findByPk(unitId))?.unitName || "";
         }
         const quantityError = ingredientQuantityError(
@@ -184,7 +201,7 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
         processedIngredients.push({
           ingredientId: foundIng.id,
           customIngredientName: null,
-          quantity: Number(ing.quantity),
+          quantity: normalizeIngredientQuantity(ing.quantity, unitName),
           unitId,
           customUnit,
         });
@@ -234,7 +251,7 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
         processedIngredients.push({
           ingredientId: null,
           customIngredientName: customIngName,
-          quantity: Number(ing.quantity),
+          quantity: normalizeIngredientQuantity(ing.quantity, unitName),
           unitId: unitId,
           customUnit: customUnit,
         });
@@ -390,31 +407,8 @@ const updateRecipe = async (recipeId, user, data) => {
       },
     });
 
-    if (!recipe) {
-      return {
-        EC: 3,
-        EM: "Không tìm thấy công thức cần cập nhật!",
-        DT: null,
-      };
-    }
-
-    // Kiểm tra quyền: Phải là tác giả của công thức
-    if (Number(recipe.authorId) !== Number(userId)) {
-      return {
-        EC: 4,
-        EM: "Bạn không có quyền chỉnh sửa công thức này!",
-        DT: null,
-      };
-    }
-
-    // Chốt chặn bảo vệ: Nếu công thức đã ở chế độ công khai và đã được Quản trị viên phê duyệt (isPublic = true VÀ approvalStatus = 'Approved')
-    if (recipe.isPublic && recipe.approvalStatus === "Approved") {
-      return {
-        EC: 4,
-        EM: "Công thức này đã được duyệt công khai lên hệ thống, bạn không có quyền chỉnh sửa!",
-        DT: null,
-      };
-    }
+    const writeError = personalRecipeWriteError(recipe, userId);
+    if (writeError) return writeError;
 
     const {
       title,
@@ -569,7 +563,7 @@ const updateRecipe = async (recipeId, user, data) => {
         const unitId = foundIng.defaultUnitId;
         const customUnit = null;
         let unitName = foundIng.defaultUnit?.unitName || "";
-        if (Number(ing.quantity) === 0 && !unitName && unitId) {
+        if (!unitName && unitId) {
           unitName = (await db.Unit.findByPk(unitId))?.unitName || "";
         }
         const quantityError = ingredientQuantityError(
@@ -583,7 +577,7 @@ const updateRecipe = async (recipeId, user, data) => {
           ingredientId: foundIng.id,
           ingredientName: foundIng.ingredientName,
           customIngredientName: null,
-          quantity: Number(ing.quantity),
+          quantity: normalizeIngredientQuantity(ing.quantity, unitName),
           unitId,
           unit: unitName,
           customUnit,
@@ -635,7 +629,7 @@ const updateRecipe = async (recipeId, user, data) => {
           ingredientId: null,
           ingredientName: customIngName,
           customIngredientName: customIngName,
-          quantity: Number(ing.quantity),
+          quantity: normalizeIngredientQuantity(ing.quantity, unitName),
           unitId: unitId,
           unit: unitName,
           customUnit: customUnit,
@@ -674,7 +668,15 @@ const updateRecipe = async (recipeId, user, data) => {
         await t.rollback();
         return referenceError;
       }
-      await recipe.update(
+      const lockedRecipe = await db.Recipe.findOne({
+        where: { id: rId, isDeleted: false }, transaction: t, lock: "UPDATE",
+      });
+      const lockedError = personalRecipeWriteError(lockedRecipe, userId);
+      if (lockedError) {
+        await t.rollback();
+        return lockedError;
+      }
+      await lockedRecipe.update(
         {
           title: String(title).trim(),
           description: String(description).trim(),
@@ -766,6 +768,7 @@ const updateRecipe = async (recipeId, user, data) => {
 
 // 4.7 DELETE /api/v1/recipes/{recipeId} - Xóa mềm công thức (UC-11)
 const deleteRecipe = async (recipeId, user) => {
+  let transaction;
   try {
     const userId = user ? user.id || user.userId : null;
     if (!userId) {
@@ -792,35 +795,22 @@ const deleteRecipe = async (recipeId, user) => {
       },
     });
 
-    if (!recipe) {
-      return {
-        EC: 3,
-        EM: "Không tìm thấy công thức cần xoá!",
-        DT: null,
-      };
-    }
+    const writeError = personalRecipeWriteError(recipe, userId, true);
+    if (writeError) return writeError;
 
-    // Kiểm tra quyền xóa: Phải là tác giả của công thức
-    if (Number(recipe.authorId) !== Number(userId)) {
-      return {
-        EC: 4,
-        EM: "Bạn không có quyền xóa công thức này!",
-        DT: null,
-      };
+    transaction = await db.sequelize.transaction({ isolationLevel: "READ COMMITTED" });
+    // Cùng thứ tự khóa với sửa/kiểm duyệt: đọc lại trạng thái mới nhất trước khi ghi.
+    await lockMasterData(transaction);
+    const lockedRecipe = await db.Recipe.findOne({
+      where: { id: rId, isDeleted: false }, transaction, lock: "UPDATE",
+    });
+    const lockedError = personalRecipeWriteError(lockedRecipe, userId, true);
+    if (lockedError) {
+      await transaction.rollback();
+      return lockedError;
     }
-
-    // Ràng buộc nghiệp vụ: Chỉ cho phép xóa đối với công thức riêng tư (isPublic = false).
-    // Nếu công thức đã ở chế độ công khai (isPublic = true), từ chối xóa vì đã thuộc về hệ thống.
-    if (recipe.isPublic) {
-      return {
-        EC: 4,
-        EM: "Công thức đã công khai thuộc hệ thống, bạn không có quyền xóa!",
-        DT: null,
-      };
-    }
-
-    // Thực hiện xóa mềm: Đặt isDeleted = true
-    await recipe.update({ isDeleted: true });
+    await lockedRecipe.update({ isDeleted: true }, { transaction });
+    await transaction.commit();
 
     return {
       EC: 0,
@@ -828,6 +818,13 @@ const deleteRecipe = async (recipeId, user) => {
       DT: null,
     };
   } catch (e) {
+    if (transaction && !transaction.finished) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        console.error("deleteRecipe rollback error:", rollbackError);
+      }
+    }
     console.log("deleteRecipe error:", e);
     return {
       EC: -1,

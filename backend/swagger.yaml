@@ -193,6 +193,9 @@ paths:
       description: Tiếp nhận thông tin đăng ký, kiểm tra trùng lặp email/SĐT, mã hóa
         Bcrypt mật khẩu và tạo tài khoản với vai trò User. Tối đa 5 yêu cầu mỗi giờ/IP,
         tính cả yêu cầu thành công và thất bại; vượt ngưỡng trả HTTP 429.
+        SĐT nhận dạng 0 hoặc +84, trim hai đầu và chuẩn hóa về 10 chữ số bắt đầu bằng 0
+        trước khi tra trùng và lưu. Ví dụ 0912345678 và +84912345678 là cùng một số;
+        đăng ký lại trả HTTP 409/EC=2. Phải gửi SĐT dạng chuỗi, không nhận dấu cách bên trong.
       requestBody:
         required: true
         content:
@@ -279,6 +282,8 @@ paths:
       description: Xác thực người dùng bằng Email/SĐT và mật khẩu; trả về Access Token
         JWT và thông tin tài khoản. Tối đa 10 yêu cầu đăng nhập không thành công trong
         15 phút/IP; đăng nhập thành công không tính vào hạn mức. Vượt ngưỡng trả HTTP 429.
+        Nếu dùng SĐT, cả 0 và +84 đều được chuẩn hóa về dạng 0 trước khi tra cứu.
+        Đăng nhập bằng email giữ nguyên cách xử lý; SĐT trả về dùng dạng chuẩn bắt đầu bằng 0.
       requestBody:
         required: true
         content:
@@ -341,7 +346,13 @@ paths:
       tags:
         - Authentication
       summary: "UC-04: Đăng xuất khỏi hệ thống"
-      description: Hủy phiên làm việc phía client.
+      description: >-
+        Thu hồi JWT hiện tại tại server trước khi trả thành công. Lưu hash SHA-256, jti (nếu có),
+        userId và expiresAt trong PostgreSQL; không lưu JWT gốc. Mọi bản sao của cùng token
+        bị từ chối với HTTP 401, EC = 5 trên API bắt buộc; trên API optional chỉ có quyền Guest.
+        Các token phiên khác của cùng tài khoản vẫn hợp lệ. Token mới có jti riêng cho mỗi lần đăng nhập;
+        token cũ chưa có jti vẫn thu hồi được theo hash. Token đã thu hồi gọi logout lại trả 401.
+        Lỗi lưu thu hồi trả 500, không báo đăng xuất thành công. Client xóa token và cache sau phản hồi.
       security:
         - bearerAuth: []
       responses:
@@ -358,7 +369,7 @@ paths:
                 EM: Đăng xuất thành công!
                 DT: null
         "401":
-          description: Chưa gửi token hoặc token hết hạn
+          description: Chưa gửi token, token sai chữ ký, hết hạn hoặc đã bị thu hồi
           content:
             application/json:
               schema:
@@ -448,6 +459,11 @@ paths:
       tags:
         - User Profile
       summary: "UC-05: Cập nhật thông tin hồ sơ cá nhân"
+      description: >-
+        SĐT nếu được gửi phải là chuỗi hợp lệ dạng 0 hoặc +84. Chuẩn hóa về 10 chữ số
+        bắt đầu bằng 0 trước khi kiểm tra trùng và lưu. Đổi cách viết số của chính mình
+        không báo trùng; số đã thuộc tài khoản khác trả HTTP 409/EC=2.
+        Bỏ trường phone thì giữ nguyên; gửi null, rỗng hoặc sai định dạng trả 400.
       security:
         - bearerAuth: []
       requestBody:
@@ -2396,7 +2412,8 @@ paths:
                       quantity:
                         type: number
                         minimum: 0
-                        description: "Số dương cho đơn vị định lượng; dùng 0 khi đơn vị là định tính (ví dụ customUnit: 'vừa đủ')."
+                        nullable: true
+                        description: "Định lượng bắt buộc số dương. Định tính (vừa đủ, tùy khẩu vị, vừa vừa, nêm nếm) cho phép bỏ quantity, null hoặc chuỗi rỗng; số không âm luôn được chuẩn hóa về 0 trước khi lưu. Sai kiểu, số âm hoặc không hữu hạn bị từ chối."
                         example: 300
                       unitId:
                         type: integer
@@ -2642,7 +2659,12 @@ paths:
         - User Recipes
       summary: "UC-10: Sửa công thức cá nhân"
       description: |
-        User và Admin chỉ được chỉnh sửa công thức cá nhân do chính mình tạo. Nếu isPublic = false hoặc không truyền, công thức được lưu riêng tư với approvalStatus = 'Approved'. Nếu isPublic = true, công thức được lưu với approvalStatus = 'Pending' để chờ duyệt, kể cả khi tác giả là Admin.
+        User và Admin chỉ được chỉnh sửa công thức cá nhân do chính mình tạo khi đang riêng tư và không Pending, hoặc bị từ chối.
+        Nếu isPublic = false hoặc không truyền, công thức được lưu riêng tư với approvalStatus = 'Approved'. Nếu isPublic = true,
+        công thức được lưu với approvalStatus = 'Pending' để chờ duyệt, kể cả khi tác giả là Admin, và bị khóa ngay từ lần lưu này.
+        Công thức hiện đang Pending bị từ chối với HTTP 403/EC=4 trước khi xử lý nội dung, kể cả request chỉ gửi isPublic=false
+        hoặc giả approvalStatus. Không được sửa, xóa hoặc chuyển riêng tư trong thời gian chờ duyệt.
+        API đọc lại quyền và trạng thái dưới khóa dòng Recipes trong transaction trước khi ghi; không ghi bảng con nếu bị từ chối.
         Nguyên liệu định tính dùng quantity = 0 với unitId hoặc customUnit mang đơn vị như "vừa đủ", "tùy khẩu vị", "nêm nếm". Nguyên liệu định lượng phải có quantity > 0. Với ingredientId chuẩn, chỉ được sử dụng unitId bằng defaultUnitId của nguyên liệu; bỏ unitId thì dùng đơn vị mặc định. Không được nhập customUnit cho nguyên liệu chuẩn; vi phạm trả HTTP 400, EC: 1. Hệ thống lưu đúng tên đơn vị và không tự quy đổi giữa các đơn vị.
         Nếu công thức đã công khai và được duyệt (isPublic = true và approvalStatus = 'Approved'), API cá nhân từ chối chỉnh sửa (403 Forbidden). Công thức có tác giả là Admin sau khi được duyệt công khai trở thành công thức chuẩn hệ thống và có thể được sửa qua API quản trị.
         FE: Khi tài khoản Admin chọn gửi công khai, hiển thị xác nhận trước khi gọi API và chỉ gửi khi người dùng đồng ý:
@@ -2723,7 +2745,8 @@ paths:
                       quantity:
                         type: number
                         minimum: 0
-                        description: "Số dương cho đơn vị định lượng; dùng 0 khi đơn vị là định tính (ví dụ customUnit: 'vừa đủ')."
+                        nullable: true
+                        description: "Định lượng bắt buộc số dương. Định tính (vừa đủ, tùy khẩu vị, vừa vừa, nêm nếm) cho phép bỏ quantity, null hoặc chuỗi rỗng; số không âm luôn được chuẩn hóa về 0 trước khi lưu. Sai kiểu, số âm hoặc không hữu hạn bị từ chối."
                         example: 500
                       unitId:
                         type: integer
@@ -2797,7 +2820,7 @@ paths:
                 EM: Chưa xác thực hoặc phiên đăng nhập đã hết hạn!
                 DT: null
         "403":
-          description: Không có quyền chỉnh sửa hoặc công thức đã được duyệt công khai
+          description: Không phải tác giả, công thức Pending hoặc đã được duyệt công khai
           content:
             application/json:
               schema:
@@ -2814,6 +2837,12 @@ paths:
                   value:
                     EC: 4
                     EM: "Công thức này đã được duyệt công khai lên hệ thống, bạn không có quyền chỉnh sửa!"
+                    DT: null
+                pendingLocked:
+                  summary: Đang chờ duyệt, không được sửa nội dung hoặc chuyển riêng tư
+                  value:
+                    EC: 4
+                    EM: "Công thức đang trong quá trình chờ kiểm duyệt, bạn không thể chỉnh sửa, xóa hoặc thay đổi trạng thái!"
                     DT: null
         "404":
           description: Không tìm thấy bài viết cần cập nhật
@@ -2839,7 +2868,14 @@ paths:
       tags:
         - User Recipes
       summary: "UC-11: Xóa mềm công thức"
-      description: "Người dùng thực hiện xóa công thức cá nhân do chính mình tạo ra. Áp dụng cơ chế Xóa an toàn (Soft Delete): Đặt cờ isDeleted = true trên bản ghi Recipes để ẩn khỏi danh sách cá nhân nhưng vẫn bảo toàn tính toàn vẹn dữ liệu ở các Thực đơn và Danh sách đi chợ cũ. Ràng buộc nghiệp vụ: API chỉ cho phép xóa đối với công thức đang ở chế độ Riêng tư (isPublic = false). Nếu công thức đã ở chế độ Công khai (isPublic = true), hệ thống từ chối xóa vì công thức đã thuộc về dữ liệu chung của hệ thống (chỉ Quản trị viên mới có quyền xóa)."
+      description: >-
+        Tác giả được xóa mềm công thức riêng tư (isPublic=false) và không Pending, kể cả bài bị từ chối.
+        Công thức đang Pending bị khóa xóa dù client gửi trạng thái khác hoặc isPublic=false trong body.
+        Bài công khai đã duyệt cũng bị từ chối. Các trường hợp bị khóa trả HTTP 403/EC=4, không đổi dữ liệu.
+        Server khóa dòng Recipes và kiểm tra lại quyền/trạng thái trong transaction trước khi đặt isDeleted=true.
+        Giữ nguyên công thức và dữ liệu liên quan khi lỗi; chỉ trả thành công sau commit.
+        Các mục món trong thực đơn và danh sách đi chợ cũ được bảo toàn.
+        Admin muốn gỡ công khai bài User đã duyệt phải dùng Hủy duyệt, không được xóa qua API quản trị.
       security:
         - bearerAuth: []
       parameters:
@@ -2901,6 +2937,12 @@ paths:
                     EC: 4
                     EM: "Công thức đã công khai thuộc hệ thống, bạn không có quyền xóa!"
                     DT: null
+                pendingLocked:
+                  summary: Công thức đang chờ duyệt không được xóa
+                  value:
+                    EC: 4
+                    EM: "Công thức đang trong quá trình chờ kiểm duyệt, bạn không thể chỉnh sửa, xóa hoặc thay đổi trạng thái!"
+                    DT: null
         "404":
           description: Không tìm thấy công thức
           content:
@@ -2926,7 +2968,7 @@ paths:
       tags:
         - Recipes
       summary: "UC-07: Tính định lượng theo N người (servings)"
-      description: Tự động tính toán lại định lượng nguyên liệu theo số người ăn mong muốn N dựa trên tỷ lệ khẩu phần gốc. Đơn vị định tính giữ nguyên scaledQuantity (thường là 0) và unit; FE hiển thị tên đơn vị, không hiển thị số 0.
+      description: Tự động tính toán lại định lượng nguyên liệu theo số người ăn mong muốn N dựa trên tỷ lệ khẩu phần gốc. Đơn vị định tính luôn trả scaledQuantity = 0, kể cả dữ liệu cũ đã lưu lượng dương; giữ nguyên unit và không nhân khẩu phần. FE chỉ hiển thị tên đơn vị định tính, không hiển thị số 0.
       parameters:
         - name: recipeId
           in: path
@@ -3157,7 +3199,8 @@ paths:
                       quantity:
                         type: number
                         minimum: 0
-                        description: "Số dương cho đơn vị định lượng; dùng 0 khi đơn vị là định tính (ví dụ customUnit: 'vừa đủ')."
+                        nullable: true
+                        description: "Định lượng bắt buộc số dương. Định tính (vừa đủ, tùy khẩu vị, vừa vừa, nêm nếm) cho phép bỏ quantity, null hoặc chuỗi rỗng; số không âm luôn được chuẩn hóa về 0 trước khi lưu. Sai kiểu, số âm hoặc không hữu hạn bị từ chối."
                         example: 500
                       unitId:
                         type: integer
@@ -3317,7 +3360,8 @@ paths:
                       quantity:
                         type: number
                         minimum: 0
-                        description: "Số dương cho đơn vị định lượng; dùng 0 khi đơn vị là định tính (ví dụ customUnit: 'vừa đủ')."
+                        nullable: true
+                        description: "Định lượng bắt buộc số dương. Định tính (vừa đủ, tùy khẩu vị, vừa vừa, nêm nếm) cho phép bỏ quantity, null hoặc chuỗi rỗng; số không âm luôn được chuẩn hóa về 0 trước khi lưu. Sai kiểu, số âm hoặc không hữu hạn bị từ chối."
                         example: 600
                       unitId:
                         type: integer
@@ -3421,7 +3465,16 @@ paths:
       tags:
         - Admin Recipes
       summary: "UC-19: Admin xóa công thức"
-      description: "Quản trị viên (Admin) chỉ xóa mềm công thức công khai (isPublic = true) đã duyệt (approvalStatus = 'Approved') của User hoặc Admin bằng cách đặt isDeleted = true. Công thức Pending hoặc Rejected không được xóa qua API quản trị (403); công thức chờ duyệt phải được xử lý qua chức năng kiểm duyệt. API quản trị từ chối xóa công thức riêng tư của cả User và Admin (403). Công thức riêng tư phải được xóa qua API cá nhân với kiểm tra chủ sở hữu. ID phải là số nguyên dương an toàn. API khóa dòng Recipes và kiểm tra lại điều kiện trong transaction; trả 409 nếu updatedAt thay đổi trong lúc xử lý, cần tải lại trước khi thử lại."
+      description: >-
+        Admin chỉ xóa mềm công thức có tác giả là Admin, công khai và đã duyệt
+        (isPublic = true, approvalStatus = 'Approved') bằng cách đặt isDeleted = true.
+        Công thức có tác giả là User hoặc không xác định được tác giả Admin bị từ chối với HTTP 403, EC = 4;
+        thông báo hướng dẫn dùng chức năng Hủy duyệt tại màn hình Kiểm duyệt công thức để gỡ công khai bài User.
+        Kiểm tra tác giả từ DB trước xử lý và kiểm tra lại trong transaction sau khi khóa dòng Recipes.
+        Không sửa nội dung, tác giả, trạng thái hoặc dữ liệu liên quan khi bị từ chối.
+        Công thức Pending, Rejected hoặc riêng tư cũng bị từ chối (403).
+        Công thức riêng tư phải được xóa qua API cá nhân với kiểm tra chủ sở hữu.
+        ID phải là số nguyên dương an toàn; trả 409 nếu updatedAt thay đổi trong lúc xử lý.
       security:
         - bearerAuth: []
       parameters:
@@ -3465,14 +3518,14 @@ paths:
                 EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!"
                 DT: null
         "403":
-          description: Không có quyền thao tác (không phải Admin, công thức riêng tư hoặc chưa được duyệt)
+          description: Không có quyền thao tác (không phải Admin, tác giả không phải Admin, công thức riêng tư hoặc chưa được duyệt)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
                 EC: 4
-                EM: "Công thức này đang ở chế độ riêng tư của người dùng, Admin không thể thao tác!"
+                EM: "Không được phép xóa công thức của người dùng! Vui lòng dùng chức năng Hủy duyệt tại màn hình Kiểm duyệt công thức."
                 DT: null
         "404":
           description: Không tìm thấy công thức cần xóa
@@ -3508,11 +3561,35 @@ paths:
     get:
       tags:
         - Admin Recipes
-      summary: "UC-20: Xem danh sách chờ duyệt"
-      description: "Quản trị viên (Admin) xem danh sách công thức chưa bị xóa, được gửi công khai và đang chờ duyệt (isPublic = true, approvalStatus = 'Pending', isDeleted = false). Bao gồm công thức User hoặc Admin gửi qua API cá nhân. Công thức của Admin sau khi được duyệt công khai sẽ trở thành công thức chuẩn hệ thống."
+      summary: "UC-20: Xem danh sách kiểm duyệt theo trạng thái"
+      description: >-
+        Mặc định lấy bài Pending công khai của User hoặc Admin. status=approved lấy bài cộng đồng
+        có tác giả là User, công khai và Approved; không lấy công thức chuẩn hoặc bài riêng tư Approved.
+        status=rejected lấy bài Rejected riêng tư kèm rejectionReason. Luôn loại bài đã xóa.
+        Chấp nhận khác hoa/thường và khoảng trắng đầu/cuối. approvalStatus là tên tham số thay thế;
+        nếu truyền cả hai thì giá trị phải tương đương, nếu không trả 400. DT vẫn là mảng như API cũ.
       security:
         - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+            default: pending
+        - name: approvalStatus
+          in: query
+          description: Tên thay thế cho status; chỉ dùng một tham số hoặc truyền cùng giá trị.
+          schema:
+            type: string
+            enum: [Pending, Approved, Rejected]
       responses:
+        "400":
+          description: Trạng thái lọc sai kiểu, sai giá trị hoặc hai tham số mâu thuẫn.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "200":
@@ -3534,6 +3611,7 @@ paths:
                     defaultServings: 4
                     isPublic: true
                     approvalStatus: "Pending"
+                    rejectionReason: null
                     authorId: 8
                     authorName: "Nguyễn Văn A"
                     authorEmail: "vana@gmail.com"
@@ -3589,12 +3667,16 @@ paths:
       summary: "UC-20: Kiểm duyệt công thức"
       description: >-
         Chỉ tài khoản còn tồn tại và có quyền Admin hiện tại trong DB được kiểm duyệt.
-        Chỉ xử lý công thức công khai, đang Pending và chưa bị xóa, bao gồm bài của User hoặc Admin.
+        Xử lý công thức chưa bị xóa, bao gồm bài của User hoặc Admin.
+        Các chuyển trạng thái hợp lệ: Pending công khai → Approved công khai hoặc Rejected riêng tư;
+        Approved công khai → Rejected riêng tư (hủy duyệt); Rejected riêng tư → Approved công khai (duyệt lại).
+        Không kiểm duyệt bài riêng tư Approved hoặc yêu cầu lặp lại cùng trạng thái đích.
         Khi phê duyệt, lưu isPublic = true, approvalStatus = 'Approved' và xóa rejectionReason;
         bài có tác giả Admin trở thành công thức chuẩn hệ thống, bài của User được gắn danh mục đóng góp cộng đồng.
-        Khi từ chối, lưu isPublic = false, approvalStatus = 'Rejected' và lý do từ chối đã bỏ khoảng trắng đầu/cuối.
+        Khi từ chối hoặc hủy duyệt, bắt buộc có lý do; lưu isPublic = false, approvalStatus = 'Rejected'
+        và lý do đã bỏ khoảng trắng đầu/cuối. Bài bị ẩn khỏi tìm kiếm/trang chủ, giữ tác giả và nội dung.
         Trạng thái và danh mục được lưu trong cùng transaction; chỉ trả thành công sau commit, lỗi thì rollback.
-        Khóa bản ghi khi kiểm duyệt để tránh ghi đè quyết định; yêu cầu sau đọc trạng thái mới và trả 400 nếu không còn Pending.
+        Khóa bản ghi khi kiểm duyệt; yêu cầu sau đọc trạng thái mới và trả 400 nếu chuyển trạng thái không hợp lệ.
         approvalStatus phải là chuỗi Approved hoặc Rejected (chấp nhận khác hoa/thường và khoảng trắng đầu/cuối).
         Hỗ trợ trường action thay approvalStatus cho client cũ; nếu truyền cả hai thì ưu tiên approvalStatus.
       security:
@@ -3657,7 +3739,7 @@ paths:
                       approvalStatus: Rejected
                       rejectionReason: "Hình ảnh không đúng quy chuẩn và định lượng chưa rõ ràng."
         "400":
-          description: ID không phải số nguyên dương an toàn, body/trạng thái/lý do sai kiểu hoặc công thức không còn chờ duyệt công khai
+          description: ID không phải số nguyên dương an toàn, body/trạng thái/lý do sai kiểu hoặc chuyển trạng thái không hợp lệ
           content:
             application/json:
               schema:
@@ -3675,11 +3757,11 @@ paths:
                     EC: 1
                     EM: "Vui lòng nhập lý do từ chối bài viết là chuỗi không rỗng!"
                     DT: null
-                notPending:
-                  summary: Công thức không ở trạng thái chờ duyệt
+                invalidTransition:
+                  summary: Trạng thái nguồn không phù hợp hoặc đã ở trạng thái đích
                   value:
                     EC: 1
-                    EM: "Công thức này đã được phê duyệt trước đó!"
+                    EM: "Trạng thái công thức không phù hợp với thao tác kiểm duyệt!"
                     DT: null
         "401":
           description: Thiếu token, token không hợp lệ/hết hạn hoặc tài khoản không còn tồn tại
@@ -4200,7 +4282,13 @@ paths:
         - Recipe Lists
       summary: "UC-16: Xem chi tiết món trong thực đơn"
       description: Lấy chi tiết thông tin thực đơn cùng danh sách các món ăn có trong
-        thực đơn (kèm số khẩu phần ăn targetServings N người).
+        thực đơn (kèm số khẩu phần ăn targetServings N người). Trả thêm activeShoppingTripCount,
+        số danh sách đi chợ In_Progress của tài khoản đang đăng nhập liên kết với thực đơn;
+        không tính Completed. Chỉ trả sau khi kiểm tra quyền sở hữu.
+        FE tải thông tin này trước khi hiện xác nhận xóa; nếu lớn hơn 0, cảnh báo sẽ gỡ liên kết
+        nguồn nhưng giữ nguyên danh sách đi chợ, số lượng và trạng thái đã mua.
+        Mỗi item có isRecipeDeleted; giữ cả dòng món có nguồn đã xóa hoặc không còn tồn tại.
+        Khi true, FE hiển thị nhãn Công thức đã bị xóa, khóa xem chi tiết/đổi khẩu phần và vẫn cho gỡ món.
       security:
         - bearerAuth: []
       parameters:
@@ -4230,6 +4318,7 @@ paths:
                 DT:
                   recipeListId: 1
                   listName: Tiệc Sinh Nhật
+                  activeShoppingTripCount: 1
                   items:
                     - recipeListItemId: 10
                       recipeId: 101
@@ -4240,6 +4329,7 @@ paths:
                       authorName: Trần Minh Đức
                       defaultServings: 2
                       targetServings: 4
+                      isRecipeDeleted: false
         "400":
           description: Mã đường dẫn không hợp lệ.
           content:
@@ -4428,9 +4518,13 @@ paths:
       tags:
         - Recipe Lists
       summary: "UC-15: Xóa thực đơn"
-      description: Người dùng xóa một thực đơn khỏi kho cá nhân của mình. Xóa cascade
-        các item và liên kết với danh sách đi chợ; không xóa chính danh sách đi
-        chợ hoặc các item đi chợ đã tạo.
+      description: >-
+        Xóa thực đơn thuộc tài khoản đang đăng nhập. Khóa bản ghi thực đơn, kiểm tra quyền,
+        rồi xóa các ShoppingListRecipeList, RecipeListItem và RecipeList trong cùng transaction.
+        Không xóa hoặc cập nhật công thức gốc, ShoppingList hay ShoppingListItem;
+        giữ nguyên số lượng, trạng thái chuyến đi và trạng thái đã mua. Lỗi ở bất kỳ bước nào
+        sẽ rollback; chỉ trả thành công sau commit. FE đọc activeShoppingTripCount qua GET chi tiết
+        trước khi hiện hộp thoại xác nhận. DELETE thực hiện ngay, không yêu cầu cờ xác nhận mới.
       security:
         - bearerAuth: []
       parameters:
@@ -4519,6 +4613,11 @@ paths:
         (targetServings). Công thức phải chưa bị xóa và thuộc người dùng hiện tại
         hoặc công khai, đã duyệt. Công thức không tồn tại hoặc không được truy cập
         đều trả 404. Một món chỉ xuất hiện một lần trong mỗi thực đơn.
+        Nếu món đã có, trả HTTP 409/EC=2 kèm recipeListItemId và currentServings.
+        Cùng khẩu phần trả isDuplicateSameServings=true; khác khẩu phần trả
+        isDuplicateDifferentServings=true và newServings để FE hỏi xác nhận cập nhật.
+        POST không tự cập nhật hoặc cộng dồn khẩu phần. Unique index bảo đảm không tạo
+        dòng trùng khi có request đồng thời; request thua nhận cùng metadata 409.
       security:
         - bearerAuth: []
       parameters:
@@ -4639,15 +4738,52 @@ paths:
                     EM: Không tìm thấy công thức món ăn!
                     DT: null
         "409":
-          description: Món ăn đã có trong thực đơn
+          description: Món ăn đã có trong thực đơn; kèm metadata để hiển thị hoặc xác nhận cập nhật
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 2
-                EM: Món ăn đã có trong thực đơn, vui lòng điều chỉnh số lượng!
-                DT: null
+                type: object
+                properties:
+                  EC:
+                    type: integer
+                    enum: [2]
+                  EM:
+                    type: string
+                  DT:
+                    type: object
+                    required: [recipeListItemId, currentServings]
+                    properties:
+                      recipeListItemId:
+                        type: integer
+                      currentServings:
+                        type: integer
+                      newServings:
+                        type: integer
+                        description: Chỉ có khi khẩu phần mới khác hiện tại.
+                      isDuplicateSameServings:
+                        type: boolean
+                      isDuplicateDifferentServings:
+                        type: boolean
+              examples:
+                sameServings:
+                  summary: Món đã có cùng khẩu phần; không cập nhật
+                  value:
+                    EC: 2
+                    EM: Món ăn đã có trong thực đơn với cùng số khẩu phần này!
+                    DT:
+                      isDuplicateSameServings: true
+                      recipeListItemId: 10
+                      currentServings: 4
+                differentServings:
+                  summary: Món đã có khác khẩu phần; FE hỏi xác nhận trước khi gọi PUT
+                  value:
+                    EC: 2
+                    EM: Món ăn đã có trong thực đơn, bạn có muốn cập nhật khẩu phần?
+                    DT:
+                      isDuplicateDifferentServings: true
+                      recipeListItemId: 10
+                      currentServings: 4
+                      newServings: 6
         "500":
           description: Lỗi hệ thống server hoặc CSDL
           content:
@@ -4664,7 +4800,11 @@ paths:
         - Recipe Lists
       summary: "UC-16: Đổi khẩu phần N món trong thực đơn"
       description: Cập nhật lại số lượng khẩu phần ăn N người (targetServings) cho một
-        món ăn đã có trong thực đơn.
+        món ăn đã có trong thực đơn. Thay thế giá trị cũ, không cộng dồn và không tạo dòng mới.
+        FE gọi sau khi người dùng xác nhận đề xuất newServings từ POST trùng món.
+        Kiểm tra lại quyền sở hữu, item thuộc đúng thực đơn và khẩu phần nguyên dương trước khi lưu.
+        Nếu công thức nguồn đã xóa hoặc không còn tồn tại, trả HTTP 400/EC=1 với thông báo
+        Công thức nguồn đã bị xóa, không thể điều chỉnh khẩu phần. DELETE item vẫn được phép.
       security:
         - bearerAuth: []
       parameters:
@@ -4955,7 +5095,18 @@ paths:
         - Shopping Lists
       summary: "UC-17/18: Tổng hợp danh sách đi chợ"
       # TC-17-12: Tiêu đề sau trim phải duy nhất trong cùng người dùng.
-      description: "Gom một hoặc nhiều thực đơn, loại bỏ ID thực đơn trùng. targetServings và defaultServings phải là số nguyên dương. Định lượng được nhân targetServings/defaultServings bằng số học chính xác, cộng dồn theo mã nguyên liệu và đơn vị (trim, không phân biệt hoa thường); nguyên liệu tự nhập gộp theo tên và đơn vị. Khác đơn vị thì tách dòng, không quy đổi. Chỉ làm tròn half-up một lần sau khi cộng tổng, đến 2 chữ số thập phân; kết quả định lượng phải từ 0.01 đến 99999999.99, nếu không trả 400. Nguyên liệu định tính giữ unit và totalQuantity = 0, không nhân hoặc cộng số lượng."
+      description: >-
+        Gom một hoặc nhiều thực đơn, loại bỏ ID thực đơn trùng. targetServings và defaultServings phải là số nguyên dương.
+        Định lượng được nhân targetServings/defaultServings bằng số học chính xác, cộng dồn theo mã nguyên liệu và đơn vị
+        (trim, không phân biệt hoa thường); nguyên liệu tự nhập gộp theo tên và đơn vị. Khác đơn vị thì tách dòng, không quy đổi.
+        Chỉ làm tròn half-up một lần sau khi cộng tổng, đến 2 chữ số thập phân; kết quả định lượng phải từ 0.01 đến 99999999.99,
+        nếu không trả 400. Nguyên liệu định tính giữ unit và totalQuantity = 0, không nhân hoặc cộng số lượng.
+        Đọc cả công thức đã xóa để liệt kê skippedRecipes (recipeListId, recipeListName, recipeListItemId, recipeId, title, reason).
+        reason=deleted là nguồn đã xóa mềm; unavailable là nguồn không còn tồn tại.
+        Có món bị loại nhưng vẫn còn nguyên liệu hợp lệ thì trả 409/EC=2, requiresConfirmation=true và skippedRecipes, chưa ghi dữ liệu.
+        FE hỏi xác nhận rồi gửi lại cùng title/recipeListIds với confirmSkipDeleted=true để chỉ tổng hợp món hợp lệ.
+        Mỗi request đọc lại nguồn; kết quả thành công trả danh sách skippedRecipes mới nhất nếu có món bị loại.
+        Nếu không còn món/nguyên liệu hợp lệ, kể cả đã xác nhận, trả 400/EC=1, DT=null và không tạo danh sách.
       security:
         - bearerAuth: []
       requestBody:
@@ -4968,6 +5119,10 @@ paths:
                 - title
                 - recipeListIds
               properties:
+                confirmSkipDeleted:
+                  type: boolean
+                  default: false
+                  description: Chỉ gửi true sau khi người dùng xác nhận bỏ qua món đã xóa. Không nhận chuỗi, số hoặc null.
                 title:
                   type: string
                   minLength: 1
@@ -4988,7 +5143,7 @@ paths:
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "201":
-          description: Tổng hợp danh sách đi chợ thành công
+          description: Tổng hợp thành công; nếu đã bỏ qua món, DT có skippedRecipes chứa danh sách mới nhất
           content:
             application/json:
               schema:
@@ -5083,15 +5238,30 @@ paths:
                 EM: "Một hoặc nhiều thực đơn được chọn không tồn tại!"
                 DT: null
         "409":
-          description: Tiêu đề danh sách đi chợ đã tồn tại trong cùng người dùng (so sánh sau trim)
+          description: Tiêu đề trùng hoặc cần xác nhận bỏ qua công thức đã xóa; chưa tạo danh sách
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 2
-                EM: "Tiêu đề danh sách đi chợ này đã tồn tại!"
-                DT: null
+                $ref: "#/components/schemas/StandardResponse"
+              examples:
+                duplicateTitle:
+                  value:
+                    EC: 2
+                    EM: "Tiêu đề danh sách đi chợ này đã tồn tại!"
+                    DT: null
+                confirmDeleted:
+                  value:
+                    EC: 2
+                    EM: "Một số công thức đã bị xóa hoặc không còn tồn tại. Bạn có muốn bỏ qua và tiếp tục tạo danh sách đi chợ?"
+                    DT:
+                      requiresConfirmation: true
+                      skippedRecipes:
+                        - recipeListId: 1
+                          recipeListName: Thực đơn của tôi
+                          recipeListItemId: 11
+                          recipeId: 102
+                          title: Món đã xóa
+                          reason: deleted
         "500":
           description: Lỗi hệ thống server hoặc CSDL
           content:

@@ -2,14 +2,10 @@ import db from "../models/index";
 import bcrypt from "bcryptjs";
 import { Op } from "sequelize";
 import { cloudinary } from "../config/cloudinary";
+import { normalizePhoneNumber, isPhoneUniqueError } from "../utils/phoneUtils";
 
 const hashUserPassword = (userPassword) => {
   return bcrypt.hashSync(userPassword, 10);
-};
-
-const isPhoneValid = (phone) => {
-  const re = /^(0|\+84)[35789][0-9]{8}$/;
-  return re.test(String(phone).trim());
 };
 
 const getPublicIdFromUrl = (url) => {
@@ -105,16 +101,16 @@ const updateUserProfile = async (userId, data) => {
       username: data.username.trim(),
     };
 
-    if (data.phone) {
-      const cleanPhone = String(data.phone).trim();
-      if (!isPhoneValid(cleanPhone)) {
+    if (data.phone !== undefined) {
+      const cleanPhone = normalizePhoneNumber(data.phone);
+      if (!cleanPhone) {
         return {
           EC: 1,
           EM: "Số điện thoại không đúng định dạng (phải là số điện thoại 10 số hợp lệ)!",
           DT: null,
         };
       }
-      if (cleanPhone !== user.phone) {
+      if (cleanPhone !== normalizePhoneNumber(user.phone)) {
         let isPhoneExist = await db.User.findOne({
           where: {
             phone: cleanPhone,
@@ -128,8 +124,8 @@ const updateUserProfile = async (userId, data) => {
             DT: null,
           };
         }
-        updateData.phone = cleanPhone;
       }
+      updateData.phone = cleanPhone;
     }
 
     if (data.avatarUrl !== undefined && data.avatarUrl !== null && data.avatarUrl !== "") {
@@ -173,6 +169,9 @@ const updateUserProfile = async (userId, data) => {
       },
     };
   } catch (e) {
+    if (isPhoneUniqueError(e)) {
+      return { EC: 2, EM: "Số điện thoại đã được đăng ký trên hệ thống!", DT: null };
+    }
     console.log(e);
     return {
       EC: -1,

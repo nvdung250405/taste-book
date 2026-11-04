@@ -1,12 +1,18 @@
 import db from "../models/index";
 import { Op, Sequelize } from "sequelize";
-import { lockMasterData } from "./unitService";
+import { lockMasterData, normalizeIngredientQuantity } from "./unitService";
 import { validateLockedReferences, isPositiveInteger, systemIngredientUnitError, cookingStepsError, ingredientQuantityError, hasVietnameseAccents } from "./recipeValidation";
 import { ensureCommunityCategory } from "./recipeCategoryService";
 
 const isAdminRecipeId = (value) =>
   (typeof value === "number" || (typeof value === "string" && /^\d+$/.test(value))) &&
   Number.isSafeInteger(Number(value)) && Number(value) > 0;
+
+const recipeOwnershipError = (action) => ({
+  EC: 4,
+  EM: `Không được phép ${action} công thức của người dùng! Vui lòng dùng chức năng Hủy duyệt tại màn hình Kiểm duyệt công thức.`,
+  DT: null,
+});
 
 // Chỉ khóa bảng Recipes: author được LEFT JOIN nên không khóa phía nullable.
 const lockAdminRecipe = (recipeId, transaction) => db.Recipe.findOne({
@@ -156,6 +162,7 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
 
     // 2. Chỉ sửa công thức chuẩn hệ thống qua API quản trị.
     // Công thức cá nhân hoặc chờ duyệt phải đi qua luồng cá nhân/kiểm duyệt.
+    if (recipe.author?.role !== "Admin") return recipeOwnershipError("sửa");
     const isSystemRecipe =
       recipe.author?.role === "Admin" &&
       recipe.isPublic &&
@@ -321,7 +328,7 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
         const unitId = foundIng.defaultUnitId;
         const customUnit = null;
         let unitName = foundIng.defaultUnit?.unitName || "";
-        if (Number(ing.quantity) === 0 && !unitName && unitId) {
+        if (!unitName && unitId) {
           unitName = (await db.Unit.findByPk(unitId))?.unitName || "";
         }
         const quantityError = ingredientQuantityError(
@@ -334,7 +341,7 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
         processedIngredients.push({
           ingredientId: foundIng.id,
           customIngredientName: null,
-          quantity: Number(ing.quantity),
+          quantity: normalizeIngredientQuantity(ing.quantity, unitName),
           unitId,
           customUnit,
         });
@@ -381,7 +388,7 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
         processedIngredients.push({
           ingredientId: null,
           customIngredientName: customIngName,
-          quantity: Number(ing.quantity),
+          quantity: normalizeIngredientQuantity(ing.quantity, unitName),
           unitId: unitId,
           customUnit: customUnit,
         });
@@ -411,7 +418,11 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
         await t.rollback();
         return { EC: 3, EM: "Không tìm thấy công thức cần cập nhật!", DT: null };
       }
-      if (lockedRecipe.author?.role !== "Admin" || !lockedRecipe.isPublic || lockedRecipe.approvalStatus !== "Approved") {
+      if (lockedRecipe.author?.role !== "Admin") {
+        await t.rollback();
+        return recipeOwnershipError("sửa");
+      }
+      if (!lockedRecipe.isPublic || lockedRecipe.approvalStatus !== "Approved") {
         await t.rollback();
         return { EC: 4, EM: "Bạn chỉ có thể chỉnh sửa công thức chuẩn hệ thống đã được duyệt!", DT: null };
       }
@@ -552,7 +563,8 @@ const adminDeleteRecipe = async (recipeId, user) => {
 
     // 2. Xử lý xóa theo loại công thức:
     // Công thức riêng tư của cả User và Admin chỉ được xóa qua API cá nhân
-    // với kiểm tra chủ sở hữu. API quản trị chỉ xóa công thức công khai đã duyệt.
+    // với kiểm tra chủ sở hữu. API quản trị chỉ xóa bài công khai đã duyệt có tác giả Admin.
+    if (recipe.author?.role !== "Admin") return recipeOwnershipError("xóa");
     if (!recipe.isPublic) {
       return {
         EC: 4,
@@ -579,6 +591,10 @@ const adminDeleteRecipe = async (recipeId, user) => {
         await t.rollback();
         return { EC: 3, EM: "Không tìm thấy công thức cần xoá!", DT: null };
       }
+      if (lockedRecipe.author?.role !== "Admin") {
+        await t.rollback();
+        return recipeOwnershipError("xóa");
+      }
       if (!lockedRecipe.isPublic || lockedRecipe.approvalStatus !== "Approved") {
         await t.rollback();
         return { EC: 4, EM: "Admin chỉ được xóa công thức công khai đã duyệt!", DT: null };
@@ -604,20 +620,30 @@ const adminDeleteRecipe = async (recipeId, user) => {
   }
 };
 
-// 4.12 GET /api/v1/admin/recipes/pending - Xem danh sách công thức chờ duyệt (UC-20)
-const adminGetPendingRecipes = async () => {
+// 4.12 GET /api/v1/admin/recipes/pending - Danh sách kiểm duyệt (UC-20)
+const adminGetPendingRecipes = async (query = {}) => {
   try {
+    const statuses = ["pending", "approved", "rejected"];
+    const suppliedStatuses = [query.status, query.approvalStatus].filter(value => value !== undefined);
+    if (suppliedStatuses.some(value => typeof value !== "string" || !statuses.includes(value.trim().toLowerCase())) ||
+        new Set(suppliedStatuses.map(value => value.trim().toLowerCase())).size > 1) {
+      return { EC: 1, EM: "Trạng thái lọc không hợp lệ (Pending, Approved hoặc Rejected)!", DT: null };
+    }
+    const status = suppliedStatuses[0]?.trim().toLowerCase() || "pending";
+    const approvalStatus = status[0].toUpperCase() + status.slice(1);
     const pendingRecipes = await db.Recipe.findAll({
       where: {
         isDeleted: false,
-        isPublic: true,
-        approvalStatus: "Pending",
+        isPublic: status !== "rejected",
+        approvalStatus,
       },
       include: [
         {
           model: db.User,
           as: "author",
           attributes: ["id", "username", "email", "role"],
+          // Danh sách đã duyệt chỉ gồm bài cộng đồng; bài chuẩn có màn hình riêng.
+          ...(status === "approved" ? { where: { role: "User" }, required: true } : {}),
         },
         {
           model: db.Category,
@@ -666,7 +692,7 @@ const adminGetPendingRecipes = async () => {
         ingredientName: item.ingredient
           ? item.ingredient.ingredientName
           : item.customIngredientName || "",
-        quantity: Number(item.quantity),
+        quantity: normalizeIngredientQuantity(item.quantity, item.unitGroup?.unitName || item.customUnit || ""),
         unitId: item.unitId || (item.unitGroup ? item.unitGroup.id : null),
         unit: item.unitGroup ? item.unitGroup.unitName : item.customUnit || "",
       }));
@@ -686,6 +712,7 @@ const adminGetPendingRecipes = async () => {
         defaultServings: recipe.defaultServings,
         isPublic: recipe.isPublic,
         approvalStatus: recipe.approvalStatus,
+        rejectionReason: recipe.rejectionReason || null,
         authorId: recipe.authorId,
         authorName: recipe.author ? recipe.author.username : "",
         authorEmail: recipe.author ? recipe.author.email : "",
@@ -763,37 +790,18 @@ const moderateRecipe = async (recipeId, data = {}) => {
         };
       }
 
-      // Chỉ kiểm duyệt công thức đang ở chế độ công khai
-      if (!recipe.isPublic) {
+      // Bài riêng tư Approved không phải bài đã qua kiểm duyệt.
+      // Kiểm tra trạng thái dưới khóa trước mỗi lần chuyển để chặn yêu cầu lặp.
+      const isPending = recipe.isPublic && recipe.approvalStatus === "Pending";
+      const isApproved = recipe.isPublic && recipe.approvalStatus === "Approved";
+      const isRejected = !recipe.isPublic && recipe.approvalStatus === "Rejected";
+      const canModerate = finalStatus === "Approved"
+        ? isPending || isRejected
+        : isPending || isApproved;
+      if (!canModerate) {
         return {
           EC: 1,
-          EM: "Công thức không ở trạng thái công khai để kiểm duyệt!",
-          DT: null,
-        };
-      }
-
-      if (recipe.approvalStatus === "Rejected") {
-        return {
-          EC: 1,
-          EM: "Công thức này đã bị từ chối trước đó!",
-          DT: null,
-        };
-      }
-
-      if (finalStatus === "Approved" && recipe.approvalStatus === "Approved") {
-        return {
-          EC: 1,
-          EM: "Công thức này đã được phê duyệt trước đó!",
-          DT: null,
-        };
-      }
-
-      if (recipe.approvalStatus !== "Pending") {
-        return {
-          EC: 1,
-          EM: recipe.approvalStatus === "Approved"
-            ? "Không thể từ chối công thức đã được phê duyệt!"
-            : "Công thức không ở trạng thái chờ duyệt!",
+          EM: "Trạng thái công thức không phù hợp với thao tác kiểm duyệt!",
           DT: null,
         };
       }

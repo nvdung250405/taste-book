@@ -1,12 +1,14 @@
 require("dotenv").config();
 import jwt from "jsonwebtoken";
+import { randomUUID } from "node:crypto";
 import db from "../models/index";
+import { isTokenRevoked } from "../services/tokenRevocationService";
 
 const createJWT = (payload) => {
   let key = process.env.JWT_SECRET;
   let token = null;
   try {
-    token = jwt.sign(payload, key, {
+    token = jwt.sign({ ...payload, jti: randomUUID() }, key, {
       expiresIn: process.env.JWT_EXPIRES_IN || "1d",
     });
   } catch (err) {
@@ -41,7 +43,7 @@ const checkUserJWT = async (req, res, next) => {
 
     if (token) {
       let decoded = verifyToken(token);
-      if (decoded) {
+      if (decoded && !(await isTokenRevoked(token))) {
         let currentUserId = decoded.userId || decoded.id;
         let user = null;
         if (currentUserId) {
@@ -90,12 +92,15 @@ const checkAdminPermission = (req, res, next) => {
 };
 
 const checkUserJWTOptional = async (req, res, next) => {
+  // Token không hợp lệ hoặc đã thu hồi chỉ có quyền Guest.
+  delete req.user;
+  delete req.token;
   try {
     let token = extractToken(req);
 
     if (token) {
       let decoded = verifyToken(token);
-      if (decoded) {
+      if (decoded && !(await isTokenRevoked(token))) {
         let currentUserId = decoded.userId || decoded.id;
         let user = null;
         if (currentUserId) {
