@@ -1,3 +1,4 @@
+import DuplicatePortionDialog from './DuplicatePortionDialog'
 import { useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -32,6 +33,7 @@ export default function AddToMenuDialog({ recipeId, servings, onClose }) {
   const [portion, setPortion] = useState(String(servings))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [duplicate, setDuplicate] = useState(null)
   const lists = Array.isArray(query.data?.DT) ? query.data.DT : []
   const custom = lists.filter((list) => !isWeeklyList(list))
   const submit = async (event) => {
@@ -75,7 +77,8 @@ export default function AddToMenuDialog({ recipeId, servings, onClose }) {
       toast.success('Đã thêm món vào thực đơn')
       onClose()
     } catch (failure) {
-      setError(failure?.EM || 'Không thể thêm món. Vui lòng thử lại.')
+      if (failure?.DT?.isDuplicateDifferentServings) setDuplicate({ ...failure.DT, listId: list.recipeListId })
+      else setError(failure?.DT?.isDuplicateSameServings ? 'Món ăn đã có trong thực đơn với cùng số khẩu phần này' : failure?.EM || 'Không thể thêm món. Vui lòng thử lại.')
     } finally {
       sending.current = false
       setBusy(false)
@@ -83,6 +86,7 @@ export default function AddToMenuDialog({ recipeId, servings, onClose }) {
     }
   }
   return (
+    <>
     <Dialog
       open
       onOpenChange={(open) => {
@@ -231,5 +235,7 @@ export default function AddToMenuDialog({ recipeId, servings, onClose }) {
         </form>
       </DialogContent>
     </Dialog>
+    {duplicate && <DuplicatePortionDialog duplicate={duplicate} onClose={onClose} onUpdated={onClose} />}
+    </>
   )
 }

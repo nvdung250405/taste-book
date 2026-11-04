@@ -1,3 +1,4 @@
+import DuplicatePortionDialog from './DuplicatePortionDialog'
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
@@ -27,6 +28,7 @@ export default function RecipePicker({ slot, onClose }) {
   const [page, setPage] = useState(1)
   const [servings, setServings] = useState(2)
   const [busy, setBusy] = useState(false)
+  const [duplicate, setDuplicate] = useState(null)
   const client = useQueryClient()
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -45,6 +47,7 @@ export default function RecipePicker({ slot, onClose }) {
     if (!Number.isInteger(servings) || servings < 1 || servings > 2147483647)
       return toast.error('Khẩu phần phải là số nguyên dương')
     setBusy(true)
+    let targetListId
     try {
       let list = slot.list
       if (!list) {
@@ -59,6 +62,7 @@ export default function RecipePicker({ slot, onClose }) {
           if (!list) throw error
         }
       }
+      targetListId = list.recipeListId
       await api.addRecipeToMenu(list.recipeListId, {
         recipeId: recipe.recipeId || recipe.id,
         targetServings: servings,
@@ -67,13 +71,16 @@ export default function RecipePicker({ slot, onClose }) {
       toast.success('Đã thêm món vào thực đơn')
       onClose()
     } catch (error) {
-      failure(error)
+      if (error?.DT?.isDuplicateDifferentServings) setDuplicate({ ...error.DT, listId: targetListId })
+      else if (error?.DT?.isDuplicateSameServings) toast.info('Món ăn đã có trong thực đơn với cùng số khẩu phần này')
+      else failure(error)
     } finally {
       setBusy(false)
       client.invalidateQueries({ queryKey: ['recipe-lists'] })
     }
   }
   return (
+    <>
     <Dialog
       open
       onOpenChange={(open) => {
@@ -173,5 +180,7 @@ export default function RecipePicker({ slot, onClose }) {
         </div>
       </DialogContent>
     </Dialog>
+    {duplicate && <DuplicatePortionDialog duplicate={duplicate} onClose={onClose} onUpdated={onClose} />}
+    </>
   )
 }
