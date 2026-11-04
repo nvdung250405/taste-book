@@ -2,8 +2,11 @@ import service from "../../src/services/recipeListService";
 import db from "../../src/models/index";
 
 jest.mock("../../src/models/index", () => ({
+  sequelize: { transaction: jest.fn() },
+  ShoppingList: {},
+  ShoppingListRecipeList: { count: jest.fn(), destroy: jest.fn() },
   RecipeList: { findAll: jest.fn(), findOne: jest.fn(), findByPk: jest.fn(), create: jest.fn() },
-  RecipeListItem: { findOne: jest.fn(), create: jest.fn() },
+  RecipeListItem: { findOne: jest.fn(), create: jest.fn(), destroy: jest.fn() },
   Recipe: { findOne: jest.fn() },
   User: {},
 }));
@@ -19,10 +22,15 @@ const calls = [
   ["deleteRecipeListItem", ["1", "10"]],
 ];
 const scoped = calls.filter(([name]) => !["getRecipeLists", "createRecipeList"].includes(name));
-let list, item;
+let list, item, transaction;
 
 beforeEach(() => {
   jest.resetAllMocks();
+  transaction = { LOCK: { UPDATE: "UPDATE" }, commit: jest.fn(), rollback: jest.fn() };
+  db.sequelize.transaction.mockResolvedValue(transaction);
+  db.ShoppingListRecipeList.count.mockResolvedValue(0);
+  db.ShoppingListRecipeList.destroy.mockResolvedValue(0);
+  db.RecipeListItem.destroy.mockResolvedValue(0);
   jest.spyOn(console, "error").mockImplementation(() => {});
   list = { id: 1, userId: 1, listName: "Menu", recipeListItems: [], save: jest.fn(), destroy: jest.fn() };
   item = { id: 10, recipeId: 2, targetServings: 4, update: jest.fn(), destroy: jest.fn() };
@@ -36,6 +44,40 @@ beforeEach(() => {
 });
 
 describe("RecipeListService (mock DB only)", () => {
+  test.each([0, 1, 3])("#132: chi tiết trả activeShoppingTripCount=%i", async count => {
+    db.ShoppingListRecipeList.count.mockResolvedValue(count);
+    expect((await service.getRecipeListDetail(1, "1")).DT.activeShoppingTripCount).toBe(count);
+    expect(db.ShoppingListRecipeList.count).toHaveBeenCalledWith({
+      where: { recipeListId: 1 },
+      include: [{ model: db.ShoppingList, required: true, where: { status: "In_Progress", userId: 1 } }],
+    });
+  });
+
+  test("#132: không đọc liên kết đi chợ của thực đơn không thuộc mình", async () => {
+    list.userId = 9;
+    expect((await service.getRecipeListDetail(1, "1")).EC).toBe(4);
+    expect(db.ShoppingListRecipeList.count).not.toHaveBeenCalled();
+  });
+
+  test("#132: khóa thực đơn, xóa liên kết và mục món trong cùng transaction", async () => {
+    expect((await service.deleteRecipeList(1, "1")).EC).toBe(0);
+    expect(db.RecipeList.findByPk).toHaveBeenCalledWith(1, { transaction, lock: "UPDATE" });
+    const options = { where: { recipeListId: 1 }, transaction };
+    expect(db.ShoppingListRecipeList.destroy).toHaveBeenCalledWith(options);
+    expect(db.RecipeListItem.destroy).toHaveBeenCalledWith(options);
+    expect(list.destroy).toHaveBeenCalledWith({ transaction });
+    expect(transaction.commit).toHaveBeenCalledTimes(1);
+    expect(transaction.rollback).not.toHaveBeenCalled();
+  });
+
+  test("#132: lỗi xóa mục món phải rollback, không xóa thực đơn hoặc commit", async () => {
+    db.RecipeListItem.destroy.mockRejectedValue(new Error("Delete failed"));
+    expect((await service.deleteRecipeList(1, "1")).EC).toBe(-1);
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).not.toHaveBeenCalled();
+    expect(list.destroy).not.toHaveBeenCalled();
+  });
+
   test.each(calls)("%s rejects missing authentication", async (name, args) => {
     expect(await service[name](null, ...args)).toMatchObject({ EC: 5, DT: null });
     expect(db.RecipeList.findByPk).not.toHaveBeenCalled();

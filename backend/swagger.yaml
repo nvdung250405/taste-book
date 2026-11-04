@@ -4248,7 +4248,11 @@ paths:
         - Recipe Lists
       summary: "UC-16: Xem chi tiết món trong thực đơn"
       description: Lấy chi tiết thông tin thực đơn cùng danh sách các món ăn có trong
-        thực đơn (kèm số khẩu phần ăn targetServings N người).
+        thực đơn (kèm số khẩu phần ăn targetServings N người). Trả thêm activeShoppingTripCount,
+        số danh sách đi chợ In_Progress của tài khoản đang đăng nhập liên kết với thực đơn;
+        không tính Completed. Chỉ trả sau khi kiểm tra quyền sở hữu.
+        FE tải thông tin này trước khi hiện xác nhận xóa; nếu lớn hơn 0, cảnh báo sẽ gỡ liên kết
+        nguồn nhưng giữ nguyên danh sách đi chợ, số lượng và trạng thái đã mua.
       security:
         - bearerAuth: []
       parameters:
@@ -4278,6 +4282,7 @@ paths:
                 DT:
                   recipeListId: 1
                   listName: Tiệc Sinh Nhật
+                  activeShoppingTripCount: 1
                   items:
                     - recipeListItemId: 10
                       recipeId: 101
@@ -4476,9 +4481,13 @@ paths:
       tags:
         - Recipe Lists
       summary: "UC-15: Xóa thực đơn"
-      description: Người dùng xóa một thực đơn khỏi kho cá nhân của mình. Xóa cascade
-        các item và liên kết với danh sách đi chợ; không xóa chính danh sách đi
-        chợ hoặc các item đi chợ đã tạo.
+      description: >-
+        Xóa thực đơn thuộc tài khoản đang đăng nhập. Khóa bản ghi thực đơn, kiểm tra quyền,
+        rồi xóa các ShoppingListRecipeList, RecipeListItem và RecipeList trong cùng transaction.
+        Không xóa hoặc cập nhật công thức gốc, ShoppingList hay ShoppingListItem;
+        giữ nguyên số lượng, trạng thái chuyến đi và trạng thái đã mua. Lỗi ở bất kỳ bước nào
+        sẽ rollback; chỉ trả thành công sau commit. FE đọc activeShoppingTripCount qua GET chi tiết
+        trước khi hiện hộp thoại xác nhận. DELETE thực hiện ngay, không yêu cầu cờ xác nhận mới.
       security:
         - bearerAuth: []
       parameters:

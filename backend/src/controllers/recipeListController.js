@@ -82,8 +82,8 @@ const handleUpdateRecipeList = async (req, res) => {
 /**
  * 6.4 DELETE /api/v1/recipe-lists/:listId (UC-15: Xóa thực đơn)
  * Người dùng xóa một thực đơn khỏi kho cá nhân của mình
- * FE: Hiển thị popup xác nhận trước khi gọi API này. Cảnh báo rằng nếu thực đơn
- * đang liên kết với danh sách đi chợ chưa hoàn thành, liên kết đó sẽ bị xóa.
+ * FE: Lấy activeShoppingTripCount từ GET chi tiết trước khi hiển thị xác nhận.
+ * Nếu > 0, cảnh báo gỡ liên kết nguồn nhưng giữ danh sách/mặt hàng và trạng thái đã mua.
  * API thực hiện xóa ngay khi được gọi; không có bước xác nhận ở backend.
  */
 const handleDeleteRecipeList = async (req, res) => {
@@ -104,7 +104,7 @@ const handleDeleteRecipeList = async (req, res) => {
 
 /**
  * 6.5 GET /api/v1/recipe-lists/:listId (UC-16: Xem chi tiết món trong thực đơn)
- * Lấy chi tiết thông tin thực đơn cùng danh sách các món ăn có trong thực đơn
+ * Lấy chi tiết thực đơn, các món và activeShoppingTripCount để cảnh báo trước xóa.
  */
 const handleGetRecipeListDetail = async (req, res) => {
   try {

@@ -270,6 +270,7 @@ const updateRecipeList = async (userId, listId, rawData = {}) => {
  * @returns {Promise<{ EC: number, EM: string, DT: any }>}
  */
 const deleteRecipeList = async (userId, listId) => {
+  let transaction;
   try {
     if (!userId) {
       return {
@@ -288,9 +289,13 @@ const deleteRecipeList = async (userId, listId) => {
       };
     }
 
-    const list = await db.RecipeList.findByPk(id);
+    transaction = await db.sequelize.transaction();
+    const list = await db.RecipeList.findByPk(id, {
+      transaction, lock: transaction.LOCK.UPDATE,
+    });
 
     if (!list) {
+      await transaction.rollback();
       return {
         EC: 3,
         EM: "Không tìm thấy thực đơn!",
@@ -299,6 +304,7 @@ const deleteRecipeList = async (userId, listId) => {
     }
 
     if (list.userId !== Number(userId)) {
+      await transaction.rollback();
       return {
         EC: 4,
         EM: "Bạn không có quyền xóa thực đơn này!",
@@ -306,7 +312,11 @@ const deleteRecipeList = async (userId, listId) => {
       };
     }
 
-    await list.destroy();
+    // Chỉ gỡ liên kết nguồn và mục món; không ghi vào danh sách/mặt hàng đi chợ.
+    await db.ShoppingListRecipeList.destroy({ where: { recipeListId: id }, transaction });
+    await db.RecipeListItem.destroy({ where: { recipeListId: id }, transaction });
+    await list.destroy({ transaction });
+    await transaction.commit();
 
     return {
       EC: 0,
@@ -314,6 +324,13 @@ const deleteRecipeList = async (userId, listId) => {
       DT: null,
     };
   } catch (error) {
+    if (transaction && !transaction.finished) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        console.error("deleteRecipeList rollback error:", rollbackError);
+      }
+    }
     console.error("deleteRecipeList error:", error);
     return {
       EC: -1,
@@ -398,6 +415,16 @@ const getRecipeListDetail = async (userId, listId) => {
       };
     }
 
+    // Chỉ truy vấn liên kết sau khi xác nhận quyền sở hữu thực đơn.
+    const activeShoppingTripCount = await db.ShoppingListRecipeList.count({
+      where: { recipeListId: id },
+      include: [{
+        model: db.ShoppingList,
+        required: true,
+        where: { status: "In_Progress", userId: Number(userId) },
+      }],
+    });
+
     const items = (list.recipeListItems || []).map((item) => ({
       recipeListItemId: item.id,
       recipeId: item.recipeId,
@@ -416,6 +443,7 @@ const getRecipeListDetail = async (userId, listId) => {
       DT: {
         recipeListId: list.id,
         listName: list.listName,
+        activeShoppingTripCount,
         items: items,
       },
     };
