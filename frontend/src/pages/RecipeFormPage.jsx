@@ -16,6 +16,8 @@ import {
 } from '../hooks/queries/useRecipeQueries'
 import { toast } from 'sonner'
 import QueryError from '../components/ui/QueryError'
+import { useSearchIngredients, useUnits } from '../hooks/queries/useIngredientQueries'
+import { changeRecipeIngredient, recipeIngredientPayload } from '../lib/recipeIngredientSelection'
 import { adminRecipePayload } from '../lib/adminRecipeForm'
 
 import RecipeBasicInfoForm from '../components/recipe/RecipeBasicInfoForm'
@@ -134,6 +136,10 @@ function RecipeForm({ id, recipe, admin }) {
   const back = () => (admin ? navigate('/admin/recipes') : navigate(-1))
 
   const categories = categoriesRes?.DT || []
+  const ingredientQuery = useSearchIngredients({}, { staleTime: 5 * 60 * 1000 })
+  const unitsQuery = useUnits()
+  const ingredients = ingredientQuery.data?.DT || []
+  const units = unitsQuery.data?.DT || []
 
   // Initialize once after the recipe loads; refetches must not replace the draft.
   const [formData, setFormData] = useState(() => {
@@ -174,7 +180,7 @@ function RecipeForm({ id, recipe, admin }) {
             name: i.ingredientName || i.ingredient?.name || i.name || '',
             quantity: i.quantity ?? '',
             unit: i.unit || i.ingredient?.unit || '',
-            ...(admin && { ingredientId: i.ingredientId, unitId: i.unitId }),
+            ingredientId: i.ingredientId, unitId: i.unitId,
           }))
         : [{ name: '', quantity: '', unit: '' }],
       steps: r.steps?.length
@@ -207,11 +213,7 @@ function RecipeForm({ id, recipe, admin }) {
   // Ingredients handlers
   const handleIngChange = (index, field, value) => {
     const newIngs = [...formData.ingredients]
-    newIngs[index][field] = value
-    if (admin && (field === 'name' || field === 'unit')) {
-      newIngs[index].ingredientId = null
-      if (field === 'unit') newIngs[index].unitId = null
-    }
+    newIngs[index] = changeRecipeIngredient(newIngs[index], field, value, ingredients, units)
     setFormData((prev) => ({ ...prev, ingredients: newIngs }))
   }
   const addIngredient = () => {
@@ -309,11 +311,7 @@ function RecipeForm({ id, recipe, admin }) {
       defaultServings: Number(formData.servings),
       isPublic: formData.isPublic,
       categoryIds: formData.categories,
-      ingredients: validIngs.map((i) => ({
-        customIngredientName: i.name,
-        quantity: Number(i.quantity),
-        customUnit: i.unit,
-      })),
+      ingredients: validIngs.map(recipeIngredientPayload),
       steps: validSteps.map((s) => ({
         instruction: s.title ? `${s.title}: ${s.content}` : s.content,
       })),
@@ -400,6 +398,11 @@ function RecipeForm({ id, recipe, admin }) {
           />
 
           <RecipeIngredientsForm
+            ingredients={ingredients}
+            units={units}
+            loading={ingredientQuery.isPending || unitsQuery.isPending}
+            error={ingredientQuery.isError || unitsQuery.isError}
+            onRetry={() => { ingredientQuery.refetch(); unitsQuery.refetch() }}
             formData={formData}
             handleIngChange={handleIngChange}
             removeIngredient={removeIngredient}

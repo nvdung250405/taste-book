@@ -318,7 +318,7 @@ export default function RecipeBasicInfoForm({
                 aria-labelledby="recipe-categories-label"
                 className="flex flex-wrap gap-2"
               >
-                {categories.map((cat) => {
+                {[...categories].sort((a, b) => Number(a.createdBy != null) - Number(b.createdBy != null)).map((cat) => {
                   const id = cat.categoryId || cat._id || cat.id
                   const selected = formData.categories.includes(id)
                   return (
@@ -334,6 +334,7 @@ export default function RecipeBasicInfoForm({
                       }`}
                     >
                       {cat.categoryName || cat.name || cat.title}
+                      {cat.createdBy === null && <span className="ml-1 text-xs opacity-75">· Hệ thống</span>}
                     </button>
                   )
                 })}
