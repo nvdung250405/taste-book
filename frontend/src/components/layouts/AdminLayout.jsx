@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, Outlet, useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
 import { Menu, LogOut, ArrowLeft } from 'lucide-react'
 import { Button } from '../ui/button'
 import AdminNavigation from './AdminNavigation'
@@ -18,7 +17,6 @@ export default function AdminLayout() {
     closeMobileMenu()
 
     logout(undefined, {
-      onSuccess: () => toast.success('Đã đăng xuất thành công'),
       // useLogout clears the session even if the API request fails.
       onSettled: () => navigate('/login', { replace: true }),
     })
