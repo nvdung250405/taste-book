@@ -223,6 +223,6 @@ describe("RecipeListService (mock DB only)", () => {
   });
   test("detail response maps recipe and author", async () => {
     list.recipeListItems = [{ ...item, recipe: { title: "Soup", thumbnailUrl: "image", cookTimeMinutes: 20, difficulty: "Easy", defaultServings: 2, author: { username: "Chef" } } }];
-    expect((await service.getRecipeListDetail(1, "1")).DT.items[0]).toEqual({ recipeListItemId: 10, recipeId: 2, title: "Soup", thumbnailUrl: "image", cookTimeMinutes: 20, difficulty: "Easy", defaultServings: 2, targetServings: 4, authorName: "Chef" });
+    expect((await service.getRecipeListDetail(1, "1")).DT.items[0]).toEqual({ recipeListItemId: 10, recipeId: 2, title: "Soup", thumbnailUrl: "image", cookTimeMinutes: 20, difficulty: "Easy", defaultServings: 2, targetServings: 4, authorName: "Chef", isRecipeDeleted: false });
   });
 });

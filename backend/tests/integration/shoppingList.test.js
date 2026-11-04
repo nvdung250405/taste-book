@@ -71,6 +71,59 @@ const send = (method, path, body, auth = token) => {
 };
 
 describe("Shopping Lists HTTP (mock DB)", () => {
+  describe("#138: kiểm tra món bị loại và xác nhận", () => {
+    let source;
+    const body = { title: "Đi chợ", recipeListIds: [1] };
+    beforeEach(() => {
+      source = { id: 1, userId: 10, listName: "Menu", recipeListItems: [
+        { id: 10, recipeId: 101, targetServings: 2, recipe: { id: 101, title: "Rau luộc", isDeleted: false,
+          defaultServings: 2, ingredients: [{ customIngredientName: "Rau", quantity: 100, customUnit: "gam" }] } },
+        { id: 11, recipeId: 102, targetServings: 2, recipe: { id: 102, title: "Món đã xóa", isDeleted: true,
+          defaultServings: 2, ingredients: [{ customIngredientName: "Không được gộp", quantity: 999, customUnit: "gam" }] } },
+      ] };
+      db.RecipeList.findAll.mockImplementation(async () => [source]);
+    });
+    test("POST đầu trả 409, xác nhận lần sau mới tạo và chỉ gộp món hợp lệ", async () => {
+      const preview = await send("post", "", body);
+      expect(preview.status).toBe(409);
+      expect(preview.body).toMatchObject({ EC: 2, DT: { requiresConfirmation: true, skippedRecipes: [{
+        recipeListId: 1, recipeListItemId: 11, recipeId: 102, title: "Món đã xóa", reason: "deleted",
+      }] } });
+      expect(db.ShoppingList.create).not.toHaveBeenCalled();
+      expect(db.ShoppingListRecipeList.bulkCreate).not.toHaveBeenCalled();
+      expect(db.ShoppingListItem.bulkCreate).not.toHaveBeenCalled();
+      const created = await send("post", "", { ...body, confirmSkipDeleted: true });
+      expect(created.status).toBe(201);
+      expect(created.body.DT).toMatchObject({ shoppingListId: 5, totalItems: 1, skippedRecipes: [{ recipeId: 102 }] });
+      expect(db.ShoppingListItem.bulkCreate.mock.calls[0][0]).toEqual([
+        expect.objectContaining({ itemName: "Rau", totalQuantity: 100, isPurchased: false }),
+      ]);
+    });
+    test("kiểm tra lại nguồn khi xác nhận: nếu món cuối cũng đã xóa thì trả 400", async () => {
+      expect((await send("post", "", body)).status).toBe(409);
+      source.recipeListItems[0].recipe.isDeleted = true;
+      const result = await send("post", "", { ...body, confirmSkipDeleted: true });
+      expect(result.status).toBe(400);
+      expect(result.body).toMatchObject({ EC: 1, DT: null });
+      expect(db.ShoppingList.create).not.toHaveBeenCalled();
+      expect(db.RecipeList.findAll).toHaveBeenCalledTimes(2);
+    });
+    test("nguồn không tồn tại cũng được liệt kê, không âm thầm bỏ qua", async () => {
+      source.recipeListItems[1].recipe = null;
+      const result = await send("post", "", body);
+      expect(result.status).toBe(409);
+      expect(result.body.DT.skippedRecipes[0]).toMatchObject({ recipeId: 102, reason: "unavailable" });
+      expect(db.ShoppingList.create).not.toHaveBeenCalled();
+    });
+    test("không trả metadata món của thực đơn người khác dù có xác nhận", async () => {
+      source.userId = 20;
+      const result = await send("post", "", { ...body, confirmSkipDeleted: true });
+      expect(result.status).toBe(403);
+      expect(result.body.DT).toBeNull();
+      expect(db.ShoppingList.create).not.toHaveBeenCalled();
+    });
+  });
+
   test("TC-17-12: gửi cùng body hai lần trả 201 rồi 409, chỉ lưu một phiên", async () => {
     const records = [{ id: 4, userId: 20, title: "TB-AUTO-17-12-Same" }];
     db.ShoppingList.findOne.mockImplementation(async ({ where }) =>

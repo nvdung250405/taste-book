@@ -88,6 +88,41 @@ describe("7.8 Xóa các mặt hàng đã mua", () => {
   });
 });
 
+describe("#138: xác nhận món đã xóa trước khi tổng hợp", () => {
+  const deleted = { id: 11, recipeId: 2, targetServings: -1, recipe: { id: 2, title: "Món cũ", isDeleted: true } };
+  test.each([undefined, false])("chưa xác nhận %p: trả danh sách bỏ qua, không lưu", async confirmSkipDeleted => {
+    db.RecipeList.findAll.mockResolvedValue([menu(1, [meal(), deleted])]);
+    const result = await generate({ confirmSkipDeleted });
+    expect(result).toMatchObject({ EC: 2, DT: { requiresConfirmation: true, skippedRecipes: [{
+      recipeListId: 1, recipeListItemId: 11, recipeId: 2, title: "Món cũ", reason: "deleted",
+    }] } });
+    expect(db.ShoppingList.create).not.toHaveBeenCalled();
+    expect(db.ShoppingListItem.bulkCreate).not.toHaveBeenCalled();
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+  });
+  test("xác nhận chỉ tổng hợp món còn hợp lệ và trả món bị bỏ qua", async () => {
+    db.RecipeList.findAll.mockResolvedValue([menu(1, [meal(), deleted])]);
+    const result = await generate({ confirmSkipDeleted: true });
+    expect(result.EC).toBe(0);
+    expect(result.DT.skippedRecipes).toHaveLength(1);
+    expect(savedItems()).toHaveLength(1);
+    expect(savedItems()[0].totalQuantity).toBe(1.01);
+    expect(transaction.commit).toHaveBeenCalledTimes(1);
+    expect(db.RecipeList.findAll.mock.calls[0][0].include[0].include[0].where).toBeUndefined();
+  });
+  test.each([false, true])("tất cả nguồn đã xóa: confirm=%s vẫn không tạo", async confirmSkipDeleted => {
+    db.RecipeList.findAll.mockResolvedValue([menu(1, [deleted])]);
+    expect(await generate({ confirmSkipDeleted })).toEqual({
+      EC: 1, EM: "Tất cả các món trong thực đơn được chọn đã bị xóa hoặc không còn nguyên liệu hợp lệ!", DT: null,
+    });
+    expect(db.ShoppingList.create).not.toHaveBeenCalled();
+  });
+  test.each([null, "true", 1, [], {}])("không chấp nhận cờ xác nhận sai kiểu %p", async confirmSkipDeleted => {
+    expect((await generate({ confirmSkipDeleted })).EC).toBe(1);
+    expect(db.ShoppingList.create).not.toHaveBeenCalled();
+  });
+});
+
 describe("RSK-01: tổng hợp chính xác và làm tròn half-up", () => {
   test("2.01 × 1/2 = 1.005 được lưu thành 1.01", async () => {
     expect((await generate()).EC).toBe(0);

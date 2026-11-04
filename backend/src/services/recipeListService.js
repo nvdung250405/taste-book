@@ -392,6 +392,7 @@ const getRecipeListDetail = async (userId, listId) => {
             {
               model: db.Recipe,
               as: "recipe",
+              required: false,
               attributes: [
                 "id",
                 "title",
@@ -399,6 +400,7 @@ const getRecipeListDetail = async (userId, listId) => {
                 "defaultServings",
                 "cookTimeMinutes",
                 "difficulty",
+                "isDeleted",
               ],
               include: [
                 {
@@ -452,6 +454,7 @@ const getRecipeListDetail = async (userId, listId) => {
       authorName: item.recipe && item.recipe.author ? item.recipe.author.username : "",
       defaultServings: item.recipe ? item.recipe.defaultServings : 2,
       targetServings: item.targetServings,
+      isRecipeDeleted: !item.recipe || Boolean(item.recipe.isDeleted),
     }));
 
     return {
@@ -685,6 +688,13 @@ const updateRecipeListItemServings = async (userId, listId, itemId, rawData = {}
         EM: "Không tìm thấy món ăn trong thực đơn!",
         DT: null,
       };
+    }
+
+    const sourceRecipe = await db.Recipe.findOne({
+      where: { id: item.recipeId, isDeleted: false },
+    });
+    if (!sourceRecipe) {
+      return { EC: 1, EM: "Công thức nguồn đã bị xóa, không thể điều chỉnh khẩu phần!", DT: null };
     }
 
     await item.update({ targetServings: servings });

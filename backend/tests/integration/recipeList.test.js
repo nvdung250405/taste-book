@@ -69,6 +69,30 @@ const send = (method, path, body, auth = token) => {
 };
 
 describe("Recipe Lists HTTP integration (mock DB only)", () => {
+  test("#138: giữ món đã xóa, trả cờ, chặn đổi khẩu phần nhưng vẫn cho gỡ", async () => {
+    list.recipeListItems = [
+      { ...item, recipe: { id: 2, title: "Soup", isDeleted: true } },
+      { id: 11, recipeId: 3, targetServings: 2, recipe: { id: 3, title: "Rice", isDeleted: false } },
+      { id: 12, recipeId: 4, targetServings: 2, recipe: null },
+    ];
+    const detail = await send("get", "/1");
+    expect(detail.status).toBe(200);
+    expect(detail.body.DT.items.map(row => row.isRecipeDeleted)).toEqual([true, false, true]);
+    expect(detail.body.DT.items).toHaveLength(3);
+    const recipeInclude = db.RecipeList.findOne.mock.calls[0][0].include[0].include[0];
+    expect(recipeInclude.required).toBe(false);
+    expect(recipeInclude.attributes).toContain("isDeleted");
+    expect(recipeInclude.where).toBeUndefined();
+    db.Recipe.findOne.mockResolvedValue(null);
+    const update = await send("put", "/1/items/10", { targetServings: 8 });
+    expect(update.status).toBe(400);
+    expect(update.body).toMatchObject({ EC: 1, EM: "Công thức nguồn đã bị xóa, không thể điều chỉnh khẩu phần!", DT: null });
+    expect(db.Recipe.findOne).toHaveBeenCalledWith({ where: { id: 2, isDeleted: false } });
+    expect(item.update).not.toHaveBeenCalled();
+    expect((await send("delete", "/1/items/10")).status).toBe(200);
+    expect(item.destroy).toHaveBeenCalledTimes(1);
+  });
+
   test.each([
     [[], 0], [["Completed"], 0], [["In_Progress"], 1],
     [["In_Progress", "Completed", "In_Progress"], 2],

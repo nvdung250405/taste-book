@@ -4263,6 +4263,8 @@ paths:
         không tính Completed. Chỉ trả sau khi kiểm tra quyền sở hữu.
         FE tải thông tin này trước khi hiện xác nhận xóa; nếu lớn hơn 0, cảnh báo sẽ gỡ liên kết
         nguồn nhưng giữ nguyên danh sách đi chợ, số lượng và trạng thái đã mua.
+        Mỗi item có isRecipeDeleted; giữ cả dòng món có nguồn đã xóa hoặc không còn tồn tại.
+        Khi true, FE hiển thị nhãn Công thức đã bị xóa, khóa xem chi tiết/đổi khẩu phần và vẫn cho gỡ món.
       security:
         - bearerAuth: []
       parameters:
@@ -4303,6 +4305,7 @@ paths:
                       authorName: Trần Minh Đức
                       defaultServings: 2
                       targetServings: 4
+                      isRecipeDeleted: false
         "400":
           description: Mã đường dẫn không hợp lệ.
           content:
@@ -4776,6 +4779,8 @@ paths:
         món ăn đã có trong thực đơn. Thay thế giá trị cũ, không cộng dồn và không tạo dòng mới.
         FE gọi sau khi người dùng xác nhận đề xuất newServings từ POST trùng món.
         Kiểm tra lại quyền sở hữu, item thuộc đúng thực đơn và khẩu phần nguyên dương trước khi lưu.
+        Nếu công thức nguồn đã xóa hoặc không còn tồn tại, trả HTTP 400/EC=1 với thông báo
+        Công thức nguồn đã bị xóa, không thể điều chỉnh khẩu phần. DELETE item vẫn được phép.
       security:
         - bearerAuth: []
       parameters:
@@ -5066,7 +5071,18 @@ paths:
         - Shopping Lists
       summary: "UC-17/18: Tổng hợp danh sách đi chợ"
       # TC-17-12: Tiêu đề sau trim phải duy nhất trong cùng người dùng.
-      description: "Gom một hoặc nhiều thực đơn, loại bỏ ID thực đơn trùng. targetServings và defaultServings phải là số nguyên dương. Định lượng được nhân targetServings/defaultServings bằng số học chính xác, cộng dồn theo mã nguyên liệu và đơn vị (trim, không phân biệt hoa thường); nguyên liệu tự nhập gộp theo tên và đơn vị. Khác đơn vị thì tách dòng, không quy đổi. Chỉ làm tròn half-up một lần sau khi cộng tổng, đến 2 chữ số thập phân; kết quả định lượng phải từ 0.01 đến 99999999.99, nếu không trả 400. Nguyên liệu định tính giữ unit và totalQuantity = 0, không nhân hoặc cộng số lượng."
+      description: >-
+        Gom một hoặc nhiều thực đơn, loại bỏ ID thực đơn trùng. targetServings và defaultServings phải là số nguyên dương.
+        Định lượng được nhân targetServings/defaultServings bằng số học chính xác, cộng dồn theo mã nguyên liệu và đơn vị
+        (trim, không phân biệt hoa thường); nguyên liệu tự nhập gộp theo tên và đơn vị. Khác đơn vị thì tách dòng, không quy đổi.
+        Chỉ làm tròn half-up một lần sau khi cộng tổng, đến 2 chữ số thập phân; kết quả định lượng phải từ 0.01 đến 99999999.99,
+        nếu không trả 400. Nguyên liệu định tính giữ unit và totalQuantity = 0, không nhân hoặc cộng số lượng.
+        Đọc cả công thức đã xóa để liệt kê skippedRecipes (recipeListId, recipeListName, recipeListItemId, recipeId, title, reason).
+        reason=deleted là nguồn đã xóa mềm; unavailable là nguồn không còn tồn tại.
+        Có món bị loại nhưng vẫn còn nguyên liệu hợp lệ thì trả 409/EC=2, requiresConfirmation=true và skippedRecipes, chưa ghi dữ liệu.
+        FE hỏi xác nhận rồi gửi lại cùng title/recipeListIds với confirmSkipDeleted=true để chỉ tổng hợp món hợp lệ.
+        Mỗi request đọc lại nguồn; kết quả thành công trả danh sách skippedRecipes mới nhất nếu có món bị loại.
+        Nếu không còn món/nguyên liệu hợp lệ, kể cả đã xác nhận, trả 400/EC=1, DT=null và không tạo danh sách.
       security:
         - bearerAuth: []
       requestBody:
@@ -5079,6 +5095,10 @@ paths:
                 - title
                 - recipeListIds
               properties:
+                confirmSkipDeleted:
+                  type: boolean
+                  default: false
+                  description: Chỉ gửi true sau khi người dùng xác nhận bỏ qua món đã xóa. Không nhận chuỗi, số hoặc null.
                 title:
                   type: string
                   minLength: 1
@@ -5099,7 +5119,7 @@ paths:
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "201":
-          description: Tổng hợp danh sách đi chợ thành công
+          description: Tổng hợp thành công; nếu đã bỏ qua món, DT có skippedRecipes chứa danh sách mới nhất
           content:
             application/json:
               schema:
@@ -5194,15 +5214,30 @@ paths:
                 EM: "Một hoặc nhiều thực đơn được chọn không tồn tại!"
                 DT: null
         "409":
-          description: Tiêu đề danh sách đi chợ đã tồn tại trong cùng người dùng (so sánh sau trim)
+          description: Tiêu đề trùng hoặc cần xác nhận bỏ qua công thức đã xóa; chưa tạo danh sách
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                EC: 2
-                EM: "Tiêu đề danh sách đi chợ này đã tồn tại!"
-                DT: null
+                $ref: "#/components/schemas/StandardResponse"
+              examples:
+                duplicateTitle:
+                  value:
+                    EC: 2
+                    EM: "Tiêu đề danh sách đi chợ này đã tồn tại!"
+                    DT: null
+                confirmDeleted:
+                  value:
+                    EC: 2
+                    EM: "Một số công thức đã bị xóa hoặc không còn tồn tại. Bạn có muốn bỏ qua và tiếp tục tạo danh sách đi chợ?"
+                    DT:
+                      requiresConfirmation: true
+                      skippedRecipes:
+                        - recipeListId: 1
+                          recipeListName: Thực đơn của tôi
+                          recipeListItemId: 11
+                          recipeId: 102
+                          title: Món đã xóa
+                          reason: deleted
         "500":
           description: Lỗi hệ thống server hoặc CSDL
           content:
