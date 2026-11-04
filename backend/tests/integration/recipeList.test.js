@@ -6,6 +6,7 @@ import errorHandler from "../../src/middleware/errorHandler";
 import db from "../../src/models/index";
 
 jest.mock("../../src/models/index", () => ({
+  RevokedToken: { findByPk: jest.fn() },
   User: { findOne: jest.fn() },
   RecipeList: { findAll: jest.fn(), findOne: jest.fn(), findByPk: jest.fn(), create: jest.fn() },
   RecipeListItem: { findOne: jest.fn(), create: jest.fn() },

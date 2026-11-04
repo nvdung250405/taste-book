@@ -10,6 +10,7 @@ import requestLogger from "./middleware/requestLogger";
 import errorHandler from "./middleware/errorHandler";
 import { configureTrustProxy } from "./config/trustProxy";
 import { apiLimiter } from "./middleware/apiRateLimit";
+import { startTokenCleanup } from "./services/tokenRevocationService";
 const app = express();
 configureTrustProxy(app);
 const PORT = process.env.PORT || 5000;
@@ -55,6 +56,7 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 if (process.env.NODE_ENV !== "test") {
+  startTokenCleanup();
   app.listen(PORT, () => {
     logger.info(`tastebook backend is running on the port = ${PORT}`);
   });

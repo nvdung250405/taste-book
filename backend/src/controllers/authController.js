@@ -42,8 +42,9 @@ const handleLogin = async (req, res) => {
 
 const handleLogout = async (req, res) => {
   try {
-    let data = authService.handleUserLogout();
-    return res.status(200).json(data);
+    let data = await authService.handleUserLogout(req.token);
+    const statusCode = data.EC === 0 ? 200 : data.EC === 5 ? 401 : 500;
+    return res.status(statusCode).json(data);
   } catch (error) {
     console.log(error);
     return res.status(500).json({

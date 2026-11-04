@@ -2,7 +2,8 @@ require("dotenv").config();
 import db from "../models/index";
 import bcrypt from "bcryptjs";
 import { Op } from "sequelize";
-import { createJWT } from "../middleware/JWTAction";
+import { createJWT, verifyToken } from "../middleware/JWTAction";
+import { revokeToken } from "./tokenRevocationService";
 
 const hashUserPassword = (userPassword) => {
   return bcrypt.hashSync(userPassword, 10);
@@ -224,12 +225,18 @@ const handleUserLogin = async (rawData) => {
   }
 };
 
-const handleUserLogout = () => {
-  return {
-    EC: 0,
-    EM: "Đăng xuất thành công!",
-    DT: null,
-  };
+const handleUserLogout = async (token) => {
+  try {
+    const claims = verifyToken(token);
+    if (!claims || !(claims.userId || claims.id) || !Number.isFinite(claims.exp)) {
+      return { EC: 5, EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!", DT: null };
+    }
+    await revokeToken(token, claims);
+    return { EC: 0, EM: "Đăng xuất thành công!", DT: null };
+  } catch (error) {
+    console.error("handleUserLogout error:", error);
+    return { EC: -1, EM: "Lỗi kết nối máy chủ!", DT: null };
+  }
 };
 
 module.exports = {

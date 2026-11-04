@@ -341,7 +341,13 @@ paths:
       tags:
         - Authentication
       summary: "UC-04: Đăng xuất khỏi hệ thống"
-      description: Hủy phiên làm việc phía client.
+      description: >-
+        Thu hồi JWT hiện tại tại server trước khi trả thành công. Lưu hash SHA-256, jti (nếu có),
+        userId và expiresAt trong PostgreSQL; không lưu JWT gốc. Mọi bản sao của cùng token
+        bị từ chối với HTTP 401, EC = 5 trên API bắt buộc; trên API optional chỉ có quyền Guest.
+        Các token phiên khác của cùng tài khoản vẫn hợp lệ. Token mới có jti riêng cho mỗi lần đăng nhập;
+        token cũ chưa có jti vẫn thu hồi được theo hash. Token đã thu hồi gọi logout lại trả 401.
+        Lỗi lưu thu hồi trả 500, không báo đăng xuất thành công. Client xóa token và cache sau phản hồi.
       security:
         - bearerAuth: []
       responses:
@@ -358,7 +364,7 @@ paths:
                 EM: Đăng xuất thành công!
                 DT: null
         "401":
-          description: Chưa gửi token hoặc token hết hạn
+          description: Chưa gửi token, token sai chữ ký, hết hạn hoặc đã bị thu hồi
           content:
             application/json:
               schema:

@@ -5,6 +5,7 @@ import routes from "../../src/routes/shoppingList";
 import db from "../../src/models/index";
 
 jest.mock("../../src/models/index", () => ({
+  RevokedToken: { findByPk: jest.fn() },
   sequelize: { transaction: jest.fn() },
   User: { findOne: jest.fn() },
   RecipeList: { findAll: jest.fn() },

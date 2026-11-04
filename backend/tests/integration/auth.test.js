@@ -10,6 +10,7 @@ import { loginLimiter, registerLimiter, passwordChangeLimiter } from "../../src/
 describe("Auth & Core API Integration Tests (Supertest)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(db.RevokedToken, "findOrCreate").mockResolvedValue([{}, true]);
     jest.spyOn(db.User, "findOne").mockResolvedValue({
       id: 1,
       email: "test@example.com",

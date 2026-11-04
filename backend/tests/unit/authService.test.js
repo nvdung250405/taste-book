@@ -1,4 +1,5 @@
 import authService from "../../src/services/authService";
+import { createJWT } from "../../src/middleware/JWTAction";
 import db from "../../src/models/index";
 import bcrypt from "bcryptjs";
 
@@ -200,11 +201,13 @@ describe("AuthService Unit Tests", () => {
   });
 
   describe("handleUserLogout", () => {
-    test("thành công: đăng xuất tài khoản trả về EC: 0", () => {
-      const res = authService.handleUserLogout();
+    test("thành công: đăng xuất chỉ sau khi lưu thu hồi token", async () => {
+      jest.spyOn(db.RevokedToken, "findOrCreate").mockResolvedValue([{}, true]);
+      const res = await authService.handleUserLogout(createJWT({ userId: 1 }));
       expect(res.EC).toBe(0);
       expect(res.EM).toContain("thành công");
       expect(res.DT).toBeNull();
+      expect(db.RevokedToken.findOrCreate).toHaveBeenCalledTimes(1);
     });
   });
 });
