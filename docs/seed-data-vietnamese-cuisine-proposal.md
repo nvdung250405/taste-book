@@ -10,7 +10,7 @@ Ngày soạn: 05/11/2026. Trạng thái: đã chuyển dữ liệu vào các fil
 - ID 1–20 của công thức trong tài liệu là ID mục tiêu cho **database seed mới**. Không áp dụng cách ghi đè ID này vào database đang có người dùng thật hoặc dữ liệu cần giữ.
 - 20 công thức chuẩn: `authorId=1`, `isPublic=true`, `approvalStatus="Approved"`. Đây là đề xuất chuyển quyền tác giả của 5 món cũ sang tài khoản quản lý thư viện chuẩn, phù hợp luồng tạo công thức chuẩn hiện tại của Admin.
 - 6 công thức riêng tư: `authorId` tương ứng User, `isPublic=false`, `approvalStatus="Approved"`. Trạng thái Approved của bài riêng tư khớp service hiện tại; quyền xem vẫn phải phụ thuộc `isPublic` và chủ sở hữu.
-- Theo yêu cầu khi triển khai: giữ URL ảnh hiện có của 5 món ID 1–5; các món ID 6–26 để `thumbnailUrl=null` để bổ sung sau. Mọi công thức có `rejectionReason=null`, `isDeleted=false`. Không dùng URL minh họa hoặc ảnh của món khác.
+- Giữ URL ảnh hiện có của 5 món ID 1–5. Các món ID 6–26 ban đầu để `thumbnailUrl=null` để bổ sung sau; hiện đã được người dùng điền URL ảnh trong seed. Ảnh bổ sung có thể là null hoặc URL HTTP/HTTPS hợp lệ, không bắt buộc giữ null. Mọi công thức có `rejectionReason=null`, `isDeleted=false`. Không dùng ảnh của món khác.
 - Bản này là các **phiên bản nấu gia đình được chuẩn hóa định lượng**, không khẳng định tồn tại một công thức duy nhất cho mỗi món hay mọi địa phương. Chưa nấu thử; cần hiệu chỉnh cảm quan khi sử dụng thực tế, đặc biệt độ mặn của mắm và độ hút nước của bột/gạo.
 
 ### Tài khoản giữ nguyên
@@ -277,27 +277,27 @@ Mỗi dòng nguyên liệu trong phần 8–9 là một bản ghi RecipeIngredie
 | 3 | Phở bò Hà Nội | 1 | 4 | 240 | Hard | 1,5,16 | https://res.cloudinary.com/sf4yjct9/image/upload/v1789269633/tastebook_uploads/p0jhwrqov0o1dbrj1mky.webp |
 | 4 | Gà xào sả ớt | 1 | 3 | 20 | Easy | 1,4 | https://res.cloudinary.com/sf4yjct9/image/upload/v1789269671/tastebook_uploads/wultafhebuw7skdb9px7.webp |
 | 5 | Bò lúc lắc | 1 | 2 | 10 | Medium | 1,4,18 | https://res.cloudinary.com/sf4yjct9/image/upload/v1789269706/tastebook_uploads/fxtcqitccfiph1pi2o0i.jpg |
-| 6 | Bún chả Hà Nội | 1 | 4 | 25 | Medium | 1,5,10,16 | |
-| 7 | Nem rán miền Bắc | 1 | 4 | 30 | Medium | 6,11,16 | |
-| 8 | Chả cá lăng thì là kiểu Hà Nội | 1 | 4 | 20 | Medium | 1,10,16 | |
-| 9 | Xôi ngũ sắc phiên bản nấu tại nhà | 1 | 5 | 45 | Hard | 7,12,13,19 | |
-| 10 | Bún bò Huế | 1 | 4 | 150 | Hard | 1,5,17 | |
-| 11 | Mì Quảng tôm thịt | 1 | 4 | 45 | Medium | 1,5,17 | |
-| 12 | Cơm gà Hội An phiên bản gia đình | 1 | 4 | 60 | Medium | 1,13,17 | |
-| 13 | Bánh bèo chén Huế | 1 | 4 | 35 | Hard | 6,12,15,17 | |
-| 14 | Gà nướng mắc khén Tây Bắc | 1 | 4 | 50 | Medium | 1,10,19 | |
-| 15 | Bánh xèo miền Tây | 1 | 4 | 40 | Hard | 1,11,15,18 | |
-| 16 | Gỏi cuốn tôm thịt | 1 | 4 | 30 | Medium | 6,14,18 | |
-| 17 | Cá hú kho tộ | 1 | 4 | 35 | Medium | 1,3,18 | |
-| 18 | Cơm tấm sườn nướng | 1 | 4 | 40 | Medium | 1,10,13,18 | |
-| 19 | Đậu phụ kho nấm chay | 1 | 4 | 25 | Easy | 1,3,7 | |
-| 20 | Chè chuối nước cốt dừa | 1 | 4 | 25 | Easy | 7,8,18 | |
-| 21 | Rau muống xào tỏi của Hoang | 2 | 2 | 8 | Easy | 4,7,20 | |
-| 22 | Trứng chiên hành của Hoang | 2 | 2 | 8 | Easy | 1,11,20 | |
-| 23 | Canh bí đỏ thịt bằm của Lan Anh | 3 | 3 | 20 | Easy | 2,21 | |
-| 24 | Đậu phụ sốt cà chua của Lan Anh | 3 | 3 | 20 | Easy | 1,7,21 | |
-| 25 | Sườn xào chua ngọt của Đức | 4 | 3 | 35 | Medium | 1,4,22 | |
-| 26 | Chè đậu xanh lá dứa của Đức | 4 | 4 | 35 | Easy | 7,8,22 | |
+| 6 | Bún chả Hà Nội | 1 | 4 | 25 | Medium | 1,5,10,16 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793886322/tastebook_uploads/kaymsgft55zttntahrpp.jpg |
+| 7 | Nem rán miền Bắc | 1 | 4 | 30 | Medium | 6,11,16 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793886502/tastebook_uploads/fhftudnpza717eskobq2.webp |
+| 8 | Chả cá lăng thì là kiểu Hà Nội | 1 | 4 | 20 | Medium | 1,10,16 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793886570/tastebook_uploads/ja8pmht2ahuwdrpfvqz3.jpg |
+| 9 | Xôi ngũ sắc phiên bản nấu tại nhà | 1 | 5 | 45 | Hard | 7,12,13,19 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793886661/tastebook_uploads/iakeqbrzdbm3wy8wzsh1.jpg |
+| 10 | Bún bò Huế | 1 | 4 | 150 | Hard | 1,5,17 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793886733/tastebook_uploads/uwkknr6w9f01h5kol0b7.jpg |
+| 11 | Mì Quảng tôm thịt | 1 | 4 | 45 | Medium | 1,5,17 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793886849/tastebook_uploads/btgmyorax0bwnswrshze.png |
+| 12 | Cơm gà Hội An phiên bản gia đình | 1 | 4 | 60 | Medium | 1,13,17 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793886947/tastebook_uploads/eyoewmprremeoyuwnjdw.jpg |
+| 13 | Bánh bèo chén Huế | 1 | 4 | 35 | Hard | 6,12,15,17 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793887014/tastebook_uploads/kcl8lcaftvv15ik8zjns.jpg |
+| 14 | Gà nướng mắc khén Tây Bắc | 1 | 4 | 50 | Medium | 1,10,19 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793887082/tastebook_uploads/lw1ayprbyygrjuf7c8c3.jpg |
+| 15 | Bánh xèo miền Tây | 1 | 4 | 40 | Hard | 1,11,15,18 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793887175/tastebook_uploads/h63rsjaofrtkt7pqzldg.jpg |
+| 16 | Gỏi cuốn tôm thịt | 1 | 4 | 30 | Medium | 6,14,18 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793887236/tastebook_uploads/yddwiytdbnwaetds3tbm.jpg |
+| 17 | Cá hú kho tộ | 1 | 4 | 35 | Medium | 1,3,18 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793887307/tastebook_uploads/cmolnnt4vxbvtbz9ghzv.jpg |
+| 18 | Cơm tấm sườn nướng | 1 | 4 | 40 | Medium | 1,10,13,18 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793887405/tastebook_uploads/qldlw78nmck4twclonyl.png |
+| 19 | Đậu phụ kho nấm chay | 1 | 4 | 25 | Easy | 1,3,7 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793887478/tastebook_uploads/m8abhhf6uwg0ovjymvw2.jpg |
+| 20 | Chè chuối nước cốt dừa | 1 | 4 | 25 | Easy | 7,8,18 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793887540/tastebook_uploads/jglih0ba7dczqovdnugu.jpg |
+| 21 | Rau muống xào tỏi của Hoang | 2 | 2 | 8 | Easy | 4,7,20 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793887705/tastebook_uploads/lfeylopjdlvo56zzkdj3.jpg |
+| 22 | Trứng chiên hành của Hoang | 2 | 2 | 8 | Easy | 1,11,20 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793887795/tastebook_uploads/omux8s66kus7rytdxlst.jpg |
+| 23 | Canh bí đỏ thịt bằm của Lan Anh | 3 | 3 | 20 | Easy | 2,21 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793887883/tastebook_uploads/xjemxisuyuqk4ddbzvb9.png |
+| 24 | Đậu phụ sốt cà chua của Lan Anh | 3 | 3 | 20 | Easy | 1,7,21 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793887935/tastebook_uploads/lw03f2ip7wavq5bhmpvw.jpg |
+| 25 | Sườn xào chua ngọt của Đức | 4 | 3 | 35 | Medium | 1,4,22 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793887998/tastebook_uploads/kzyqg2gnwzbvmtrzq0ow.jpg |
+| 26 | Chè đậu xanh lá dứa của Đức | 4 | 4 | 35 | Easy | 7,8,22 | https://res.cloudinary.com/sf4yjct9/image/upload/v1793888047/tastebook_uploads/ymva7oydemvcb60hc3yw.jpg |
 
 **Điều chỉnh tên:** món 3 bỏ chữ “gia truyền” vì không có thông tin truyền nghề để chứng minh. Món 8 và 12 ghi rõ “kiểu/phiên bản gia đình” để mô tả đúng cách làm, tránh nhận là một công thức thương hiệu/nguyên bản duy nhất.
 
@@ -1172,7 +1172,7 @@ R19 xuất hiện ở 4 phần và 2 phần, tổng hệ số 1.5; R24 giữ 3 p
 | `02-seed-categories.js` | 22 Categories: 19 chung, 3 riêng. |
 | `03-seed-ingredient-categories-units.js` | 13 IngredientCategories, 29 Units. |
 | `04-seed-ingredients.js` | 103 Ingredients; giữ ID 1–52 và chuẩn hóa đơn vị như bảng. |
-| `05-seed-recipes.js` | 26 Recipes và 80 RecipeCategories theo metadata; giữ ảnh ID 1–5, ảnh ID 6–26 null. |
+| `05-seed-recipes.js` | 26 Recipes và 80 RecipeCategories theo metadata; giữ ảnh ID 1–5, cho phép bổ sung URL ảnh ID 6–26. |
 | `06-seed-recipe-details.js` | 337 RecipeIngredients và 134 CookingSteps trong phần 8–9; dùng unitId/customUnit theo model. |
 | `07-seed-interactions.js` | 6 FavoriteRecipes, 6 RecipeLists, 12 RecipeListItems, 2 ShoppingLists, 3 ShoppingListRecipeLists, 36 ShoppingListItems. |
 
@@ -1185,7 +1185,7 @@ Khi nạp dữ liệu cần dùng database phát triển sạch hoặc quy trìn
 - Mọi ingredientId, unitId, categoryId và authorId đều tồn tại. Đơn vị tại từng dòng khớp defaultUnitId đã chuẩn hóa.
 - Tất cả món chay không dùng nước mắm cá/dầu hào động vật; món có trứng không gắn nhãn chay trong bộ này.
 - Không có tên món thử nghiệm trong bộ demo; các test về Pending/Rejected/Deleted/định tính được giữ ở fixture kiểm thử nếu cần, không gán ngẫu nhiên cho món chuẩn.
-- ThumbnailUrl ID 1–5 giữ đúng URL cũ, ID 6–26 null; không tạo trường media/timer mà model chưa hỗ trợ.
+- ThumbnailUrl ID 1–5 giữ đúng URL cũ; ID 6–26 có thể null hoặc URL HTTP/HTTPS hợp lệ. Không tạo trường media/timer mà model chưa hỗ trợ.
 - Cả 26 món có ghi chú đổi khẩu phần; các bước dùng lượng sau khi đổi và tỉ lệ chia nguyên liệu, không giữ định lượng cả mẻ hoặc số bát ăn cố định từ khẩu phần gốc. Các số g/ml còn trong bước chỉ phục vụ tỉ lệ nấu hoặc lượng mỗi bát/bánh, đã ghi rõ phạm vi.
 - Với nguyên liệu dùng nhiều bước, kiểm tra tổng các phần bằng toàn bộ lượng trong bảng; tách rõ nước nấu, nước chấm, nước dự phòng và nước thao tác bỏ đi. Không nhân nhiệt độ/thời gian theo hệ số khẩu phần; món chiên, xào, nướng, hấp ghi rõ cách chia mẻ.
 - ShoppingLists thuộc đúng User, chỉ gộp RecipeLists của User đó, không tham chiếu công thức private của người khác.
@@ -1206,4 +1206,4 @@ Nguồn bên ngoài dùng để đối chiếu tên món, đặc trưng và ph�
 
 Kiểm thử triển khai: `backend/tests/unit/seedData.test.js` chạy toàn bộ hàm up của 7 seeder bằng queryInterface giả lập, kiểm tra payload bằng model Sequelize hiện tại, quan hệ/thứ tự khóa ngoại, quyền riêng tư, đơn vị mặc định, ảnh cũ và phép cộng khẩu phần. Hàm down được kiểm tra theo thứ tự ngược. Kiểm tra này không kết nối database, không xác nhận thực thi SQL trên PostgreSQL và không kiểm chứng nấu ở mọi quy mô.
 
-Tài liệu này đủ làm đầu vào triển khai seed và review quan hệ dữ liệu. Mức xác nhận hiện tại là đối chiếu mã nguồn, cấu trúc dữ liệu và biên soạn công thức; chưa có kiểm chứng nấu thực tế, ảnh món hoặc xác nhận từ đầu bếp từng địa phương.
+Tài liệu này đủ làm đầu vào triển khai seed và review quan hệ dữ liệu. Mức xác nhận hiện tại là đối chiếu mã nguồn, cấu trúc dữ liệu và biên soạn công thức; chưa có kiểm chứng nấu thực tế, kiểm tra nội dung ảnh khớp món hoặc xác nhận từ đầu bếp từng địa phương.

@@ -102,7 +102,7 @@ test("standard recipes use the admin and each existing User owns two private rec
   }
 });
 
-test("only the first five recipes retain their original images", () => {
+test("preserves the first five images and allows optional image URLs for other recipes", () => {
   const expectedImages = [
     "https://res.cloudinary.com/sf4yjct9/image/upload/v1789269532/tastebook_uploads/una957qnxfqpmeh7vm0t.jpg",
     "https://res.cloudinary.com/sf4yjct9/image/upload/v1789269594/tastebook_uploads/hbspigqd9hauf2e0fhn0.webp",
@@ -110,8 +110,14 @@ test("only the first five recipes retain their original images", () => {
     "https://res.cloudinary.com/sf4yjct9/image/upload/v1789269671/tastebook_uploads/wultafhebuw7skdb9px7.webp",
     "https://res.cloudinary.com/sf4yjct9/image/upload/v1789269706/tastebook_uploads/fxtcqitccfiph1pi2o0i.jpg",
   ];
-  expect(tables.Recipes.slice(0, 5).map((row) => row.thumbnailUrl)).toEqual(expectedImages);
-  expect(tables.Recipes.slice(5).every((row) => row.thumbnailUrl === null)).toBe(true);
+  expect(expectedImages.map((_, index) => tables.Recipes.find((row) => row.id === index + 1).thumbnailUrl)).toEqual(expectedImages);
+  for (const recipe of tables.Recipes) {
+    if (recipe.thumbnailUrl === null) continue;
+    expect(typeof recipe.thumbnailUrl).toBe("string");
+    const url = new URL(recipe.thumbnailUrl);
+    expect(["http:", "https:"]).toContain(url.protocol);
+    expect(url.hostname).not.toBe("");
+  }
 });
 
 test("all recipes use system ingredients with their default units and preserve the documented steps", () => {
