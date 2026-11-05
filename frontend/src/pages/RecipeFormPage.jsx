@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Loader2, Save } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { Button } from '../components/ui/button'
 import {
   useCategories,
@@ -16,6 +17,10 @@ import {
 } from '../hooks/queries/useRecipeQueries'
 import { toast } from 'sonner'
 import QueryError from '../components/ui/QueryError'
+import { useSearchIngredients, useUnits } from '../hooks/queries/useIngredientQueries'
+import { changeRecipeIngredient, recipeIngredientPayload } from '../lib/recipeIngredientSelection'
+import { recipeStatus } from '../lib/collectionFilters'
+import { isQualitativeUnit } from '../lib/shoppingList'
 import { adminRecipePayload } from '../lib/adminRecipeForm'
 
 import RecipeBasicInfoForm from '../components/recipe/RecipeBasicInfoForm'
@@ -96,6 +101,9 @@ export default function RecipeFormPage({ admin = false }) {
     )
   }
 
+  if (!admin && id && ['pending', 'approved'].includes(recipeStatus(recipeRes.DT))) {
+    return <Navigate to="/my-recipes" replace state={{ notice: 'Công thức đang chờ duyệt hoặc đã duyệt công khai, không thể sửa/xóa.' }} />
+  }
   // A different recipe (or create mode) gets its own form state.
   return (
     <RecipeForm
@@ -131,9 +139,14 @@ function RecipeForm({ id, recipe, admin }) {
     ? adminUpdate
     : userUpdate
   const [submitError, setSubmitError] = useState('')
+  const [confirmSubmission, setConfirmSubmission] = useState(false)
   const back = () => (admin ? navigate('/admin/recipes') : navigate(-1))
 
   const categories = categoriesRes?.DT || []
+  const ingredientQuery = useSearchIngredients({}, { staleTime: 5 * 60 * 1000 })
+  const unitsQuery = useUnits()
+  const ingredients = ingredientQuery.data?.DT || []
+  const units = unitsQuery.data?.DT || []
 
   // Initialize once after the recipe loads; refetches must not replace the draft.
   const [formData, setFormData] = useState(() => {
@@ -174,7 +187,7 @@ function RecipeForm({ id, recipe, admin }) {
             name: i.ingredientName || i.ingredient?.name || i.name || '',
             quantity: i.quantity ?? '',
             unit: i.unit || i.ingredient?.unit || '',
-            ...(admin && { ingredientId: i.ingredientId, unitId: i.unitId }),
+            ingredientId: i.ingredientId, unitId: i.unitId,
           }))
         : [{ name: '', quantity: '', unit: '' }],
       steps: r.steps?.length
@@ -207,11 +220,7 @@ function RecipeForm({ id, recipe, admin }) {
   // Ingredients handlers
   const handleIngChange = (index, field, value) => {
     const newIngs = [...formData.ingredients]
-    newIngs[index][field] = value
-    if (admin && (field === 'name' || field === 'unit')) {
-      newIngs[index].ingredientId = null
-      if (field === 'unit') newIngs[index].unitId = null
-    }
+    newIngs[index] = changeRecipeIngredient(newIngs[index], field, value, ingredients, units)
     setFormData((prev) => ({ ...prev, ingredients: newIngs }))
   }
   const addIngredient = () => {
@@ -255,8 +264,8 @@ function RecipeForm({ id, recipe, admin }) {
     })
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  const handleSubmit = (e, confirmed = false) => {
+    e?.preventDefault()
     if (creating || updating) return
     if (isUploading) return toast.error('Vui lòng đợi ảnh tải lên hoàn tất')
     setSubmitError('')
@@ -291,6 +300,8 @@ function RecipeForm({ id, recipe, admin }) {
 
     const validIngs = formData.ingredients.filter((i) => i.name.trim())
     if (validIngs.length === 0) return toast.error('Cần ít nhất 1 nguyên liệu')
+    if (validIngs.some(i => !isQualitativeUnit(i.unit) && (!Number.isFinite(Number(i.quantity)) || Number(i.quantity) <= 0)))
+      return toast.error('Số lượng nguyên liệu định lượng phải lớn hơn 0')
     const validSteps = formData.steps.filter((s) => s.content.trim())
     if (validSteps.length === 0)
       return toast.error('Cần ít nhất 1 bước thực hiện')
@@ -309,16 +320,14 @@ function RecipeForm({ id, recipe, admin }) {
       defaultServings: Number(formData.servings),
       isPublic: formData.isPublic,
       categoryIds: formData.categories,
-      ingredients: validIngs.map((i) => ({
-        customIngredientName: i.name,
-        quantity: Number(i.quantity),
-        customUnit: i.unit,
-      })),
+      ingredients: validIngs.map(recipeIngredientPayload),
       steps: validSteps.map((s) => ({
         instruction: s.title ? `${s.title}: ${s.content}` : s.content,
       })),
     }
 
+    if (!admin && formData.isPublic && !confirmed) { setConfirmSubmission(true); return }
+    setConfirmSubmission(false)
     if (isEdit) {
       updateRecipe(
         { recipeId: id, data: payload },
@@ -400,6 +409,11 @@ function RecipeForm({ id, recipe, admin }) {
           />
 
           <RecipeIngredientsForm
+            ingredients={ingredients}
+            units={units}
+            loading={ingredientQuery.isPending || unitsQuery.isPending}
+            error={ingredientQuery.isError || unitsQuery.isError}
+            onRetry={() => { ingredientQuery.refetch(); unitsQuery.refetch() }}
             formData={formData}
             handleIngChange={handleIngChange}
             removeIngredient={removeIngredient}
@@ -451,6 +465,7 @@ function RecipeForm({ id, recipe, admin }) {
           </Button>
         </div>
       </form>
+      <Dialog open={confirmSubmission} onOpenChange={setConfirmSubmission}><DialogContent><DialogHeader><DialogTitle>Gửi công thức để kiểm duyệt?</DialogTitle><DialogDescription>Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa, xóa hoặc chuyển công thức về riêng tư trong thời gian chờ kết quả.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setConfirmSubmission(false)}>Hủy</Button><Button onClick={() => handleSubmit(null, true)}>Xác nhận gửi duyệt</Button></DialogFooter></DialogContent></Dialog>
     </div>
   )
 }

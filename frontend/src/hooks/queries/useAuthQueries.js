@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import authApi from '../../api/auth.api';
 import { clearAuthSession, startAuthSession } from '../../lib/authSession';
@@ -32,6 +33,10 @@ export const useLogout = () => {
   
   return useMutation({
     mutationFn: () => authApi.logout(),
+    retry: false,
+    networkMode: 'always',
+    onSuccess: () => toast.success('Đã đăng xuất thành công'),
+    onError: () => toast.warning('Phiên trên thiết bị đã đóng. Chưa thể xác nhận thu hồi token trên máy chủ.'),
     onSettled: () => {
       // Clear the session even when the logout request fails.
       clearAuthSession(queryClient);

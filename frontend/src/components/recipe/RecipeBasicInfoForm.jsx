@@ -30,7 +30,6 @@ export default function RecipeBasicInfoForm({
   fetchingCategories,
   refetchCategories,
   admin = false,
-  confirmPublic = false,
 }) {
   const [creatingCategory, setCreatingCategory] = useState(false)
   const [publicConfirmation, setPublicConfirmation] = useState(false)
@@ -318,7 +317,7 @@ export default function RecipeBasicInfoForm({
                 aria-labelledby="recipe-categories-label"
                 className="flex flex-wrap gap-2"
               >
-                {categories.map((cat) => {
+                {[...categories].sort((a, b) => Number(a.createdBy != null) - Number(b.createdBy != null)).map((cat) => {
                   const id = cat.categoryId || cat._id || cat.id
                   const selected = formData.categories.includes(id)
                   return (
@@ -334,11 +333,13 @@ export default function RecipeBasicInfoForm({
                       }`}
                     >
                       {cat.categoryName || cat.name || cat.title}
+                      {cat.createdBy === null && <span className="ml-1 text-xs opacity-75">· Hệ thống</span>}
                     </button>
                   )
                 })}
               </div>
             </div>
+            {!admin && formData.isPublic && <p className="mt-3 text-sm text-amber-700">Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa, xóa hoặc chuyển công thức về riêng tư trong thời gian chờ kết quả.</p>}
             {/* Visibility Toggle */}
             {!admin && (
               <div className="pt-4 mt-2 border-t border-slate-100 dark:border-slate-800/60">
@@ -349,7 +350,7 @@ export default function RecipeBasicInfoForm({
                       checked={formData.isPublic !== false} // default to true if undefined
                       onChange={(e) => {
                         const checked = e.target.checked
-                        if (checked && confirmPublic) {
+                        if (checked) {
                           setPublicConfirmation(true)
                           return
                         }
@@ -379,8 +380,7 @@ export default function RecipeBasicInfoForm({
           <DialogHeader>
             <DialogTitle>Chuyển công thức sang công khai?</DialogTitle>
             <DialogDescription>
-              Sau khi lưu, công thức sẽ được gửi để kiểm duyệt. Khi được Admin
-              phê duyệt công khai, bạn sẽ không thể chỉnh sửa lại công thức.
+              Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa, xóa hoặc chuyển công thức về riêng tư trong thời gian chờ kết quả.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

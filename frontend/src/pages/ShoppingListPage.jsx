@@ -1,5 +1,6 @@
+import DeletedRecipesWarning from '../components/menu/DeletedRecipesWarning'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Plus, ShoppingCart, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '../components/ui/button'
@@ -25,19 +26,23 @@ function CreateDialog({ onClose, onCreated }) {
   const query = useRecipeLists()
   const mutation = useCreateShoppingList()
   const [title, setTitle] = useState('')
+  const [confirmation, setConfirmation] = useState(null)
   const [selected, setSelected] = useState([])
   const lists = (query.data?.DT || []).filter((list) => list.totalItems > 0)
   const submit = (event) => {
     event.preventDefault()
     if (mutation.isPending || !selected.length || !title.trim()) return
     mutation.mutate(
-      { title: title.trim(), recipeListIds: selected },
+      confirmation ? { ...confirmation.payload, confirmSkipDeleted: true } : { title: title.trim(), recipeListIds: selected },
       {
         onSuccess: (result) => {
           toast.success('Đã tạo danh sách đi chợ')
           onCreated(result.DT.shoppingListId)
         },
-        onError: (error) => toast.error(error?.EM || 'Không thể tạo danh sách'),
+        onError: (error) => {
+          if (error?.DT?.requiresConfirmation) setConfirmation({ payload: { title: title.trim(), recipeListIds: selected }, recipes: error.DT.skippedRecipes })
+          else toast.error(error?.EM || 'Không thể tạo danh sách')
+        },
       },
     )
   }
@@ -59,7 +64,7 @@ function CreateDialog({ onClose, onCreated }) {
               required
               maxLength={100}
               value={title}
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || !!confirmation}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ví dụ: Đi chợ cuối tuần"
               className="h-11 text-base"
@@ -109,6 +114,8 @@ function CreateDialog({ onClose, onCreated }) {
               ))}
             </div>
           )}
+          {confirmation && <DeletedRecipesWarning recipes={confirmation.recipes} />}
+          {confirmation && <Button type="button" variant="outline" disabled={mutation.isPending} onClick={onClose}>Hủy</Button>}
           <Button
             type="submit"
             disabled={!selected.length || !title.trim() || mutation.isPending}
@@ -116,7 +123,7 @@ function CreateDialog({ onClose, onCreated }) {
           >
             {mutation.isPending
               ? 'Đang tổng hợp…'
-              : `Tạo từ ${selected.length} thực đơn`}
+              : confirmation ? 'Tiếp tục' : `Tạo từ ${selected.length} thực đơn`}
           </Button>
         </form>
       </DialogContent>
@@ -125,21 +132,25 @@ function CreateDialog({ onClose, onCreated }) {
 }
 
 export default function ShoppingListPage() {
+  const location = useLocation()
   const query = useShoppingLists()
   const deletion = useDeleteShoppingList()
   const statusChange = useUpdateShoppingListStatus()
   const [statusTarget, setStatusTarget] = useState(null)
-  const [selectedId, setSelectedId] = useState(null)
+  const [selection, setSelection] = useState(null)
+  const selectedId = selection?.key === location.key ? selection.id : location.state?.selectedId || null
+  const setSelectedId = id => setSelection({ key: location.key, id })
   const [creating, setCreating] = useState(false)
   const [toDelete, setToDelete] = useState(null)
   const lists = Array.isArray(query.data?.DT) ? query.data.DT : []
   const selected =
-    lists.find((list) => list.shoppingListId === selectedId) || lists[0]
+    lists.find((list) => String(list.shoppingListId) === String(selectedId)) || (selectedId ? null : lists[0])
   const remove = () => {
     if (deletion.isPending) return
     deletion.mutate(toDelete.shoppingListId, {
       onSuccess: () => {
         toast.success('Đã xóa danh sách')
+        if (String(selectedId) === String(toDelete.shoppingListId)) setSelectedId(null)
         setToDelete(null)
       },
       onError: (error) => toast.error(error?.EM || 'Không thể xóa danh sách'),
@@ -175,7 +186,7 @@ export default function ShoppingListPage() {
           title="Không thể tải danh sách đi chợ"
           onRetry={query.refetch}
         />
-      ) : !selected ? (
+      ) : !selected && selectedId ? (<p role="status">Không tìm thấy danh sách đi chợ đã chọn. <button className="underline" onClick={() => { setSelectedId(null); query.refetch() }}>Tải lại danh sách</button></p>) : !selected ? (
         <div className="space-y-4 rounded-2xl border border-dashed border-slate-300 px-5 py-16 text-center dark:border-slate-700">
           <ShoppingCart className="mx-auto size-12 text-orange-400" />
           <h2 className="text-lg font-semibold">Sẵn sàng cho chuyến đi chợ?</h2>

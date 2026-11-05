@@ -32,7 +32,19 @@ export default function AdminRecipesPage() {
   const [params, setParams] = useSearchParams()
   const difficulty = params.get('difficulty') || ''
   const maxTime = params.get('maxTime') || ''
-  const query = useAdminRecipes(search.trim() ? { keyword: search.trim() } : {})
+  const scope = params.get('scope') === 'admin' ? 'admin' : 'all'
+  const query = useAdminRecipes({
+    scope,
+    ...(search.trim() ? { keyword: search.trim() } : {}),
+  })
+  // The all-scope DTO currently omits author.role; only the admin-only API can
+  // establish ownership. If it fails, editing stays disabled.
+  const adminOnly = useAdminRecipes({ scope: 'admin' })
+  const canManage = (recipe) =>
+    adminOnly.isSuccess &&
+    adminOnly.data?.DT?.recipes?.some(
+      (row) => String(row.recipeId) === String(recipe.recipeId),
+    ) === true
   const remove = useDeleteAdminRecipe()
   const sending = useRef(false)
   const [selected, setSelected] = useState(null)
@@ -59,7 +71,7 @@ export default function AdminRecipesPage() {
     setParams(next)
   }
   const confirmDelete = async () => {
-    if (sending.current) return
+    if (sending.current || !selected || !canManage(selected)) return
     sending.current = true
     setError('')
     try {
@@ -84,14 +96,18 @@ export default function AdminRecipesPage() {
             Quản lý công thức chuẩn
           </h1>
           <p className="mt-2 text-sm text-slate-500">
-            Các công thức công khai đã duyệt do Admin tạo.
+            Công thức đã duyệt từ hệ thống và cộng đồng. Chỉ được sửa/xóa bài do
+            Admin tạo.
           </p>
         </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
             disabled={query.isFetching}
-            onClick={() => query.refetch()}
+            onClick={() => {
+              query.refetch()
+              adminOnly.refetch()
+            }}
             aria-label="Làm mới công thức"
           >
             <RefreshCw
@@ -109,6 +125,33 @@ export default function AdminRecipesPage() {
           </Button>
         </div>
       </div>
+      <div
+        role="group"
+        aria-label="Nguồn công thức"
+        className="flex flex-wrap gap-2"
+      >
+        {[
+          ['all', 'Tất cả công thức đã duyệt'],
+          ['admin', 'Chỉ công thức của Admin'],
+        ].map(([value, label]) => (
+          <Button
+            key={value}
+            variant={scope === value ? 'default' : 'outline'}
+            aria-pressed={scope === value}
+            onClick={() => changeFilters({ scope: value })}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+      {adminOnly.isError && (
+        <p role="alert" className="text-sm text-amber-700">
+          Chưa thể xác định tác giả hệ thống. Tạm ẩn thao tác sửa/xóa.{' '}
+          <button className="underline" onClick={() => adminOnly.refetch()}>
+            Thử lại
+          </button>
+        </p>
+      )}
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -233,7 +276,21 @@ export default function AdminRecipesPage() {
                         </Link>
                       </td>
                       <td className="max-w-40 break-words px-4 py-3">
-                        {recipe.authorName || 'Admin'}
+                        <span
+                          className={
+                            canManage(recipe)
+                              ? 'rounded-full bg-orange-50 px-2 py-1 text-orange-700'
+                              : 'rounded-full bg-blue-50 px-2 py-1 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                          }
+                        >
+                          {canManage(recipe)
+                            ? 'Hệ thống'
+                            : adminOnly.isSuccess
+                              ? 'Cộng đồng: ' +
+                                (recipe.authorName || 'Chưa rõ tác giả')
+                              : 'Đang xác minh: ' +
+                                (recipe.authorName || 'Chưa rõ tác giả')}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
                         {recipe.cookTimeMinutes} phút
@@ -244,27 +301,38 @@ export default function AdminRecipesPage() {
                           recipe.difficulty}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">
-                        <Button variant="ghost" size="icon" asChild>
+                        {canManage(recipe) ? (
+                          <>
+                            <Button variant="ghost" size="icon" asChild>
+                              <Link
+                                aria-label={`Sửa ${recipe.title}`}
+                                to={`/admin/recipes/${recipe.recipeId}/edit`}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-600"
+                              aria-label={`Xóa ${recipe.title}`}
+                              disabled={remove.isPending}
+                              onClick={() => {
+                                setError('')
+                                setSelected(recipe)
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
                           <Link
-                            aria-label={`Sửa ${recipe.title}`}
-                            to={`/admin/recipes/${recipe.recipeId}/edit`}
+                            to="/admin/approvals"
+                            className="text-sm text-orange-700 hover:underline"
                           >
-                            <Pencil className="h-4 w-4" />
+                            Đến kiểm duyệt
                           </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-600"
-                          aria-label={`Xóa ${recipe.title}`}
-                          disabled={remove.isPending}
-                          onClick={() => {
-                            setError('')
-                            setSelected(recipe)
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        )}
                       </td>
                     </tr>
                   ))

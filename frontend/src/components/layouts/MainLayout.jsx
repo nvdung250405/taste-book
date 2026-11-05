@@ -9,19 +9,18 @@ export default function MainLayout() {
   const navigate = useNavigate()
 
   const { data: profileRes, isLoading: profileLoading } = useProfile()
-  const { mutate: logoutMutate } = useLogout()
+  const { mutate: logoutMutate, isPending: loggingOut } = useLogout()
 
   const user = profileRes?.DT || null
   const isAuthenticated = !!user
 
   const handleLogout = () => {
+    if (loggingOut) return
     logoutMutate(undefined, {
       onSuccess: () => {
-        toast.success('Đã đăng xuất thành công')
         navigate('/login')
       },
       onError: () => {
-        // vẫn xóa token dù lỗi server (handled in onSettled in hook)
         navigate('/login')
       },
     })

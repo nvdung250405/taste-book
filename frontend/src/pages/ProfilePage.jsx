@@ -1,3 +1,4 @@
+import { isVietnamesePhone, normalizePhone } from '../lib/phone'
 import { useState } from 'react'
 import { UserCircle } from 'lucide-react'
 import { Button } from '../components/ui/button'
@@ -50,9 +51,10 @@ function ProfileEditor({ user }) {
     e.preventDefault()
     if (!profileForm.name.trim()) return toast.error('Tên không được để trống')
 
+    if (profileForm.phone.trim() && !isVietnamesePhone(profileForm.phone)) return toast.error('Số điện thoại phải có dạng 09… hoặc +849… hợp lệ')
     const payload = {
       username: profileForm.name.trim(),
-      phone: profileForm.phone ? profileForm.phone.trim() : undefined,
+      phone: profileForm.phone ? normalizePhone(profileForm.phone) : undefined,
       avatarUrl: profileForm.avatar ? profileForm.avatar.trim() : '',
     }
 

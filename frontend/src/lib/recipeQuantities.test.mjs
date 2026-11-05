@@ -2,6 +2,13 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { formatIngredientQuantity } from './recipeQuantities.js'
 
+test('qualitative ingredient amounts remain hidden at every serving ratio', () => {
+  for (const unit of ['vừa đủ', 'nêm nếm', 'tùy khẩu vị']) {
+    for (const ratio of [0.5, 1, 4]) assert.equal(formatIngredientQuantity(0, ratio, unit), '')
+  }
+  assert.equal(formatIngredientQuantity(2, 3, 'gram'), '6')
+})
+
 test('keeps fractional quantities at the original serving size', () => {
   assert.equal(formatIngredientQuantity(0.5), '0.5')
   assert.equal(formatIngredientQuantity('0.25'), '0.25')

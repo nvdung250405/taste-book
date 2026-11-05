@@ -19,6 +19,17 @@ after(async () => {
   await server?.close()
 })
 
+for (const approvalStatus of ['Pending', 'Approved']) {
+  test(`${approvalStatus} public recipe only links to its detail and has no edit/delete actions`, () => {
+    const html = renderToString(createElement(MemoryRouter, null, createElement(MyRecipeCard, {
+      recipe: { recipeId: 10, title: 'Món công khai', isPublic: true, approvalStatus },
+      index: 0, gridColumns: 3, onDelete() {},
+    })))
+    assert.match(html, /href="\/recipe\/10"/)
+    assert.doesNotMatch(html, /\/edit|> Sửa|> Xóa/)
+  })
+}
+
 test('private rejected recipe displays a red rejected badge and its feedback', () => {
   const html = renderToString(
     createElement(

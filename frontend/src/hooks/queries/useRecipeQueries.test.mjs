@@ -26,9 +26,13 @@ afterEach(() => { api.moderateRecipe = original; client.clear() })
 test('successful moderation removes only the processed row and refreshes related caches', async () => {
   let request
   api.moderateRecipe = async (id, data) => { request = { id, data }; return { EC: 0 } }
+  client.setQueryData(['pending-recipes', 'approved'], { DT: [] })
+  client.setQueryData(['pending-recipes', 'rejected'], { DT: [] })
   await mutation.mutateAsync({ recipeId: '1', data: { approvalStatus: 'Approved' } })
   assert.deepEqual(request, { id: '1', data: { approvalStatus: 'Approved' } })
   assert.deepEqual(client.getQueryData(['pending-recipes']).DT, [{ recipeId: 2 }])
+  assert.equal(client.getQueryState(['pending-recipes', 'approved']).isInvalidated, true)
+  assert.equal(client.getQueryState(['pending-recipes', 'rejected']).isInvalidated, true)
   for (const key of ['pending-recipes', 'admin-recipes', 'recipes', 'home-recipes', 'my-recipes']) {
     assert.equal(client.getQueryState([key]).isInvalidated, true)
   }

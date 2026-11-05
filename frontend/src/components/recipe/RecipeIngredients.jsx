@@ -19,7 +19,7 @@ export default function RecipeIngredients({ ingredients, actualServings, setServ
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {ingredients.map((ing, idx) => {
             const name = ing.ingredientName || ing.ingredient?.ingredientName || ing.ingredient?.name || `Nguyên liệu ${idx + 1}`
-            const qty = formatIngredientQuantity(ing.quantity, ratio)
+            const qty = formatIngredientQuantity(ing.quantity, ratio, ing.unit || ing.unitGroup?.unitName || ing.customUnit || ing.ingredient?.unit || '')
             const unit = ing.unit || ing.unitGroup?.unitName || ing.customUnit || ing.ingredient?.unit || ''
             return (
               <div
@@ -28,7 +28,7 @@ export default function RecipeIngredients({ ingredients, actualServings, setServ
               >
                 <div className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
                 <span className="flex-1 text-slate-700 dark:text-slate-300 text-sm">{name}</span>
-                {qty && (
+                {(qty || unit) && (
                   <span className="text-sm font-semibold text-orange-600 dark:text-orange-400 shrink-0">
                     {qty} {unit}
                   </span>

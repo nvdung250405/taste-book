@@ -55,12 +55,12 @@ export default function CustomMenuDetail({ list, onClose }) {
               key={item.recipeListItemId}
               className="flex flex-wrap items-center justify-between gap-3 py-3"
             >
-              <Link
+              {item.isRecipeDeleted ? <div className="min-w-0 flex-1 break-words font-medium">{item.title}<span className="ml-2 rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">Công thức đã bị xóa</span></div> : <Link
                 to={`/recipe/${item.recipeId}`}
                 className="min-w-0 flex-1 break-words font-medium hover:text-orange-600"
               >
                 {item.title}
-              </Link>
+              </Link>}
               <div className="flex items-center gap-3">
                 <label className="flex items-center gap-2 text-sm">
                   Khẩu phần
@@ -71,12 +71,13 @@ export default function CustomMenuDetail({ list, onClose }) {
                     max="2147483647"
                     defaultValue={item.targetServings}
                     aria-label={`Khẩu phần ${item.title}`}
-                    disabled={busy}
+                    disabled={busy || item.isRecipeDeleted}
                     className="w-20 rounded-lg border bg-transparent p-2"
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') event.currentTarget.blur()
                     }}
                     onBlur={(event) => {
+                      if (item.isRecipeDeleted) return
                       const servings = Number(event.target.value)
                       if (!validServings(servings)) {
                         event.target.value = item.targetServings

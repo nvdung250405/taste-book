@@ -28,6 +28,18 @@ const adapter = (data) => async (config) => ({
   config,
 })
 
+test('logout transport sends the current Bearer token without clearing it early', async () => {
+  const previous = globalThis.localStorage.getItem
+  globalThis.localStorage.getItem = key => key === 'token' ? 'current-token' : null
+  try {
+    await api.post('/auth/logout', undefined, { adapter: async config => {
+      assert.equal(config.headers.Authorization, 'Bearer current-token')
+      assert.equal(localStorage.getItem('token'), 'current-token')
+      return { data: { EC: 0 }, status: 200, statusText: 'OK', headers: {}, config }
+    } })
+  } finally { globalThis.localStorage.getItem = previous }
+})
+
 test('HTTP 200 with a business error reaches React Query error state', async () => {
   const error = { EC: 2, EM: 'Already saved', DT: null }
   const client = new QueryClient({

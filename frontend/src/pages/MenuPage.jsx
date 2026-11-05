@@ -116,6 +116,7 @@ function MealCell({ list, date, meal, onAdd }) {
               />
               <p className="mb-2 text-sm font-semibold leading-snug">
                 {item.title}
+                {item.isRecipeDeleted && <span className="mt-1 block text-xs text-slate-500">Công thức đã bị xóa</span>}
               </p>
               <div className="flex items-center justify-between gap-1">
                 <label className="flex items-center gap-1 text-xs text-slate-500">
@@ -125,10 +126,11 @@ function MealCell({ list, date, meal, onAdd }) {
                     min="1"
                     max="2147483647"
                     defaultValue={item.targetServings}
-                    disabled={busy}
+                    disabled={busy || item.isRecipeDeleted}
                     aria-label={`Khẩu phần ${item.title}`}
                     className="w-12 rounded border bg-white p-1 text-center dark:bg-slate-900"
                     onBlur={(e) => {
+                      if (item.isRecipeDeleted) return
                       const value = Number(e.target.value)
                       if (
                         !Number.isInteger(value) ||
