@@ -29,7 +29,7 @@ export default function HeroSection() {
   }
 
   return (
-    <section className="relative w-[100vw] ml-[calc(-50vw+50%)] h-[340px] sm:h-[420px] md:h-[500px] flex items-center justify-center overflow-hidden">
+    <section className="relative w-full h-[340px] sm:h-[420px] md:h-[500px] flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <img
