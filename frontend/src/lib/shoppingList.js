@@ -10,6 +10,8 @@ export function conflictingUnits(items) {
   return new Set(items.filter(item => groups.get(normalize(item.itemName)).size > 1).map(item => item.itemId))
 }
 export function customItemPayload(name, quantity, unit) {
+  if (!name.trim()) throw new Error('Tên món phát sinh không được để trống!')
+  if (!unit.trim()) throw new Error('Đơn vị tính không được để trống!')
   if (!name.trim() || name.trim().length > 255) throw new Error('Nhập tên nguyên liệu từ 1 đến 255 ký tự.')
   if (!unit.trim() || unit.trim().length > 255) throw new Error('Nhập đơn vị từ 1 đến 255 ký tự.')
   const input = String(quantity).trim().replace(',', '.')

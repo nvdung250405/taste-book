@@ -18,6 +18,13 @@ test('rejects empty fields, zero, negative and non-finite quantities', () => {
   assert.throws(() => customItemPayload(' ', '1', 'kg'))
   assert.throws(() => customItemPayload('Sữa', '1', ' '))
 })
+
+test('empty custom item fields have the required Vietnamese validation messages', () => {
+  for (const value of ['', '   ']) {
+    assert.throws(() => customItemPayload(value, '1', 'kg'), { message: 'Tên món phát sinh không được để trống!' })
+    assert.throws(() => customItemPayload('Milk', '1', value), { message: 'Đơn vị tính không được để trống!' })
+  }
+})
 test('supports qualitative units with an omitted or zero quantity like the backend', () => {
   assert.deepEqual(customItemPayload('Muối', '', 'vừa đủ'), { itemName: 'Muối', unit: 'vừa đủ' })
   assert.equal(customItemPayload('Muối', '0', ' TÙY  KHẨU VỊ ').totalQuantity, 0)

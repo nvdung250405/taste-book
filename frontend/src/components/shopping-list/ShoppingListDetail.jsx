@@ -17,6 +17,7 @@ export default function ShoppingListDetail({ list }) {
   const query = useShoppingListDetail(id, { refetchOnWindowFocus: false, refetchOnReconnect: false })
   const pending = useRef(new Set())
   const [pendingIds, setPendingIds] = useState(new Set())
+  const addingRef = useRef(false)
   const [adding, setAdding] = useState(false)
   const [clearing, setClearing] = useState(false)
   const [confirm, setConfirm] = useState(false)
@@ -46,9 +47,10 @@ export default function ShoppingListDetail({ list }) {
   }
   const add = async event => {
     event.preventDefault()
-    if (adding || clearing) return
+    if (addingRef.current || adding || clearing) return
     let data
     try { data = customItemPayload(name, quantity, unit) } catch (error) { errorToast(error); return }
+    addingRef.current = true
     setAdding(true)
     try {
       const result = await api.addCustomItem(id, data)
@@ -57,7 +59,7 @@ export default function ShoppingListDetail({ list }) {
       setName(''); setQuantity('1'); setUnit(''); nameInput.current?.focus()
       toast.success('Đã thêm nguyên liệu')
     } catch (error) { errorToast(error) }
-    finally { setAdding(false); if (!pending.current.size) client.invalidateQueries({ queryKey: key }) }
+    finally { addingRef.current = false; setAdding(false); if (!pending.current.size) client.invalidateQueries({ queryKey: key }) }
   }
   const clear = async () => {
     if (clearing || pending.current.size || adding) return
@@ -82,7 +84,7 @@ export default function ShoppingListDetail({ list }) {
         <span className="max-w-[35%] break-words text-right text-sm text-slate-500">{item.totalQuantity === 0 ? '' : Number(item.totalQuantity).toLocaleString('vi-VN', { maximumFractionDigits: 6 })} {item.unit}</span>
       </label>)}
     </div>
-    <form onSubmit={add} className="space-y-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-800"><h3 className="font-semibold">Thêm nhanh nguyên liệu</h3><label className="block space-y-1 text-sm"><span>Tên nguyên liệu</span><Input ref={nameInput} maxLength={255} required value={name} onChange={e => setName(e.target.value)} placeholder="Ví dụ: Sữa, túi rác…" disabled={adding || clearing} className="h-11 text-base" /></label><div className="grid grid-cols-2 gap-3"><label className="space-y-1 text-sm"><span>Số lượng</span><Input inputMode="decimal" required={!isQualitativeUnit(unit)} placeholder={isQualitativeUnit(unit) ? 'Có thể bỏ trống' : 'Ví dụ: 1,5'} value={quantity} onChange={e => setQuantity(e.target.value)} disabled={adding || clearing} className="h-11 text-base" /></label><label className="space-y-1 text-sm"><span>Đơn vị</span><Input required maxLength={255} value={unit} onChange={e => setUnit(e.target.value)} placeholder="kg, g, hộp…" disabled={adding || clearing} className="h-11 text-base" /></label></div><Button type="submit" disabled={adding || clearing} className="h-11 w-full bg-orange-500 text-white hover:bg-orange-600">{adding ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Plus className="mr-2 size-4" />}Thêm vào danh sách</Button></form>
+    <form noValidate onSubmit={add} className="space-y-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-800"><h3 className="font-semibold">Thêm nhanh nguyên liệu</h3><label className="block space-y-1 text-sm"><span>Tên nguyên liệu</span><Input ref={nameInput} maxLength={255} required value={name} onChange={e => setName(e.target.value)} placeholder="Ví dụ: Sữa, túi rác…" disabled={adding || clearing} className="h-11 text-base" /></label><div className="grid grid-cols-2 gap-3"><label className="space-y-1 text-sm"><span>Số lượng</span><Input inputMode="decimal" required={!isQualitativeUnit(unit)} placeholder={isQualitativeUnit(unit) ? 'Có thể bỏ trống' : 'Ví dụ: 1,5'} value={quantity} onChange={e => setQuantity(e.target.value)} disabled={adding || clearing} className="h-11 text-base" /></label><label className="space-y-1 text-sm"><span>Đơn vị</span><Input required maxLength={255} value={unit} onChange={e => setUnit(e.target.value)} placeholder="kg, g, hộp…" disabled={adding || clearing} className="h-11 text-base" /></label></div><Button type="submit" disabled={adding || clearing} className="h-11 w-full bg-orange-500 text-white hover:bg-orange-600">{adding ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Plus className="mr-2 size-4" />}Thêm vào danh sách</Button><Button type="button" variant="outline" disabled={adding || clearing} onClick={() => { setName(''); setQuantity(''); setUnit(''); nameInput.current?.focus() }} className="h-11 w-full">Đặt lại</Button></form>
     <Button variant="outline" onClick={() => setConfirm(true)} disabled={!purchased || !!pendingIds.size || clearing || adding} className="min-h-11 w-full text-red-600"><Trash2 className="mr-2 size-4" />Xóa {purchased} mục đã mua</Button>
     <Dialog open={confirm} onOpenChange={value => { if (!clearing) setConfirm(value) }}><DialogContent><DialogHeader><DialogTitle>Xóa {purchased} mục đã mua?</DialogTitle></DialogHeader><p className="text-sm text-slate-500">Các mục chưa mua sẽ được giữ lại. Thao tác xóa không thể hoàn tác.</p><DialogFooter><Button variant="outline" disabled={clearing} onClick={() => setConfirm(false)}>Hủy</Button><Button disabled={clearing} onClick={clear} className="bg-red-600 text-white hover:bg-red-700">{clearing ? 'Đang xóa…' : 'Xóa mục đã mua'}</Button></DialogFooter></DialogContent></Dialog>
   </div>
