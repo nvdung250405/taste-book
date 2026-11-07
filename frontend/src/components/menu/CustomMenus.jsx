@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Plus, Pencil, Trash2, BookOpen } from 'lucide-react'
 import {
@@ -23,6 +23,7 @@ import CustomMenuDetail from './CustomMenuDetail'
 export default function CustomMenus() {
   const query = useRecipeLists()
   const remove = useDeleteRecipeList()
+  const deletingRef = useRef(false)
   const [editor, setEditor] = useState(null)
   const [deleting, setDeleting] = useState(null)
   const deleteInfo = useRecipeListItems(deleting?.recipeListId, { staleTime: 0, refetchOnMount: 'always' })
@@ -32,9 +33,11 @@ export default function CustomMenus() {
   const custom = lists.filter((list) => !isWeeklyList(list))
   const active = custom.find((list) => list.recipeListId === selected)
   const deleteList = () => {
-    if (remove.isPending || !deleteInfo.isSuccess || deleteInfo.isFetching) return
+    if (deletingRef.current || remove.isPending || !deleteInfo.isSuccess || deleteInfo.isFetching) return
+    deletingRef.current = true
     setError('')
     remove.mutate(deleting.recipeListId, {
+      onSettled: () => { deletingRef.current = false },
       onSuccess: () => {
         toast.success('Đã xóa thực đơn')
         if (selected === deleting.recipeListId) setSelected(null)

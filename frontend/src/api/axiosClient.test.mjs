@@ -71,7 +71,7 @@ test('transport failures preserve their API error message', async () => {
         throw { response: { status: 400, data } }
       },
     }),
-    (error) => error === data,
+    (error) => error.EC === data.EC && error.EM === data.EM && error.httpStatus === 400,
   )
 })
 
@@ -129,7 +129,7 @@ test('API 403 signals forbidden navigation only inside the admin path segment', 
       browser.location = { pathname }
       await assert.rejects(api.get('/admin/users', {
         adapter: async () => { throw { response: { status: 403, data } } },
-      }), error => error === data)
+      }), error => error.EC === data.EC && error.EM === data.EM && error.httpStatus === 403)
     }
     assert.equal(denied, 2)
   } finally {
