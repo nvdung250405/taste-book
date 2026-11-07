@@ -84,7 +84,7 @@ axiosClient.interceptors.response.use(
 
     // Return the response data if available so we can read the Error Code (EC) and Message (EM)
     if (error.response?.data) {
-       return Promise.reject(error.response.data);
+       return Promise.reject({ ...error.response.data, httpStatus: error.response.status });
     }
     return Promise.reject(error);
   }

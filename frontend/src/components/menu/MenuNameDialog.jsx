@@ -36,7 +36,7 @@ export default function MenuNameDialog({ list, lists, onClose, onSaved }) {
         ? await update.mutateAsync({ listId: list.recipeListId, data })
         : await create.mutateAsync(data)
       toast.success(list ? 'Đã đổi tên thực đơn' : 'Đã tạo thực đơn')
-      onSaved(response.DT)
+      onSaved(response.DT ?? { ...list, ...data })
     } catch (failure) {
       setError(failure?.EM || 'Không thể lưu thực đơn. Vui lòng thử lại.')
     } finally {

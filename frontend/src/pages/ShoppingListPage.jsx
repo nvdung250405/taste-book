@@ -26,12 +26,15 @@ function CreateDialog({ onClose, onCreated }) {
   const query = useRecipeLists()
   const mutation = useCreateShoppingList()
   const [title, setTitle] = useState('')
+  const [titleError, setTitleError] = useState('')
   const [confirmation, setConfirmation] = useState(null)
   const [selected, setSelected] = useState([])
   const lists = (query.data?.DT || []).filter((list) => list.totalItems > 0)
   const submit = (event) => {
     event.preventDefault()
-    if (mutation.isPending || !selected.length || !title.trim()) return
+    if (mutation.isPending) return
+    if (!title.trim()) { setTitleError('Tiêu đề danh sách đi chợ không được để trống!'); return }
+    if (!selected.length) return
     mutation.mutate(
       confirmation ? { ...confirmation.payload, confirmSkipDeleted: true } : { title: title.trim(), recipeListIds: selected },
       {
@@ -57,19 +60,22 @@ function CreateDialog({ onClose, onCreated }) {
         <DialogHeader>
           <DialogTitle>Tạo danh sách từ thực đơn</DialogTitle>
         </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
+        <form noValidate onSubmit={submit} className="space-y-4">
           <label className="block space-y-1 text-sm">
             <span>Tên danh sách</span>
             <Input
-              required
+              aria-invalid={!!titleError}
+              aria-describedby={titleError ? 'shopping-title-error' : undefined}
+              onBlur={() => { if (!title.trim()) setTitleError('Tiêu đề danh sách đi chợ không được để trống!') }}
               maxLength={100}
               value={title}
               disabled={mutation.isPending || !!confirmation}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => { setTitle(e.target.value); if (e.target.value.trim()) setTitleError('') }}
               placeholder="Ví dụ: Đi chợ cuối tuần"
               className="h-11 text-base"
             />
           </label>
+          {titleError && <p id="shopping-title-error" role="alert" className="text-sm text-red-600">{titleError}</p>}
           <p className="text-sm text-slate-500">
             Chọn thực đơn để tổng hợp nguyên liệu theo khẩu phần.
           </p>
@@ -118,7 +124,7 @@ function CreateDialog({ onClose, onCreated }) {
           {confirmation && <Button type="button" variant="outline" disabled={mutation.isPending} onClick={onClose}>Hủy</Button>}
           <Button
             type="submit"
-            disabled={!selected.length || !title.trim() || mutation.isPending}
+            disabled={!selected.length || mutation.isPending}
             className="h-11 w-full bg-orange-500 text-white hover:bg-orange-600"
           >
             {mutation.isPending
