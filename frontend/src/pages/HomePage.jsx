@@ -10,10 +10,12 @@ export default function HomePage() {
   const home = useHomeRecipes()
   return <div className="flex flex-col gap-12 pb-16 -mt-8">
     <HeroSection />
+    <div className="container mx-auto flex flex-col gap-12 px-4">
     {categories.isError && !categories.data ? <QueryError title="Không thể tải danh mục" onRetry={categories.refetch} isRetrying={categories.isFetching} /> : <CategorySection categories={categories.data?.DT || []} loadingCats={categories.isLoading} />}
     {home.isError && !home.data ? <QueryError title="Không thể tải công thức trang chủ" onRetry={home.refetch} isRetrying={home.isFetching} /> : <>
       <LatestRecipesSection recipes={home.data?.DT?.latestRecipes || []} isLoading={home.isLoading} />
       <TrendingRecipesSection recipes={home.data?.DT?.trendingRecipes || []} isLoading={home.isLoading} />
     </>}
+    </div>
   </div>
 }

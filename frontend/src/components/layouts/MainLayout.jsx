@@ -51,7 +51,7 @@ export default function MainLayout() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className={location.pathname === '/' ? 'flex-1 py-8' : 'flex-1 container mx-auto px-4 py-8'}>
         <Outlet />
       </main>
 
