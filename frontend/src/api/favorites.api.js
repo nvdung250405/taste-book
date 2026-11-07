@@ -1,27 +1,33 @@
 import axiosClient from './axiosClient';
 
 const favoritesApi = {
-  // Lấy danh sách yêu thích
-  getFavorites() {
-    return axiosClient.get('/favorites');
+  // Lấy danh sách yêu thích từ database backend
+  getFavorites(params = {}, options = {}) {
+    return axiosClient.get('/favorites', { ...options, params });
   },
 
-  // Thêm vào yêu thích
+  // Thêm vào yêu thích (lưu trực tiếp vào database)
   addFavorite(recipeId, data = {}) {
-    // data: { personalNotes } (optional)
-    return axiosClient.post(`/favorites/${recipeId}`, data);
+    const payload =
+      typeof data === 'string'
+        ? { personalNotes: data }
+        : { personalNotes: data?.personalNotes ?? data?.note ?? '', ...data };
+    return axiosClient.post(`/favorites/${recipeId}`, payload);
   },
 
-  // Sửa ghi chú
-  updateFavoriteNote(recipeId, data) {
-    // data: { personalNotes }
-    return axiosClient.put(`/favorites/${recipeId}`, data);
+  // Cập nhật ghi chú cá nhân trong database
+  updateFavoriteNote(recipeId, data = {}) {
+    const payload =
+      typeof data === 'string'
+        ? { personalNotes: data }
+        : { personalNotes: data?.personalNotes ?? data?.note ?? '', ...data };
+    return axiosClient.put(`/favorites/${recipeId}`, payload);
   },
 
-  // Bỏ yêu thích
+  // Bỏ yêu thích khỏi database
   removeFavorite(recipeId) {
     return axiosClient.delete(`/favorites/${recipeId}`);
-  }
+  },
 };
 
 export default favoritesApi;

@@ -1,5 +1,7 @@
 import { CheckCircle2 } from 'lucide-react'
 
+import { recipeImageProps, handleRecipeImageError } from '../../lib/recipeImages'
+
 export default function RecipeSteps({ steps, checkedSteps, toggleStep }) {
   return (
     <div>
@@ -16,6 +18,8 @@ export default function RecipeSteps({ steps, checkedSteps, toggleStep }) {
             return (
               <div
                 key={step._id || step.id || idx}
+                role="checkbox" aria-checked={checked} tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleStep(idx) } }}
                 onClick={() => toggleStep(idx)}
                 className={`flex gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
                   checked
@@ -36,7 +40,12 @@ export default function RecipeSteps({ steps, checkedSteps, toggleStep }) {
                     {step.description || step.content || step.instruction || step}
                   </p>
                   {step.image && (
-                    <img src={step.image} alt={`Bước ${idx + 1}`} className="mt-3 rounded-xl w-full max-h-48 object-cover" />
+                    <img
+                      {...recipeImageProps(step.image)} decoding="async" onError={handleRecipeImageError}
+                      alt={`Bước ${idx + 1}`}
+                      loading="lazy"
+                      className="mt-3 rounded-xl w-full max-h-48 object-cover"
+                    />
                   )}
                 </div>
               </div>

@@ -5,13 +5,13 @@ const recipesApi = {
 
   // Tìm kiếm / lọc công thức public
   getRecipes(params) {
-    // params: { keyword, categoryId, ingredientId, difficulty }
-    return axiosClient.get('/recipe/read', { params });
+    // params: { keyword/search, categoryId, ingredientId, difficulty, maxTime, page, limit, sortBy, sortOrder }
+    return axiosClient.get('/recipes', { params });
   },
 
-  // Xem chi tiết công thức (Backend chưa support query by ID, tạm truyền qua query)
+  // Xem chi tiết công thức
   getRecipeDetail(recipeId) {
-    return axiosClient.get('/recipe/read', { params: { id: recipeId } });
+    return axiosClient.get(`/recipes/${recipeId}`);
   },
 
   // Tính định lượng theo số người
@@ -21,30 +21,30 @@ const recipesApi = {
 
   // Tạo công thức mới
   createRecipe(data) {
-    return axiosClient.post('/recipe/create', data);
+    return axiosClient.post('/recipes', data);
   },
 
   // Quản lý công thức của tôi
-  getMyRecipes() {
-    return axiosClient.get('/recipes/mine');
+  getMyRecipes(params = {}, options = {}) {
+    return axiosClient.get('/recipes/mine', { ...options, params: { limit: 50, ...params } });
   },
 
   // Sửa công thức cá nhân
   updateRecipe(recipeId, data) {
-    return axiosClient.put('/recipe/update', { ...data, id: recipeId });
+    return axiosClient.put(`/recipes/${recipeId}`, data);
   },
 
   // Xóa mềm công thức
   deleteRecipe(recipeId) {
-    return axiosClient.delete('/recipe/delete', { data: { id: recipeId } });
+    return axiosClient.delete(`/recipes/${recipeId}`);
   },
 
 
   // --- ADMIN RECIPES ---
 
   // Admin xem toàn bộ công thức
-  getAdminRecipes() {
-    return axiosClient.get('/admin/recipes');
+  getAdminRecipes(params = {}, options = {}) {
+    return axiosClient.get('/admin/recipes', { ...options, params });
   },
 
   // Admin tạo công thức chuẩn
@@ -63,8 +63,8 @@ const recipesApi = {
   },
 
   // Xem danh sách chờ duyệt
-  getPendingRecipes() {
-    return axiosClient.get('/admin/recipes/pending');
+  getPendingRecipes(params = {}, options = {}) {
+    return axiosClient.get('/admin/recipes/pending', { ...options, params });
   },
 
   // Kiểm duyệt công thức

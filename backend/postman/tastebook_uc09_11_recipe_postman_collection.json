@@ -1,0 +1,4358 @@
+{
+  "info": {
+    "_postman_id": "c7a1d2e3-0911-4f5a-9b6c-1d2e3f4a5b6c",
+    "name": "TasteBook Recipes API - My Recipes/Update/Delete (UC-09/10/11) v1",
+    "description": "Collection Postman cho UC-09 (GET /recipes/mine), UC-10 (PUT /recipes/{id}), UC-11 (DELETE /recipes/{id}). Nguồn: Sprint4_test_cases.csv (46 TC tầng API: UC-09 x14, UC-10 x19, UC-11 x12; TC-11-13 Block do phụ thuộc UC-16 Sprint 5) + Đặc tả API 4.5-4.7 + đối chiếu code recipeService. Mã TC-xx-Sxx là TC bổ sung. Yêu cầu: DB đã seed (npm run db:reset), Environment local/staging (userAEmail, userBEmail, adminEmail, passwords, baseUrl, maxResponseMs). Chạy theo đúng thứ tự folder (00 -> UC-09 -> UC-10 -> UC-11 -> 99); các folder dùng chung biến fixture.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "tokenA",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenB",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenNew",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenAdmin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "seedApprovedId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "seedPendingId",
+      "value": "8",
+      "type": "string"
+    },
+    {
+      "key": "seedRejectedId",
+      "value": "9",
+      "type": "string"
+    },
+    {
+      "key": "seedDeletedId",
+      "value": "10",
+      "type": "string"
+    },
+    {
+      "key": "seedBApprovedId",
+      "value": "3",
+      "type": "string"
+    },
+    {
+      "key": "seedOtherUserId",
+      "value": "5",
+      "type": "string"
+    },
+    {
+      "key": "nonExistId",
+      "value": "999999999",
+      "type": "string"
+    },
+    {
+      "key": "sysCatId1",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "sysCatId2",
+      "value": "2",
+      "type": "string"
+    },
+    {
+      "key": "sysCatId3",
+      "value": "3",
+      "type": "string"
+    },
+    {
+      "key": "sysIngredientId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "sysUnitId",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 SETUP - Token & dữ liệu nền",
+      "item": [
+        {
+          "name": "SETUP-01 Đăng nhập User A (chef.hoang, userId=2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('User A: đăng nhập thành công -> 200, EC=0, có accessToken', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.DT.accessToken).to.be.a('string').and.not.empty;",
+                  "    pm.collectionVariables.set(\"tokenA\", j.DT.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"],
+              "raw": "{{baseUrl}}/auth/login"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{userAEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Fixture: lấy token. Dùng biến environment userAEmail / userPassword."
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-02 Đăng nhập User B (lananh.kitchen, userId=3)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('User B: đăng nhập thành công -> 200, EC=0, có accessToken', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.DT.accessToken).to.be.a('string').and.not.empty;",
+                  "    pm.collectionVariables.set(\"tokenB\", j.DT.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"],
+              "raw": "{{baseUrl}}/auth/login"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{userBEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Fixture: lấy token. Dùng biến environment userBEmail / userPassword."
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-03 Đăng nhập Admin (chỉ dùng dọn dẹp cuối collection)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin: đăng nhập thành công -> 200, EC=0, có accessToken', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.DT.accessToken).to.be.a('string').and.not.empty;",
+                  "    pm.collectionVariables.set(\"tokenAdmin\", j.DT.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"],
+              "raw": "{{baseUrl}}/auth/login"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Fixture: lấy token. Dùng biến environment adminEmail / adminPassword."
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-04 Đăng ký tài khoản mới C (chưa có công thức) - dùng cho TC-09-06",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var suffix = String(Date.now());",
+                  "pm.collectionVariables.set('newSuffix', suffix);",
+                  "// SĐT VN hợp lệ: 09 + 8 chữ số ngẫu nhiên (regex BE: ^(0|\\+84)[35789][0-9]{8}$)",
+                  "var rnd = String(Math.floor(Math.random() * 1e8)).padStart(8, '0');",
+                  "pm.collectionVariables.set('newPhone', '09' + rnd);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SETUP-04: đăng ký tài khoản mới -> 201/200, EC=0', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"],
+              "raw": "{{baseUrl}}/auth/register"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"uc09tester{{newSuffix}}\",\n  \"email\": \"uc09.{{newSuffix}}@tastebook.test\",\n  \"password\": \"Pass1234\",\n  \"confirmPassword\": \"Pass1234\",\n  \"phone\": \"{{newPhone}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Fixture: tạo user mới mỗi lần chạy để TC-09-06 luôn có \"tài khoản chưa có công thức\"."
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-05 Đăng nhập tài khoản mới C",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SETUP-05: đăng nhập tài khoản mới -> 200, EC=0', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.collectionVariables.set('tokenNew', j.DT.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"],
+              "raw": "{{baseUrl}}/auth/login"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"uc09.{{newSuffix}}@tastebook.test\",\n  \"password\": \"Pass1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-06 User B tạo danh mục cá nhân (PRE-25-01) - dùng cho TC-10-19",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SETUP-06: User B tạo danh mục cá nhân -> 201, EC=0', function () {",
+                  "    pm.expect(pm.response.code).to.eql(201);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.DT.categoryId).to.be.a('number');",
+                  "    pm.collectionVariables.set('catIdB', String(j.DT.categoryId));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"],
+              "raw": "{{baseUrl}}/categories"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"UC10 DM riêng của B {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Phụ thuộc UC-25 (POST /categories). Danh mục chỉ thuộc User B."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "UC-09 Quản lý công thức của tôi (GET /recipes/mine)",
+      "item": [
+        {
+          "name": "PRE-09 Tạo 1 công thức riêng tư của User A (để TC-09-01 thấy đủ 4 nhóm trạng thái)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE: tạo công thức fixture thành công -> 201, EC=0', function () {",
+                  "    pm.expect(pm.response.code).to.eql(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "    pm.expect(pm.response.json().DT.recipeId).to.be.a('number');",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set(\"privId09\", String(pm.response.json().DT.recipeId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "raw": "{{baseUrl}}/recipes"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"[AUTO] Fixture privId09 {{$timestamp}}\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Fixture tự động (không phải TC): tạo công thức riêng tư của User A, lưu id vào biến privId09. Phụ thuộc UC-08 (POST /recipes)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-01 Lấy danh sách mặc định (page=1, limit=10)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-09-01 mặc định -> HTTP 200, EC=0, EM \"Thành công!\"', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql('Thành công!');",
+                  "});",
+                  "pm.test('TC-09-01 DT có page=1, limit=10, total, totalPages, items[]', function () {",
+                  "    var d = pm.response.json().DT;",
+                  "    pm.expect(d.page).to.eql(1);",
+                  "    pm.expect(d.limit).to.eql(10);",
+                  "    pm.expect(d.total).to.be.a('number');",
+                  "    pm.expect(d.items).to.be.an('array');",
+                  "    pm.expect(d.totalPages).to.eql(Math.ceil(d.total / d.limit));",
+                  "    pm.expect(d.items.length).to.eql(Math.min(d.limit, d.total));",
+                  "});",
+                  "pm.test('TC-09-01 gồm cả riêng tư (Approved), công khai chờ duyệt (Pending) và công khai đã duyệt', function () {",
+                  "    var items = pm.response.json().DT.items;",
+                  "    var priv = items.find(function (i) { return String(i.recipeId) === pm.collectionVariables.get('privId09'); });",
+                  "    pm.expect(priv, 'công thức riêng tư vừa tạo phải có trong danh sách').to.not.be.undefined;",
+                  "    pm.expect(priv.isPublic).to.eql(false);",
+                  "    pm.expect(priv.approvalStatus).to.eql('Approved');",
+                  "    var pend = items.find(function (i) { return String(i.recipeId) === pm.collectionVariables.get('seedPendingId'); });",
+                  "    pm.expect(pend, 'seed Pending (id 8)').to.not.be.undefined;",
+                  "    pm.expect(pend.approvalStatus).to.eql('Pending');",
+                  "    var pub = items.find(function (i) { return String(i.recipeId) === pm.collectionVariables.get('seedApprovedId'); });",
+                  "    pm.expect(pub, 'seed công khai đã duyệt (id 1)').to.not.be.undefined;",
+                  "    pm.expect(pub.isPublic).to.eql(true);",
+                  "    pm.expect(pub.approvalStatus).to.eql('Approved');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "raw": "{{baseUrl}}/recipes/mine"
+            },
+            "description": "Mã TC: TC-09-01 | Loại: Normal | Kỹ thuật: EP | Ưu tiên: Trung bình\nMục tiêu: Lấy danh sách công thức của tôi (mặc định page=1, limit=10)\nKết quả mong đợi (CSV): HTTP 200, EC 0, EM 'Thành công!', DT {page 1, limit 10, total, totalPages, items[]} gồm cả riêng tư (Approved), công khai chờ duyệt (Pending), đã duyệt và bị từ chối\nCăn cứ: API 4.5\nGhi chú CSV: Backend bản trong zip chưa có phân trang cho /recipes/mine (trả mảng) nên các TC phân trang có thể Fail cho tới khi BE cập nhật. Hỏi BE (Hiếu).\nDữ liệu Rejected (id 9) được kiểm ở TC-09-04 (limit=100) để không phụ thuộc vị trí trang."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-02 Mỗi item có đủ trường theo đặc tả",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-09-02 trả danh sách -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Thành công!\");",
+                  "});",
+                  "",
+                  "var ST = ['Pending', 'Approved', 'Rejected'];",
+                  "var DF = ['Easy', 'Medium', 'Hard'];",
+                  "function checkItem(it) {",
+                  "    pm.expect(it.recipeId, 'recipeId').to.be.a('number');",
+                  "    pm.expect(it.title, 'title').to.be.a('string').and.not.empty;",
+                  "    pm.expect(it.thumbnailUrl === null || typeof it.thumbnailUrl === 'string', 'thumbnailUrl').to.eql(true);",
+                  "    pm.expect(it.cookTimeMinutes, 'cookTimeMinutes').to.be.a('number');",
+                  "    pm.expect(DF, 'difficulty').to.include(it.difficulty);",
+                  "    pm.expect(it.defaultServings, 'defaultServings').to.be.a('number');",
+                  "    pm.expect(it.isPublic, 'isPublic').to.be.a('boolean');",
+                  "    pm.expect(ST, 'approvalStatus').to.include(it.approvalStatus);",
+                  "    pm.expect(it).to.have.property('rejectionReason');",
+                  "    pm.expect(it.rejectionReason === null || typeof it.rejectionReason === 'string', 'rejectionReason').to.eql(true);",
+                  "    pm.expect(isNaN(Date.parse(it.createdAt)), 'createdAt hợp lệ').to.eql(false);",
+                  "}",
+                  "",
+                  "pm.test('TC-09-02 mọi item có đủ 10 trường đúng kiểu (recipeId, title, thumbnailUrl, cookTimeMinutes, difficulty, defaultServings, isPublic, approvalStatus, rejectionReason, createdAt)', function () {",
+                  "    var items = pm.response.json().DT.items;",
+                  "    pm.expect(items.length).to.be.above(0);",
+                  "    items.forEach(checkItem);",
+                  "});",
+                  "pm.test('TC-09-02 rejectionReason chỉ có giá trị khi approvalStatus = Rejected', function () {",
+                  "    pm.response.json().DT.items.forEach(function (it) {",
+                  "        if (it.approvalStatus === 'Rejected') {",
+                  "            pm.expect(it.rejectionReason, 'Rejected #' + it.recipeId).to.be.a('string').and.not.empty;",
+                  "        } else {",
+                  "            pm.expect(it.rejectionReason, it.approvalStatus + ' #' + it.recipeId).to.eql(null);",
+                  "        }",
+                  "    });",
+                  "});",
+                  "pm.test('TC-09-02 item không lộ trường nhạy cảm (authorId, isDeleted)', function () {",
+                  "    pm.response.json().DT.items.forEach(function (it) {",
+                  "        pm.expect(it).to.not.have.property('isDeleted');",
+                  "        pm.expect(it).to.not.have.property('authorId');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?limit=100"
+            },
+            "description": "Mã TC: TC-09-02 | Loại: Normal | Kỹ thuật: EP | Ưu tiên: Trung bình\nMục tiêu: Mỗi item có đủ trường theo đặc tả\nKết quả mong đợi (CSV): Mỗi item có recipeId, title, thumbnailUrl, cookTimeMinutes, difficulty, defaultServings, isPublic, approvalStatus, rejectionReason, createdAt\nCăn cứ: API 4.5\nDùng limit=100 để quét toàn bộ item thay vì chỉ trang 1."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-03 Không hiển thị công thức đã xóa mềm (seed id 10)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-09-03 trả danh sách -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Thành công!\");",
+                  "});",
+                  "",
+                  "pm.test('TC-09-03 items không chứa recipeId = 10 (đã xóa mềm)', function () {",
+                  "    var ids = pm.response.json().DT.items.map(function (i) { return String(i.recipeId); });",
+                  "    pm.expect(ids).to.not.include(pm.collectionVariables.get('seedDeletedId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?limit=100"
+            },
+            "description": "Mã TC: TC-09-03 | Loại: Normal | Kỹ thuật: EP | Ưu tiên: Trung bình\nMục tiêu: Không hiển thị công thức đã xóa mềm\nKết quả mong đợi (CSV): items không chứa recipeId = 10\nCăn cứ: API 4.5 (chưa bị xóa mềm)"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-04 User chỉ thấy công thức của chính mình (Decision Table)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-09-04 trả danh sách -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Thành công!\");",
+                  "});",
+                  "",
+                  "pm.test('TC-09-04 chứa 1, 2, 6, 7, 8 (Pending), 9 (Rejected/Pending) của User A', function () {",
+                  "    var ids = pm.response.json().DT.items.map(function (i) { return String(i.recipeId); });",
+                  "    ['1', '2', '6', '7', '8', '9'].forEach(function (id) { pm.expect(ids, 'thiếu id ' + id).to.include(id); });",
+                  "});",
+                  "pm.test('TC-09-04 KHÔNG chứa 3, 4 (User B) và 5 (userId 4)', function () {",
+                  "    var ids = pm.response.json().DT.items.map(function (i) { return String(i.recipeId); });",
+                  "    ['3', '4', '5'].forEach(function (id) { pm.expect(ids, 'lộ id ' + id).to.not.include(id); });",
+                  "});",
+                  "pm.test('TC-09-04 total khớp số item khi limit=100 (không bị cắt)', function () {",
+                  "    var d = pm.response.json().DT;",
+                  "    pm.expect(d.total).to.be.at.most(100);",
+                  "    pm.expect(d.items.length).to.eql(d.total);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?limit=100"
+            },
+            "description": "Mã TC: TC-09-04 | Loại: Normal | Kỹ thuật: Decision Table | Ưu tiên: Trung bình\nMục tiêu: User chỉ thấy công thức của chính mình\nKết quả mong đợi (CSV): items không chứa recipeId 3, 4 (của User B) và 5 (của userId 4); chứa 1, 2, 6, 7, 8, 9\nCăn cứ: API 4.5\nSeed id 5 thực tế là công khai (isPublic=true, Approved) của userId 4 - khác mô tả \"riêng tư\" trong tiền điều kiện CSV; không ảnh hưởng kết quả."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-05a (tiền đề) Trang 1 limit=3 - lưu id để so sánh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-09-05a trang 1 -> 200, EC=0, tối đa 3 item', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var d = pm.response.json().DT;",
+                  "    pm.expect(d.items.length).to.be.at.most(3);",
+                  "    pm.collectionVariables.set('page1Ids', JSON.stringify(d.items.map(function (i) { return i.recipeId; })));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "3"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?page=1&limit=3"
+            },
+            "description": "Mã TC: TC-09-05 | Loại: Normal | Kỹ thuật: EP | Ưu tiên: Trung bình\nMục tiêu: Phân trang page=2&limit=3\nKết quả mong đợi (CSV): HTTP 200; DT.page = 2, DT.limit = 3, items tối đa 3; totalPages = ceil(total/3)\nCăn cứ: API 4.5\nGhi chú CSV: Backend bản trong zip chưa có phân trang cho /recipes/mine (trả mảng) nên các TC phân trang có thể Fail cho tới khi BE cập nhật. Hỏi BE (Hiếu).\nRequest hỗ trợ cho TC-09-05, không phải TC độc lập."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-05 Phân trang page=2&limit=3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-09-05 trang 2 -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Thành công!\");",
+                  "});",
+                  "",
+                  "pm.test('TC-09-05 DT.page=2, DT.limit=3, items tối đa 3, totalPages=ceil(total/3)', function () {",
+                  "    var d = pm.response.json().DT;",
+                  "    pm.expect(d.page).to.eql(2);",
+                  "    pm.expect(d.limit).to.eql(3);",
+                  "    pm.expect(d.total, 'tiền điều kiện: User A có ≥ 4 công thức').to.be.at.least(4);",
+                  "    pm.expect(d.items.length).to.eql(Math.max(0, Math.min(3, d.total - 3)));",
+                  "    pm.expect(d.totalPages).to.eql(Math.ceil(d.total / 3));",
+                  "});",
+                  "pm.test('TC-09-05 trang 2 không trùng item nào của trang 1', function () {",
+                  "    var p1 = JSON.parse(pm.collectionVariables.get('page1Ids') || '[]');",
+                  "    pm.response.json().DT.items.forEach(function (i) { pm.expect(p1).to.not.include(i.recipeId); });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "2"
+                },
+                {
+                  "key": "limit",
+                  "value": "3"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?page=2&limit=3"
+            },
+            "description": "Mã TC: TC-09-05 | Loại: Normal | Kỹ thuật: EP | Ưu tiên: Trung bình\nMục tiêu: Phân trang page=2&limit=3\nKết quả mong đợi (CSV): HTTP 200; DT.page = 2, DT.limit = 3, items tối đa 3; totalPages = ceil(total/3)\nCăn cứ: API 4.5\nGhi chú CSV: Backend bản trong zip chưa có phân trang cho /recipes/mine (trả mảng) nên các TC phân trang có thể Fail cho tới khi BE cập nhật. Hỏi BE (Hiếu)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-06 User chưa có công thức nào (tài khoản mới)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-09-06 tài khoản mới -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Thành công!\");",
+                  "",
+                  "    var d = j.DT;",
+                  "    pm.expect(d.items).to.eql([]);",
+                  "    pm.expect(d.total).to.eql(0);",
+                  "    pm.expect(d.totalPages).to.eql(0);",
+                  "    pm.expect(d.page).to.eql(1);",
+                  "    pm.expect(d.limit).to.eql(10);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenNew}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "raw": "{{baseUrl}}/recipes/mine"
+            },
+            "description": "Mã TC: TC-09-06 | Loại: Boundary | Kỹ thuật: BVA | Ưu tiên: Trung bình\nMục tiêu: User chưa có công thức nào\nKết quả mong đợi (CSV): HTTP 200, DT.items = [], DT.total = 0, DT.totalPages = 0\nCăn cứ: API 4.5; TP Boundary"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-07 limit = 1 (biên dưới)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-09-07 limit=1 -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Thành công!\");",
+                  "",
+                  "    var d = j.DT;",
+                  "    pm.expect(d.limit).to.eql(1);",
+                  "    pm.expect(d.items.length).to.eql(1);",
+                  "    pm.expect(d.totalPages).to.eql(d.total);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?limit=1"
+            },
+            "description": "Mã TC: TC-09-07 | Loại: Boundary | Kỹ thuật: BVA | Ưu tiên: Trung bình\nMục tiêu: limit = 1 (biên dưới)\nKết quả mong đợi (CSV): HTTP 200; items có đúng 1 phần tử; totalPages = total\nCăn cứ: API 4.5 (1 ≤ limit ≤ 100)\nGhi chú CSV: Backend bản trong zip chưa có phân trang cho /recipes/mine (trả mảng) nên các TC phân trang có thể Fail cho tới khi BE cập nhật. Hỏi BE (Hiếu)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-08 limit = 100 (biên trên)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-09-08 limit=100 -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Thành công!\");",
+                  "",
+                  "    pm.expect(j.DT.limit).to.eql(100);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?limit=100"
+            },
+            "description": "Mã TC: TC-09-08 | Loại: Boundary | Kỹ thuật: BVA | Ưu tiên: Trung bình\nMục tiêu: limit = 100 (biên trên)\nKết quả mong đợi (CSV): HTTP 200, EC 0\nCăn cứ: API 4.5\nGhi chú CSV: Backend bản trong zip chưa có phân trang cho /recipes/mine (trả mảng) nên các TC phân trang có thể Fail cho tới khi BE cập nhật. Hỏi BE (Hiếu)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-09 limit = 101 (vượt biên trên) - đặc tả: 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-09-09 limit=101 phải bị từ chối -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Tham số phân trang page hoặc limit không hợp lệ!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "101"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?limit=101"
+            },
+            "description": "Mã TC: TC-09-09 | Loại: Boundary | Kỹ thuật: BVA | Ưu tiên: Trung bình\nMục tiêu: limit = 101 (vượt biên trên)\nKết quả mong đợi (CSV): HTTP 400, EC 1, EM 'Tham số phân trang page hoặc limit không hợp lệ!'\nCăn cứ: API 4.5\nGhi chú CSV: Backend bản trong zip chưa có phân trang cho /recipes/mine (trả mảng) nên các TC phân trang có thể Fail cho tới khi BE cập nhật. Hỏi BE (Hiếu).\n⚠ Dự kiến FAIL với BE hiện tại: recipeService.getMyRecipes chỉ chặn limit<=0 rồi gán limitNumber=100 nếu >100 (clamp) nên trả 200 thay vì 400 như API 4.5 (1 <= limit <= 100). Ghi bug / hỏi BE chốt hành vi."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-10 limit = 0 (dưới biên)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-09-10 limit=0 -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Tham số phân trang page hoặc limit không hợp lệ!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "0"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?limit=0"
+            },
+            "description": "Mã TC: TC-09-10 | Loại: Boundary | Kỹ thuật: BVA | Ưu tiên: Trung bình\nMục tiêu: limit = 0 (dưới biên)\nKết quả mong đợi (CSV): HTTP 400, EC 1, EM 'Tham số phân trang page hoặc limit không hợp lệ!'\nCăn cứ: API 4.5\nGhi chú CSV: Backend bản trong zip chưa có phân trang cho /recipes/mine (trả mảng) nên các TC phân trang có thể Fail cho tới khi BE cập nhật. Hỏi BE (Hiếu)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-11 page = 0 (dưới biên)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-09-11 page=0 -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Tham số phân trang page hoặc limit không hợp lệ!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?page=0"
+            },
+            "description": "Mã TC: TC-09-11 | Loại: Boundary | Kỹ thuật: BVA | Ưu tiên: Trung bình\nMục tiêu: page = 0 (dưới biên)\nKết quả mong đợi (CSV): HTTP 400, EC 1, EM 'Tham số phân trang page hoặc limit không hợp lệ!'\nCăn cứ: API 4.5 (page ≥ 1)\nGhi chú CSV: Backend bản trong zip chưa có phân trang cho /recipes/mine (trả mảng) nên các TC phân trang có thể Fail cho tới khi BE cập nhật. Hỏi BE (Hiếu)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-12a page = -1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-09-12a page=-1 -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Tham số phân trang page hoặc limit không hợp lệ!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "-1"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?page=-1"
+            },
+            "description": "Mã TC: TC-09-12 | Loại: Abnormal | Kỹ thuật: Error Guessing | Ưu tiên: Trung bình\nMục tiêu: page là số âm và page không phải số\nKết quả mong đợi (CSV): Cả hai: HTTP 400, EC 1, EM 'Tham số phân trang page hoặc limit không hợp lệ!'\nCăn cứ: API 4.5\nGhi chú CSV: Backend bản trong zip chưa có phân trang cho /recipes/mine (trả mảng) nên các TC phân trang có thể Fail cho tới khi BE cập nhật. Hỏi BE (Hiếu)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-12b page = abc (không phải số)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-09-12b page=abc -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Tham số phân trang page hoặc limit không hợp lệ!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "abc"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?page=abc"
+            },
+            "description": "Mã TC: TC-09-12 | Loại: Abnormal | Kỹ thuật: Error Guessing | Ưu tiên: Trung bình\nMục tiêu: page là số âm và page không phải số\nKết quả mong đợi (CSV): Cả hai: HTTP 400, EC 1, EM 'Tham số phân trang page hoặc limit không hợp lệ!'\nCăn cứ: API 4.5\nGhi chú CSV: Backend bản trong zip chưa có phân trang cho /recipes/mine (trả mảng) nên các TC phân trang có thể Fail cho tới khi BE cập nhật. Hỏi BE (Hiếu)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-13 page vượt tổng số trang (9999)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-09-13 page=9999 -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Thành công!\");",
+                  "",
+                  "    pm.expect(j.DT.items).to.eql([]);",
+                  "    pm.expect(j.DT.total).to.be.above(0);",
+                  "    pm.expect(j.DT.page).to.eql(9999);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "9999"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?page=9999"
+            },
+            "description": "Mã TC: TC-09-13 | Loại: Boundary | Kỹ thuật: Error Guessing | Ưu tiên: Trung bình\nMục tiêu: page vượt tổng số trang\nKết quả mong đợi (CSV): HTTP 200, EC 0, DT.items = [], total giữ nguyên\nCăn cứ: API 4.5\nGhi chú CSV: Đặc tả không nêu kết quả cho page vượt tổng; mong đợi 200 + mảng rỗng. Xác nhận với BE.\nĐặc tả không nêu - mong đợi 200 + mảng rỗng (đã ghi chú trong CSV, cần BE xác nhận)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-09-14 Không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-09-14 không token -> HTTP 401, EC=5\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(401);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(5);",
+                  "    pm.expect(j.EM).to.eql(\"Chưa xác thực hoặc phiên đăng nhập đã hết hạn!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "raw": "{{baseUrl}}/recipes/mine"
+            },
+            "description": "Mã TC: TC-09-14 | Loại: Abnormal | Kỹ thuật: EP | Ưu tiên: Trung bình\nMục tiêu: Lấy danh sách khi không gửi token\nKết quả mong đợi (CSV): HTTP 401, EC 5\nCăn cứ: API 4.5"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "UC-10 Sửa công thức cá nhân (PUT /recipes/{recipeId})",
+      "item": [
+        {
+          "name": "PRE-10a Tạo công thức riêng tư (User A) -> privId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE: tạo công thức fixture thành công -> 201, EC=0', function () {",
+                  "    pm.expect(pm.response.code).to.eql(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "    pm.expect(pm.response.json().DT.recipeId).to.be.a('number');",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set(\"privId\", String(pm.response.json().DT.recipeId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "raw": "{{baseUrl}}/recipes"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"[AUTO] Fixture privId {{$timestamp}}\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Fixture tự động (không phải TC): tạo công thức riêng tư của User A, lưu id vào biến privId. Phụ thuộc UC-08 (POST /recipes)."
+          },
+          "response": []
+        },
+        {
+          "name": "PRE-10b Tạo công thức công khai chờ duyệt (User A) -> pendId (dùng cho TC-10-17, tránh làm hỏng seed id 8)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE: tạo công thức fixture thành công -> 201, EC=0', function () {",
+                  "    pm.expect(pm.response.code).to.eql(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "    pm.expect(pm.response.json().DT.recipeId).to.be.a('number');",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set(\"pendId\", String(pm.response.json().DT.recipeId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "raw": "{{baseUrl}}/recipes"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"[AUTO] Fixture pendId {{$timestamp}}\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": true,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Fixture tự động (không phải TC): tạo công thức công khai (Pending) của User A, lưu id vào biến pendId. Phụ thuộc UC-08 (POST /recipes)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-14 Sửa khi không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-14 không token -> HTTP 401, EC=5\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(401);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(5);",
+                  "    pm.expect(j.EM).to.eql(\"Chưa xác thực hoặc phiên đăng nhập đã hết hạn!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-14 | Loại: Abnormal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Sửa công thức khi không gửi token\nKết quả mong đợi (CSV): HTTP 401, EC 5\nCăn cứ: API 4.6"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-11 Tên công thức rỗng",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-11 title=\\\"\\\" -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Tên công thức không được để trống!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-11 | Loại: Abnormal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Sửa với tên rỗng\nKết quả mong đợi (CSV): HTTP 400, EC 1, EM 'Tên công thức không được để trống!'\nCăn cứ: API 4.6"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-12 Sửa thành không còn nguyên liệu (ingredients = [])",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-12 ingredients=[] -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Công thức phải có ít nhất 1 nguyên liệu và 1 bước làm!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-12 | Loại: Abnormal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Sửa thành không còn nguyên liệu\nKết quả mong đợi (CSV): HTTP 400, EC 1, EM 'Công thức phải có ít nhất 1 nguyên liệu và 1 bước làm!'\nCăn cứ: API 4.6"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-13 Sửa thành không còn bước làm (steps = [])",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-13 steps=[] -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Công thức phải có ít nhất 1 nguyên liệu và 1 bước làm!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-13 | Loại: Abnormal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Sửa thành không còn bước làm\nKết quả mong đợi (CSV): HTTP 400, EC 1, EM 'Công thức phải có ít nhất 1 nguyên liệu và 1 bước làm!'\nCăn cứ: API 4.6"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-15 cookTimeMinutes = 0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-15 cookTimeMinutes=0 -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Thời gian nấu phải là số nguyên dương!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 0,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-15 | Loại: Boundary | Kỹ thuật: BVA | Ưu tiên: Cao\nMục tiêu: Sửa cookTimeMinutes = 0\nKết quả mong đợi (CSV): HTTP 400, EC 1, EM 'Thời gian nấu phải là số nguyên dương!'\nCăn cứ: Code updateRecipe (cùng quy tắc tạo)"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-16 defaultServings = 0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-16 defaultServings=0 -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Khẩu phần mặc định phải là số nguyên dương!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 0,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-16 | Loại: Boundary | Kỹ thuật: BVA | Ưu tiên: Cao\nMục tiêu: Sửa defaultServings = 0\nKết quả mong đợi (CSV): HTTP 400, EC 1, EM 'Khẩu phần mặc định phải là số nguyên dương!'\nCăn cứ: Code updateRecipe"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-19 Dùng danh mục cá nhân của User B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-19 danh mục của người khác -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Danh mục không hợp lệ hoặc bạn không có quyền sử dụng danh mục của người khác!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{catIdB}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-19 | Loại: Abnormal | Kỹ thuật: Decision Table | Ưu tiên: Cao\nMục tiêu: Sửa dùng danh mục cá nhân của người khác\nKết quả mong đợi (CSV): HTTP 400, EC 1, EM 'Danh mục không hợp lệ hoặc bạn không có quyền sử dụng danh mục của người khác!'\nCăn cứ: Code updateRecipe"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-S01 (bổ sung) Thiếu mô tả (description rỗng)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-S01 description rỗng -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Mô tả công thức không được để trống!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"  \",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Bổ sung: trường bắt buộc description (API 4.6) chưa có TC."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-S02 (bổ sung) Tên chỉ toàn khoảng trắng",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-S02 title toàn khoảng trắng -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Tên công thức không được để trống!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"     \",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Bổ sung: biên của \"tên rỗng\" - BE phải trim."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-S03 (bổ sung) Độ khó không hợp lệ (Expert)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-S03 difficulty=Expert -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Độ khó không hợp lệ (Chỉ nhận Easy, Medium, Hard)!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Expert\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Bổ sung: EP giá trị enum difficulty."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-S04 (bổ sung) Danh mục rỗng (categoryIds = [])",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-S04 categoryIds=[] -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Công thức phải thuộc ít nhất 1 danh mục!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Bổ sung: categoryIds là trường bắt buộc (API 4.6)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-S05 (bổ sung) Định lượng nguyên liệu = 0 với đơn vị định lượng (g)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-S05 quantity=0 -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Định lượng nguyên liệu ở vị trí 1 phải lớn hơn 0; chỉ đơn vị định tính mới được dùng 0!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 0,\n      \"unitId\": {{sysUnitId}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Bổ sung: BVA quantity = 0."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-S06 (bổ sung) Hai bước làm trùng stepNumber",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-S06 stepNumber trùng -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Số thứ tự bước làm 1 bị trùng trong công thức!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Bước A\"\n    },\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Bước B\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Bổ sung: ràng buộc stepNumber có trong code, chưa có trong đặc tả."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-S07 (bổ sung) Nguyên liệu tự nhập thiếu đơn vị",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-S07 custom ingredient thiếu đơn vị -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"Nguyên liệu tự nhập \\\"Ngò gai\\\" phải chọn đơn vị hệ thống hoặc tự nhập đơn vị!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Ngò gai\",\n      \"quantity\": 50\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Bổ sung: Decision Table cho nhánh customIngredientName."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-S08 (bổ sung) Token hỏng",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-S08 token hỏng -> HTTP 401, EC=5\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(401);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(5);",
+                  "    pm.expect(j.EM).to.eql(\"Chưa xác thực hoặc phiên đăng nhập đã hết hạn!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "token.gia.khong.hop.le",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-S09 (bổ sung) User B sửa công thức RIÊNG TƯ của User A (IDOR)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-S09 B sửa bài private của A -> HTTP 403, EC=4\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(403);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(4);",
+                  "    pm.expect(j.EM).to.eql(\"Bạn không có quyền chỉnh sửa công thức này!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"B chiếm quyền sửa\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Bổ sung: TC-10-06 dùng seed id 5 (thực tế là công khai). TC này kiểm tra đúng kịch bản \"riêng tư của người khác\"."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-05 Sửa công thức công khai đã duyệt (seed id 1) - bị khóa",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-05 bài đã duyệt -> HTTP 403, EC=4\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(403);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(4);",
+                  "    pm.expect(j.EM).to.eql(\"Công thức này đã được duyệt công khai lên hệ thống, bạn không có quyền chỉnh sửa!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{seedApprovedId}}"],
+              "raw": "{{baseUrl}}/recipes/{{seedApprovedId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Cố sửa bài đã duyệt\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-05 | Loại: Abnormal | Kỹ thuật: Decision Table | Ưu tiên: Cao\nMục tiêu: Sửa công thức công khai đã được duyệt (bị khóa)\nKết quả mong đợi (CSV): HTTP 403, EC 4, EM 'Công thức này đã được duyệt công khai lên hệ thống, bạn không có quyền chỉnh sửa!'\nCăn cứ: API 4.6 (chốt chặn bảo vệ)"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-06 Sửa công thức của người khác (seed id 5, userId 4)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-06 bài của người khác -> HTTP 403, EC=4\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(403);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(4);",
+                  "    pm.expect(j.EM).to.eql(\"Bạn không có quyền chỉnh sửa công thức này!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{seedOtherUserId}}"],
+              "raw": "{{baseUrl}}/recipes/{{seedOtherUserId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Cố sửa bài người khác\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-06 | Loại: Abnormal | Kỹ thuật: Decision Table | Ưu tiên: Cao\nMục tiêu: Sửa công thức riêng tư của người khác\nKết quả mong đợi (CSV): HTTP 403, EC 4, EM 'Bạn không có quyền chỉnh sửa công thức này!'\nCăn cứ: API 4.6\nLưu ý: seed id 5 thực tế isPublic=true/Approved. Kết quả vẫn là \"không phải tác giả\" vì BE kiểm tra quyền sở hữu trước chốt chặn."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-07 Sửa công thức công khai đã duyệt của User B (seed id 3) - thứ tự kiểm tra",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-07 bài đã duyệt của người khác -> HTTP 403, EC=4\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(403);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(4);",
+                  "    pm.expect(j.EM).to.eql(\"Bạn không có quyền chỉnh sửa công thức này!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{seedBApprovedId}}"],
+              "raw": "{{baseUrl}}/recipes/{{seedBApprovedId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Cố sửa bài của B\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-07 | Loại: Abnormal | Kỹ thuật: Decision Table | Ưu tiên: Cao\nMục tiêu: Sửa công thức công khai đã duyệt của người khác\nKết quả mong đợi (CSV): HTTP 403, EC 4, EM 'Bạn không có quyền chỉnh sửa công thức này!' (kiểm tra quyền sở hữu trước chốt chặn công khai)\nCăn cứ: API 4.6\nGhi chú CSV: Thứ tự kiểm tra lấy từ code; đặc tả chưa nêu thứ tự ưu tiên."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-08 Sửa công thức đã xóa mềm (seed id 10)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-08 đã xóa mềm -> HTTP 404, EC=3\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(404);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(3);",
+                  "    pm.expect(j.EM).to.eql(\"Không tìm thấy công thức cần cập nhật!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{seedDeletedId}}"],
+              "raw": "{{baseUrl}}/recipes/{{seedDeletedId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sửa bài đã xóa\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-08 | Loại: Abnormal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Sửa công thức đã xóa mềm\nKết quả mong đợi (CSV): HTTP 404, EC 3, EM 'Không tìm thấy công thức cần cập nhật!'\nCăn cứ: API 4.6"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-09 Sửa công thức không tồn tại (999999999)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-09 không tồn tại -> HTTP 404, EC=3\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(404);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(3);",
+                  "    pm.expect(j.EM).to.eql(\"Không tìm thấy công thức cần cập nhật!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{nonExistId}}"],
+              "raw": "{{baseUrl}}/recipes/{{nonExistId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-09 | Loại: Abnormal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Sửa công thức không tồn tại\nKết quả mong đợi (CSV): HTTP 404, EC 3, EM 'Không tìm thấy công thức cần cập nhật!'\nCăn cứ: API 4.6"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-10 recipeId không phải số (abc)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-10 recipeId=abc -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"ID công thức không hợp lệ!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "abc"],
+              "raw": "{{baseUrl}}/recipes/abc"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-10 | Loại: Abnormal | Kỹ thuật: Error Guessing | Ưu tiên: Cao\nMục tiêu: recipeId không phải số\nKết quả mong đợi (CSV): HTTP 400, EC 1, EM 'ID công thức không hợp lệ!'\nCăn cứ: Code updateRecipe\nGhi chú CSV: Đặc tả 4.6 không có dòng 400 cho ID sai. Xác nhận và đề nghị bổ sung đặc tả.\nĐặc tả 4.6 chưa có dòng 400 cho ID sai - đề nghị bổ sung đặc tả."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-S10 (bổ sung) recipeId = 0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-S10 recipeId=0 -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"ID công thức không hợp lệ!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "0"],
+              "raw": "{{baseUrl}}/recipes/0"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Bổ sung: BVA ID (đối xứng TC-11-10)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-01 Sửa công thức riêng tư, giữ riêng tư",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"titleEdited1001\", 'Canh chua cá lóc (đã sửa) ' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-01 sửa bài private -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Cập nhật công thức riêng tư thành công!\");",
+                  "",
+                  "    pm.expect(j.DT.recipeId).to.eql(Number(pm.collectionVariables.get('privId')));",
+                  "    pm.expect(j.DT.approvalStatus).to.eql('Approved');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{titleEdited1001}}\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-01 | Loại: Normal | Kỹ thuật: Decision Table | Ưu tiên: Cao\nMục tiêu: Sửa công thức riêng tư, giữ riêng tư\nKết quả mong đợi (CSV): HTTP 200, EC 0, EM 'Cập nhật công thức riêng tư thành công!', DT {recipeId, approvalStatus = 'Approved'}; GET chi tiết thấy dữ liệu mới\nCăn cứ: API 4.6 (TH 1)"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-01b GET chi tiết thấy dữ liệu mới sau khi sửa (TC-10-01)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-01b chi tiết -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Thành công!\");",
+                  "",
+                  "    pm.expect(j.DT.title).to.eql(pm.collectionVariables.get('titleEdited1001'));",
+                  "    pm.expect(j.DT.isPublic).to.eql(false);",
+                  "    pm.expect(j.DT.approvalStatus).to.eql('Approved');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "description": "Bước 3 của kịch bản TC-10-01: \"GET chi tiết thấy dữ liệu mới\"."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-02 Chuyển công thức riêng tư sang công khai (-> Pending)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-02 private -> public -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Cập nhật công thức và gửi yêu cầu phê duyệt thành công!\");",
+                  "",
+                  "    pm.expect(j.DT.recipeId).to.eql(Number(pm.collectionVariables.get('privId')));",
+                  "    pm.expect(j.DT.approvalStatus).to.eql('Pending');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": true,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-02 | Loại: Normal | Kỹ thuật: Decision Table | Ưu tiên: Cao\nMục tiêu: Chuyển công thức riêng tư sang công khai\nKết quả mong đợi (CSV): HTTP 200, EC 0, EM 'Cập nhật công thức và gửi yêu cầu phê duyệt thành công!', DT.approvalStatus = 'Pending'\nCăn cứ: API 4.6 (TH 2)"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-02b GET chi tiết: isPublic=true, approvalStatus=Pending (sau TC-10-02)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-02b chi tiết -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Thành công!\");",
+                  "",
+                  "    pm.expect(j.DT.isPublic).to.eql(true);",
+                  "    pm.expect(j.DT.approvalStatus).to.eql('Pending');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-03 Sửa công thức công khai đang chờ duyệt (seed id 8)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"titleEdited1003\", 'Canh chua cá lóc (đã sửa) ' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-03 sửa bài Pending -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Cập nhật công thức và gửi yêu cầu phê duyệt thành công!\");",
+                  "",
+                  "    pm.expect(j.DT.recipeId).to.eql(Number(pm.collectionVariables.get('seedPendingId')));",
+                  "    pm.expect(j.DT.approvalStatus).to.eql('Pending');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{seedPendingId}}"],
+              "raw": "{{baseUrl}}/recipes/{{seedPendingId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{titleEdited1003}}\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": true,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-03 | Loại: Normal | Kỹ thuật: Decision Table | Ưu tiên: Cao\nMục tiêu: Sửa công thức công khai đang chờ duyệt\nKết quả mong đợi (CSV): HTTP 200, EC 0, EM 'Cập nhật công thức và gửi yêu cầu phê duyệt thành công!', approvalStatus = 'Pending'\nCăn cứ: API 4.6 (TH 2)\nChỉ đổi tiêu đề, bài vẫn Pending nên chạy lại nhiều lần không phá seed."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-04 Sửa công thức bị từ chối (seed id 9) -> về Pending",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"titleEdited1004\", 'Canh chua cá lóc (đã sửa) ' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-04 sửa bài Rejected -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Cập nhật công thức và gửi yêu cầu phê duyệt thành công!\");",
+                  "",
+                  "    pm.expect(j.DT.approvalStatus).to.eql('Pending');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{seedRejectedId}}"],
+              "raw": "{{baseUrl}}/recipes/{{seedRejectedId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{titleEdited1004}}\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": true,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-04 | Loại: Normal | Kỹ thuật: Decision Table | Ưu tiên: Cao\nMục tiêu: Sửa công thức bị từ chối, đưa lại vào hàng đợi duyệt\nKết quả mong đợi (CSV): HTTP 200, EC 0, approvalStatus chuyển 'Pending'\nCăn cứ: API 4.6 (TH 2); TP 6.1 UC-10\nGhi chú CSV: Làm thay đổi dữ liệu seed; chạy lại cần npm run db:reset.\n⚠ Làm đổi seed id 9 từ Rejected sang Pending; muốn chạy lại kịch bản \"Rejected\" cần npm run db:reset (chạy lại không reset vẫn Pass vì bài đã Pending)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-04b Sau khi sửa bài bị từ chối: lý do từ chối được xóa (rejectionReason = null)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-04b danh sách -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Thành công!\");",
+                  "});",
+                  "",
+                  "pm.test('TC-10-04b id 9 chuyển Pending và rejectionReason = null', function () {",
+                  "    var it = pm.response.json().DT.items.find(function (i) { return String(i.recipeId) === pm.collectionVariables.get('seedRejectedId'); });",
+                  "    pm.expect(it, 'id 9 còn trong danh sách').to.not.be.undefined;",
+                  "    pm.expect(it.approvalStatus).to.eql('Pending');",
+                  "    pm.expect(it.rejectionReason).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?limit=100"
+            },
+            "description": "Mã TC: TC-10-04 | Loại: Normal | Kỹ thuật: Decision Table | Ưu tiên: Cao\nMục tiêu: Sửa công thức bị từ chối, đưa lại vào hàng đợi duyệt\nKết quả mong đợi (CSV): HTTP 200, EC 0, approvalStatus chuyển 'Pending'\nCăn cứ: API 4.6 (TH 2); TP 6.1 UC-10\nGhi chú CSV: Làm thay đổi dữ liệu seed; chạy lại cần npm run db:reset.\nBổ sung kiểm tra hậu điều kiện của TC-10-04 (BE đặt rejectionReason=null khi gửi duyệt lại)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-17 Chuyển công thức công khai (Pending) về riêng tư",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-17 Pending -> private -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Cập nhật công thức riêng tư thành công!\");",
+                  "",
+                  "    pm.expect(j.DT.recipeId).to.eql(Number(pm.collectionVariables.get('pendId')));",
+                  "    pm.expect(j.DT.approvalStatus).to.eql('Approved');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{pendId}}"],
+              "raw": "{{baseUrl}}/recipes/{{pendId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-17 | Loại: Normal | Kỹ thuật: Error Guessing | Ưu tiên: Cao\nMục tiêu: Chuyển công thức công khai đang chờ duyệt về riêng tư\nKết quả mong đợi (CSV): HTTP 200, EC 0, EM 'Cập nhật công thức riêng tư thành công!', approvalStatus = 'Approved'\nCăn cứ: API 4.6 (không nêu)\nGhi chú CSV: Đặc tả mới không nêu trường hợp này; code cho phép. Xác nhận với BE/PM.\nDùng fixture pendId thay vì seed id 8 (CSV) vì kịch bản biến id 8 thành riêng tư, làm hỏng TC-11-05 và các lần chạy lại. Đặc tả chưa nêu trường hợp này - cần BA/BE xác nhận."
+          },
+          "response": []
+        },
+        {
+          "name": "PRE-10c Tạo công thức riêng tư có 2 nguyên liệu + 2 danh mục -> privId2 (cho TC-10-18)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE: tạo công thức fixture thành công -> 201, EC=0', function () {",
+                  "    pm.expect(pm.response.code).to.eql(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "    pm.expect(pm.response.json().DT.recipeId).to.be.a('number');",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set(\"privId2\", String(pm.response.json().DT.recipeId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "raw": "{{baseUrl}}/recipes"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"[AUTO] Fixture privId2 {{$timestamp}}\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Fixture tự động (không phải TC): tạo công thức riêng tư của User A, lưu id vào biến privId2. Phụ thuộc UC-08 (POST /recipes)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-18 Thay nguyên liệu và danh mục: 1 nguyên liệu + 1 danh mục khác",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-18 thay dữ liệu con -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Cập nhật công thức riêng tư thành công!\");",
+                  "",
+                  "    pm.expect(j.DT.approvalStatus).to.eql('Approved');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId2}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId2}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId3}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Ngò gai\",\n      \"quantity\": 50,\n      \"customUnit\": \"gam\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Bước duy nhất sau khi sửa.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Mã TC: TC-10-18 | Loại: Normal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Thay thế nguyên liệu và danh mục: dữ liệu cũ không còn, không bị nhân đôi\nKết quả mong đợi (CSV): Chi tiết chỉ có 1 nguyên liệu và 1 danh mục mới; không còn dữ liệu cũ, không trùng lặp\nCăn cứ: API 4.6, 4.2\nGhi chú CSV: Kiểm tra toàn vẹn dữ liệu khi cập nhật."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-10-18b GET chi tiết: chỉ còn 1 nguyên liệu, 1 danh mục, 1 bước mới - không trùng lặp",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-10-18b chi tiết -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Thành công!\");",
+                  "",
+                  "    var d = j.DT;",
+                  "    pm.expect(d.ingredients.length, 'số nguyên liệu').to.eql(1);",
+                  "    pm.expect(d.ingredients[0].ingredientName).to.eql('Ngò gai');",
+                  "    pm.expect(d.ingredients[0].quantity).to.eql(50);",
+                  "    pm.expect(d.ingredients[0].unit).to.eql('gam');",
+                  "    pm.expect(d.categories.length, 'số danh mục').to.eql(1);",
+                  "    pm.expect(String(d.categories[0].categoryId)).to.eql(pm.collectionVariables.get('sysCatId3'));",
+                  "    pm.expect(d.steps.length, 'số bước').to.eql(1);",
+                  "    pm.expect(d.steps[0].instruction).to.eql('Bước duy nhất sau khi sửa.');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId2}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId2}}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "UC-11 Xóa công thức cá nhân (DELETE /recipes/{recipeId})",
+      "item": [
+        {
+          "name": "PRE-11a Tạo công thức riêng tư (User A) -> delId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE: tạo công thức fixture thành công -> 201, EC=0', function () {",
+                  "    pm.expect(pm.response.code).to.eql(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "    pm.expect(pm.response.json().DT.recipeId).to.be.a('number');",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set(\"delId\", String(pm.response.json().DT.recipeId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "raw": "{{baseUrl}}/recipes"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"[AUTO] Fixture delId {{$timestamp}}\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Fixture tự động (không phải TC): tạo công thức riêng tư của User A, lưu id vào biến delId. Phụ thuộc UC-08 (POST /recipes)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-01 Xóa mềm công thức riêng tư của mình",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-01 xóa mềm -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Đã xóa công thức thành công!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{delId}}"],
+              "raw": "{{baseUrl}}/recipes/{{delId}}"
+            },
+            "description": "Mã TC: TC-11-01 | Loại: Normal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Xóa mềm công thức riêng tư của mình\nKết quả mong đợi (CSV): HTTP 200, EC 0, EM 'Đã xóa công thức thành công!', DT = null\nCăn cứ: API 4.7"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-02 Sau khi xóa, xem chi tiết trả không tìm thấy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-02 GET bài đã xóa -> HTTP 404, EC=3\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(404);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(3);",
+                  "    pm.expect(j.EM).to.eql(\"Không tìm thấy công thức nấu ăn!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{delId}}"],
+              "raw": "{{baseUrl}}/recipes/{{delId}}"
+            },
+            "description": "Kịch bản TC-11-02 bước 2. Mã TC: TC-11-02 | Loại: Normal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Sau khi xóa, xem chi tiết trả không tìm thấy (xóa mềm)\nKết quả mong đợi (CSV): GET: HTTP 404, EC 3, EM 'Không tìm thấy công thức nấu ăn!'\nCăn cứ: API 4.7, 4.2"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-04 Xóa lại công thức đã xóa",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-04 xóa lần 2 -> HTTP 404, EC=3\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(404);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(3);",
+                  "    pm.expect(j.EM).to.eql(\"Không tìm thấy công thức cần xoá!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{delId}}"],
+              "raw": "{{baseUrl}}/recipes/{{delId}}"
+            },
+            "description": "Mã TC: TC-11-04 | Loại: Abnormal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Xóa lại công thức đã xóa\nKết quả mong đợi (CSV): HTTP 404, EC 3, EM 'Không tìm thấy công thức cần xoá!'\nCăn cứ: API 4.7\nGhi chú CSV: Đặc tả viết 'xoá' (dấu cũ) trong EM này, khác 'xóa' ở các EM khác; so sánh theo đúng chuỗi của đặc tả.\nEM của đặc tả viết \"xoá\" (dấu cũ) khác \"xóa\" ở EM thành công - so sánh đúng chuỗi."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-S01 (bổ sung) Sửa (PUT) công thức đã bị xóa mềm",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-S01 PUT bài đã xóa -> HTTP 404, EC=3\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(404);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(3);",
+                  "    pm.expect(j.EM).to.eql(\"Không tìm thấy công thức cần cập nhật!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{delId}}"],
+              "raw": "{{baseUrl}}/recipes/{{delId}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Canh chua cá lóc miền Tây [UC09-11 {{$timestamp}}]\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Bổ sung: liên thông UC-10/UC-11 - bài đã xóa mềm không được sửa lại."
+          },
+          "response": []
+        },
+        {
+          "name": "PRE-11b Tạo công thức riêng tư (User A) -> delId2 (cho TC-11-03)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE: tạo công thức fixture thành công -> 201, EC=0', function () {",
+                  "    pm.expect(pm.response.code).to.eql(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "    pm.expect(pm.response.json().DT.recipeId).to.be.a('number');",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set(\"delId2\", String(pm.response.json().DT.recipeId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"],
+              "raw": "{{baseUrl}}/recipes"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"[AUTO] Fixture delId2 {{$timestamp}}\",\n  \"description\": \"Món canh đậm đà chuẩn vị miền Tây với nấm rừng và nước me chua thanh.\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v12345/canhchua.jpg\",\n  \"cookTimeMinutes\": 35,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{sysCatId1}},\n    {{sysCatId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{sysIngredientId}},\n      \"quantity\": 500,\n      \"unitId\": {{sysUnitId}}\n    },\n    {\n      \"customIngredientName\": \"Nấm mối đen dại\",\n      \"quantity\": 2,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế cá lóc sạch vảy, cắt khúc vừa ăn và ướp chút gia vị trong 15 phút.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Đun sôi 1.5 lít nước, cho me vào dầm lấy nước chua rồi cho cá và nấm mối vào ninh.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Fixture tự động (không phải TC): tạo công thức riêng tư của User A, lưu id vào biến delId2. Phụ thuộc UC-08 (POST /recipes)."
+          },
+          "response": []
+        },
+        {
+          "name": "PRE-11b2 Ghi lại DT.total hiện tại của User A (trước khi xóa)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE-11b2 lấy total trước khi xóa', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var d = pm.response.json().DT;",
+                  "    var ids = d.items.map(function (i) { return String(i.recipeId); });",
+                  "    pm.expect(ids).to.include(pm.collectionVariables.get('delId2'));",
+                  "    pm.collectionVariables.set('totalBefore', String(d.total));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?limit=100"
+            },
+            "description": "Mã TC: TC-11-03 | Loại: Normal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Sau khi xóa, công thức biến mất khỏi danh sách của tôi\nKết quả mong đợi (CSV): total giảm đúng 1; items không còn recipeId đã xóa\nCăn cứ: API 4.7, 4.5\nBước 1 của TC-11-03."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-03a Xóa công thức riêng tư delId2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-03a xóa -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Đã xóa công thức thành công!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{delId2}}"],
+              "raw": "{{baseUrl}}/recipes/{{delId2}}"
+            },
+            "description": "Mã TC: TC-11-03 | Loại: Normal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Sau khi xóa, công thức biến mất khỏi danh sách của tôi\nKết quả mong đợi (CSV): total giảm đúng 1; items không còn recipeId đã xóa\nCăn cứ: API 4.7, 4.5\nBước 2 của TC-11-03."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-03b Sau khi xóa: total giảm đúng 1, items không còn delId2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-03b danh sách sau xóa -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Thành công!\");",
+                  "});",
+                  "",
+                  "pm.test('TC-11-03b total giảm đúng 1 và items không còn recipeId đã xóa', function () {",
+                  "    var d = pm.response.json().DT;",
+                  "    pm.expect(d.total).to.eql(Number(pm.collectionVariables.get('totalBefore')) - 1);",
+                  "    var ids = d.items.map(function (i) { return String(i.recipeId); });",
+                  "    pm.expect(ids).to.not.include(pm.collectionVariables.get('delId2'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "mine"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ],
+              "raw": "{{baseUrl}}/recipes/mine?limit=100"
+            },
+            "description": "Mã TC: TC-11-03 | Loại: Normal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Sau khi xóa, công thức biến mất khỏi danh sách của tôi\nKết quả mong đợi (CSV): total giảm đúng 1; items không còn recipeId đã xóa\nCăn cứ: API 4.7, 4.5\nBước 3 của TC-11-03."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-05 Xóa công thức công khai đang chờ duyệt (seed id 8)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-05 bài công khai Pending -> HTTP 403, EC=4\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(403);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(4);",
+                  "    pm.expect(j.EM).to.eql(\"Công thức đã công khai thuộc hệ thống, bạn không có quyền xóa!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{seedPendingId}}"],
+              "raw": "{{baseUrl}}/recipes/{{seedPendingId}}"
+            },
+            "description": "Mã TC: TC-11-05 | Loại: Abnormal | Kỹ thuật: Decision Table | Ưu tiên: Cao\nMục tiêu: Xóa công thức công khai đang chờ duyệt\nKết quả mong đợi (CSV): HTTP 403, EC 4, EM 'Công thức đã công khai thuộc hệ thống, bạn không có quyền xóa!'\nCăn cứ: API 4.7 (chỉ xóa được bài riêng tư)"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-06 Xóa công thức công khai đã duyệt (seed id 1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-06 bài công khai Approved -> HTTP 403, EC=4\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(403);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(4);",
+                  "    pm.expect(j.EM).to.eql(\"Công thức đã công khai thuộc hệ thống, bạn không có quyền xóa!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{seedApprovedId}}"],
+              "raw": "{{baseUrl}}/recipes/{{seedApprovedId}}"
+            },
+            "description": "Mã TC: TC-11-06 | Loại: Abnormal | Kỹ thuật: Decision Table | Ưu tiên: Cao\nMục tiêu: Xóa công thức công khai đã được duyệt\nKết quả mong đợi (CSV): HTTP 403, EC 4, EM 'Công thức đã công khai thuộc hệ thống, bạn không có quyền xóa!'\nCăn cứ: API 4.7"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-07 Xóa công thức của người khác (seed id 5, userId 4)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-07 bài của người khác -> HTTP 403, EC=4\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(403);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(4);",
+                  "    pm.expect(j.EM).to.eql(\"Bạn không có quyền xóa công thức này!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{seedOtherUserId}}"],
+              "raw": "{{baseUrl}}/recipes/{{seedOtherUserId}}"
+            },
+            "description": "Mã TC: TC-11-07 | Loại: Abnormal | Kỹ thuật: Decision Table | Ưu tiên: Cao\nMục tiêu: Xóa công thức của người khác\nKết quả mong đợi (CSV): HTTP 403, EC 4, EM 'Bạn không có quyền xóa công thức này!'\nCăn cứ: API 4.7\nSeed id 5 thực tế là công khai nhưng BE kiểm tra quyền sở hữu trước nên EM là \"không có quyền xóa công thức này\"."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-08 Xóa công thức không tồn tại (999999999)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-08 không tồn tại -> HTTP 404, EC=3\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(404);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(3);",
+                  "    pm.expect(j.EM).to.eql(\"Không tìm thấy công thức cần xoá!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{nonExistId}}"],
+              "raw": "{{baseUrl}}/recipes/{{nonExistId}}"
+            },
+            "description": "Mã TC: TC-11-08 | Loại: Abnormal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Xóa công thức không tồn tại\nKết quả mong đợi (CSV): HTTP 404, EC 3, EM 'Không tìm thấy công thức cần xoá!'\nCăn cứ: API 4.7"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-09 Xóa khi không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-09 không token -> HTTP 401, EC=5\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(401);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(5);",
+                  "    pm.expect(j.EM).to.eql(\"Chưa xác thực hoặc phiên đăng nhập đã hết hạn!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId2}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId2}}"
+            },
+            "description": "Mã TC: TC-11-09 | Loại: Abnormal | Kỹ thuật: EP | Ưu tiên: Cao\nMục tiêu: Xóa công thức khi không gửi token\nKết quả mong đợi (CSV): HTTP 401, EC 5\nCăn cứ: API 4.7"
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-10 recipeId = 0 (dưới biên ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-10 recipeId=0 -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"ID công thức không hợp lệ!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "0"],
+              "raw": "{{baseUrl}}/recipes/0"
+            },
+            "description": "Mã TC: TC-11-10 | Loại: Boundary | Kỹ thuật: BVA | Ưu tiên: Cao\nMục tiêu: recipeId = 0 (dưới biên ID hợp lệ)\nKết quả mong đợi (CSV): HTTP 400, EC 1, EM 'ID công thức không hợp lệ!'\nCăn cứ: Code deleteRecipe (rId <= 0)\nGhi chú CSV: Đặc tả 4.7 không có dòng 400 cho ID sai; đề nghị bổ sung đặc tả."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-11 recipeId âm (-1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-11 recipeId=-1 -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"ID công thức không hợp lệ!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "-1"],
+              "raw": "{{baseUrl}}/recipes/-1"
+            },
+            "description": "Mã TC: TC-11-11 | Loại: Boundary | Kỹ thuật: BVA | Ưu tiên: Cao\nMục tiêu: recipeId âm (-1)\nKết quả mong đợi (CSV): HTTP 400, EC 1, EM 'ID công thức không hợp lệ!'\nCăn cứ: Code deleteRecipe\nGhi chú CSV: Đặc tả 4.7 không nêu; đề nghị bổ sung đặc tả."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-12 recipeId không phải số (abc)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-12 recipeId=abc -> HTTP 400, EC=1\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(400);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(1);",
+                  "    pm.expect(j.EM).to.eql(\"ID công thức không hợp lệ!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "abc"],
+              "raw": "{{baseUrl}}/recipes/abc"
+            },
+            "description": "Mã TC: TC-11-12 | Loại: Abnormal | Kỹ thuật: Error Guessing | Ưu tiên: Cao\nMục tiêu: recipeId không phải số\nKết quả mong đợi (CSV): HTTP 400, EC 1, EM 'ID công thức không hợp lệ!'\nCăn cứ: Code deleteRecipe\nGhi chú CSV: Đặc tả 4.7 không nêu; đề nghị bổ sung đặc tả."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-S02 (bổ sung) User B xóa công thức RIÊNG TƯ của User A (IDOR)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-S02 B xóa bài private của A -> HTTP 403, EC=4\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(403);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(4);",
+                  "    pm.expect(j.EM).to.eql(\"Bạn không có quyền xóa công thức này!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId2}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId2}}"
+            },
+            "description": "Bổ sung: TC-11-07 dùng seed id 5; đây mới là kịch bản \"riêng tư của người khác\". Sau TC này bài vẫn còn (kiểm ở TC-11-S03)."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-S03 (bổ sung) Bài bị B xóa trái phép vẫn còn nguyên với User A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-S03 vẫn truy cập được -> HTTP 200, EC=0\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(0);",
+                  "    pm.expect(j.EM).to.eql(\"Thành công!\");",
+                  "",
+                  "    pm.expect(j.DT.recipeId).to.eql(Number(pm.collectionVariables.get('privId2')));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId2}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId2}}"
+            },
+            "description": "Bổ sung: đảm bảo request bị 403 không làm đổi dữ liệu."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-S04 (bổ sung) Token hỏng",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-S04 token hỏng -> HTTP 401, EC=5\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(401);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(5);",
+                  "    pm.expect(j.EM).to.eql(\"Chưa xác thực hoặc phiên đăng nhập đã hết hạn!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "token.gia.khong.hop.le",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId2}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId2}}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-11-S05 (bổ sung) Xóa công thức công khai vừa chuyển từ riêng tư (privId, Pending)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-11-S05 bài đã chuyển công khai -> HTTP 403, EC=4\", function () {",
+                  "    pm.expect(pm.response.code).to.eql(403);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.EC).to.eql(4);",
+                  "    pm.expect(j.EM).to.eql(\"Công thức đã công khai thuộc hệ thống, bạn không có quyền xóa!\");",
+                  "    pm.expect(j.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId}}"
+            },
+            "description": "Bổ sung: liên thông UC-10/UC-11 - sau TC-10-02, bài chuyển công khai không còn xóa được (Decision Table isPublic)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "99 TEARDOWN - Dọn fixture",
+      "item": [
+        {
+          "name": "CLEAN-01 Xóa fixture privId09",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('CLEAN-01: dọn dẹp fixture privId09', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId09}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId09}}"
+            },
+            "description": "Dọn dẹp fixture, không phải TC. Chấp nhận 404 nếu đã xóa trước đó."
+          },
+          "response": []
+        },
+        {
+          "name": "CLEAN-02 Xóa fixture pendId (đã về riêng tư ở TC-10-17)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('CLEAN-02: dọn dẹp fixture pendId', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{pendId}}"],
+              "raw": "{{baseUrl}}/recipes/{{pendId}}"
+            },
+            "description": "Dọn dẹp fixture, không phải TC. Chấp nhận 404 nếu đã xóa trước đó."
+          },
+          "response": []
+        },
+        {
+          "name": "CLEAN-03 Xóa fixture privId2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('CLEAN-03: dọn dẹp fixture privId2', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{privId2}}"],
+              "raw": "{{baseUrl}}/recipes/{{privId2}}"
+            },
+            "description": "Dọn dẹp fixture, không phải TC. Chấp nhận 404 nếu đã xóa trước đó."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Response contract: JSON có đủ EC/EM/DT', function () {",
+          "    var jsonData = pm.response.json();",
+          "    pm.expect(jsonData).to.have.property('EC');",
+          "    pm.expect(jsonData).to.have.property('EM');",
+          "    pm.expect(jsonData).to.have.property('DT');",
+          "    pm.expect(jsonData.EC).to.be.a('number');",
+          "    pm.expect(jsonData.EM).to.be.a('string');",
+          "    pm.expect(jsonData.EM.trim()).to.not.eql('');",
+          "    pm.expect(jsonData.DT === null || Array.isArray(jsonData.DT) || typeof jsonData.DT === 'object').to.eql(true);",
+          "});",
+          "",
+          "pm.test('Response contract: HTTP Status khớp EC theo đặc tả', function () {",
+          "    var jsonData = pm.response.json();",
+          "    var expectedEcByStatus = { 200: 0, 201: 0, 400: 1, 401: 5, 403: 4, 404: 3, 409: 2, 500: -1 };",
+          "    var status = pm.response.code;",
+          "    if (Object.prototype.hasOwnProperty.call(expectedEcByStatus, status)) {",
+          "        pm.expect(jsonData.EC, 'EC không khớp HTTP Status').to.eql(expectedEcByStatus[status]);",
+          "    }",
+          "});",
+          "",
+          "pm.test('Response contract: response lỗi phải có DT = null', function () {",
+          "    if (pm.response.code >= 400) {",
+          "        pm.expect(pm.response.json().DT).to.eql(null);",
+          "    }",
+          "});",
+          "",
+          "pm.test('Hiệu năng: thời gian phản hồi < maxResponseMs', function () {",
+          "    var max = Number(pm.environment.get('maxResponseMs') || 3000);",
+          "    pm.expect(pm.response.responseTime).to.be.below(max);",
+          "});"
+        ]
+      }
+    }
+  ]
+}

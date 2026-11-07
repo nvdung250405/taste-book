@@ -1,151 +1,322 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Plus, Pencil, Trash2, ChefHat, Clock, Star, Loader2, BookOpen } from 'lucide-react'
-import { Button } from '../components/ui/button'
-import { Card, CardContent } from '../components/ui/card'
+import { useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '../components/ui/dialog'
-import { useMyRecipes, useDeleteRecipe } from '../hooks/queries/useRecipeQueries'
+  Plus,
+  BookOpen,
+  CheckCircle2,
+  Clock3,
+  XCircle,
+  Lock,
+  Search,
+} from 'lucide-react'
+import { Button } from '../components/ui/button'
+import {
+  useMyRecipes,
+  useDeleteRecipe,
+} from '../hooks/queries/useRecipeQueries'
 import { toast } from 'sonner'
-
-const STATUS_STYLES = {
-  approved: { label: 'Đã duyệt', cls: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' },
-  pending: { label: 'Chờ duyệt', cls: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400' },
-  rejected: { label: 'Bị từ chối', cls: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400' },
-  draft: { label: 'Bản nháp', cls: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' },
-}
+import RecipeCardSkeleton from '../components/recipe/RecipeCardSkeleton'
+import QueryError from '../components/ui/QueryError'
+import ListPagination from '../components/ui/ListPagination'
+import useCollectionParams from '../hooks/useCollectionParams'
+import RecipeDeleteDialog from '../components/recipe/RecipeDeleteDialog'
+import useRecipeGridColumns from '../hooks/useRecipeGridColumns'
+import MyRecipeCard from '../components/recipe/MyRecipeCard'
 
 export default function MyRecipesPage() {
-  const { data: res, isLoading } = useMyRecipes()
+  const location = useLocation()
+  const gridColumns = useRecipeGridColumns()
+  const {
+    page,
+    search,
+    searchQuery,
+    setSearchQuery,
+    status: activeTab,
+    setStatus: setActiveTab,
+    setPage,
+    reset,
+  } = useCollectionParams()
+  const {
+    data: res,
+    isPending: isLoading,
+    isError,
+    isFetching,
+    isPlaceholderData,
+    refetch,
+  } = useMyRecipes({
+    page,
+    limit: 12,
+    ...(search.trim() ? { search: search.trim() } : {}),
+    ...(activeTab !== 'all' ? { status: activeTab === 'draft' ? 'private' : activeTab } : {}),
+  }, {
+    // Keep tab counts and the current grid stable while the next server page
+    // loads. Never carry another search's results into a new keyword.
+    placeholderData: (previous, previousQuery) =>
+      (previousQuery?.queryKey[1]?.search || '') === search.trim()
+        ? previous
+        : undefined,
+  })
   const { mutate: deleteRecipe, isPending: deleting } = useDeleteRecipe()
+
   const [toDelete, setToDelete] = useState(null)
 
-  const recipes = Array.isArray(res?.DT) ? res.DT : (res?.DT?.items || res?.DT?.recipes || [])
+  const recipes = res?.DT?.items || []
+  const totals = res?.DT?.totals
+  const total = totals?.total ?? (activeTab === 'all' ? res?.DT?.total : undefined)
+  const totalPages = Math.max(1, res?.DT?.totalPages || 1)
+  const visibleRecipes = recipes
+  useEffect(() => {
+    if (res && !isPlaceholderData && !isFetching && page > totalPages) setPage(totalPages)
+  }, [res, isPlaceholderData, isFetching, page, totalPages, setPage])
+
+  // Tabs cấu hình
+  const tabs = [
+    { id: 'all', label: 'Tất cả', count: total, icon: BookOpen },
+    {
+      id: 'approved',
+      count: totals?.approved,
+      label: 'Đã duyệt',
+      icon: CheckCircle2,
+      color: 'text-emerald-500',
+      activeColor:
+        'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300',
+    },
+    {
+      id: 'pending',
+      count: totals?.pending,
+      label: 'Chờ duyệt',
+      icon: Clock3,
+      color: 'text-amber-500',
+      activeColor:
+        'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300',
+    },
+    {
+      id: 'rejected',
+      count: totals?.rejected,
+      label: 'Bị từ chối',
+      icon: XCircle,
+      color: 'text-rose-500',
+      activeColor:
+        'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300',
+    },
+    {
+      id: 'draft',
+      count: totals?.private,
+      label: 'Riêng tư / Nháp',
+      icon: Lock,
+      color: 'text-slate-500',
+      activeColor:
+        'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
+    },
+  ]
 
   const handleDelete = () => {
     if (!toDelete) return
-    deleteRecipe(toDelete._id || toDelete.id, {
-      onSuccess: () => { toast.success('Đã xóa công thức'); setToDelete(null) },
-      onError: () => toast.error('Xóa thất bại'),
+    const id = toDelete.recipeId || toDelete._id || toDelete.id
+    deleteRecipe(id, {
+      onSuccess: () => {
+        toast.success(`Đã xóa công thức "${toDelete.title}"`)
+        setToDelete(null)
+      },
+      onError: (error) => toast.error(error?.EM || 'Xóa công thức thất bại, vui lòng thử lại!'),
     })
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {location.state?.notice && <p role="alert" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{location.state.notice}</p>}
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">Công thức của tôi</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">Quản lý tất cả công thức bạn đã tạo</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight">
+            Công Thức Của Tôi
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">
+            Quản lý, theo dõi trạng thái kiểm duyệt và cập nhật các món ăn của
+            bạn
+          </p>
         </div>
-        <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl" asChild>
+        <Button
+          className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-lg shadow-orange-500/20 px-5 py-2.5 font-medium transition-transform active:scale-95 shrink-0"
+          asChild
+        >
           <Link to="/recipe/create">
             <Plus className="w-4 h-4 mr-2" /> Tạo công thức mới
           </Link>
         </Button>
       </div>
 
-      {/* Content */}
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-          <p className="text-slate-500">Đang tải công thức của bạn...</p>
+      {/* Tabs bar & Quick Search */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-4 border-b border-slate-200/80 dark:border-slate-800">
+        {/* Tabs chia theo trạng thái */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mb-1 scrollbar-none">
+          {tabs.map((tab) => {
+            const Icon = tab.icon
+            const isActive = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                aria-pressed={isActive}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${
+                  isActive
+                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                }`}
+              >
+                <Icon
+                  className={`w-4 h-4 ${
+                    isActive
+                      ? 'text-white dark:text-slate-900'
+                      : tab.color || 'text-slate-400'
+                  }`}
+                />
+                <span>{tab.label}</span>
+                  <span
+                    className={`min-w-7 text-center tabular-nums text-xs px-2 py-0.5 rounded-full font-semibold transition-colors ${
+                      isActive
+                        ? 'bg-white/20 text-white dark:bg-slate-900/10 dark:text-slate-900'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {tab.count ?? '…'}
+                  </span>
+              </button>
+            )
+          })}
         </div>
-      ) : recipes.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-          <div className="w-20 h-20 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
-            <BookOpen className="w-10 h-10 text-orange-300" />
+
+        {/* Tìm kiếm nhanh */}
+        {
+          <div className="relative w-full md:w-64 shrink-0">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              aria-label="Tìm công thức của bạn..."
+              placeholder="Tìm công thức của bạn..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-1.5 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600"
+              >
+                Xóa
+              </button>
+            )}
           </div>
-          <h3 className="text-xl font-semibold text-slate-700 dark:text-slate-300">Bạn chưa có công thức nào</h3>
-          <p className="text-slate-500 text-sm text-center max-w-sm">Hãy chia sẻ những món ăn ngon của bạn với cộng đồng TasteBook!</p>
-          <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl" asChild>
+        }
+      </div>
+
+      {/* Content list */}
+      <div className="min-h-6 text-sm text-slate-500" role="status" aria-live="polite">
+        {isPlaceholderData ? 'Đang tải danh sách công thức…' : ''}
+      </div>
+      <div aria-busy={isPlaceholderData} inert={isPlaceholderData} className={`min-h-80 ${isPlaceholderData ? 'opacity-60' : ''}`}>
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <RecipeCardSkeleton key={idx} />
+          ))}
+        </div>
+      ) : isError && !res ? (
+        <QueryError onRetry={() => refetch()} isRetrying={isFetching} />
+      ) : recipes.length === 0 && activeTab === 'all' && !search ? (
+        /* Empty State: Chưa tạo công thức nào */
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-gradient-to-b from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-950">
+          <div className="w-20 h-20 rounded-full bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center mb-4 ring-8 ring-orange-50/50 dark:ring-orange-950/20 shadow-inner">
+            <BookOpen className="w-10 h-10 text-orange-400" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">
+            Bạn chưa có công thức nào
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mt-2 mb-6">
+            Hãy chia sẻ bí quyết và hương vị món ăn yêu thích của bạn đến với
+            cộng đồng ẩm thực TasteBook!
+          </p>
+          <Button
+            className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-lg shadow-orange-500/20 px-6 py-2.5 font-medium transition-transform active:scale-95"
+            asChild
+          >
             <Link to="/recipe/create">
               <Plus className="w-4 h-4 mr-2" /> Tạo công thức đầu tiên
             </Link>
           </Button>
         </div>
+      ) : recipes.length === 0 ? (
+        /* Empty State: Tab hoặc tìm kiếm không có kết quả */
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50">
+          <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3 text-slate-400">
+            {activeTab === 'pending' ? (
+              <Clock3 className="w-8 h-8 text-amber-500" />
+            ) : activeTab === 'rejected' ? (
+              <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+            ) : (
+              <Search className="w-8 h-8 text-slate-400" />
+            )}
+          </div>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+            {activeTab === 'pending'
+              ? 'Không có công thức nào đang chờ duyệt'
+              : activeTab === 'rejected'
+                ? 'Tuyệt vời! Không có công thức nào bị từ chối'
+                : activeTab === 'approved'
+                  ? 'Chưa có công thức nào được phê duyệt'
+                  : activeTab === 'draft'
+                    ? 'Không có bản nháp hoặc công thức riêng tư'
+                    : 'Không tìm thấy công thức phù hợp'}
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
+            {searchQuery
+              ? 'Hãy thử tìm kiếm bằng từ khóa khác hoặc xóa bộ lọc tìm kiếm.'
+              : activeTab === 'rejected'
+                ? 'Mọi công thức của bạn đều tuân thủ tốt tiêu chuẩn cộng đồng.'
+                : 'Hãy tiếp tục sáng tạo các món ăn hấp dẫn cùng TasteBook!'}
+          </p>
+          {(activeTab !== 'all' || searchQuery) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                reset()
+              }}
+              className="mt-4 rounded-xl"
+            >
+              Xem tất cả công thức
+            </Button>
+          )}
+        </div>
       ) : (
+        /* Grid công thức */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {recipes.map(recipe => {
-            const status = STATUS_STYLES[recipe.status] || STATUS_STYLES['draft']
-            return (
-              <Card key={recipe._id || recipe.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={recipe.thumbnail || recipe.image || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=600&auto=format&fit=crop'}
-                    alt={recipe.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-3 left-3">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${status.cls}`}>
-                      {status.label}
-                    </span>
-                  </div>
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-1 mb-2 text-lg group-hover:text-orange-500 transition-colors">
-                    {recipe.title}
-                  </h3>
-                  <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-4">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" /> {recipe.prepTime || recipe.time || '—'}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <ChefHat className="w-3.5 h-3.5" /> {recipe.difficulty || '—'}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3.5 h-3.5 fill-orange-400 text-orange-400" /> {recipe.rating || '—'}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1 rounded-lg" asChild>
-                      <Link to={`/recipe/${recipe._id || recipe.id}/edit`}>
-                        <Pencil className="w-3.5 h-3.5 mr-1.5" /> Sửa
-                      </Link>
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900"
-                      onClick={() => setToDelete(recipe)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Xóa
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
+          {visibleRecipes.map((recipe, index) => (
+            <MyRecipeCard
+              key={recipe.recipeId || recipe.id || recipe._id}
+              {...{ recipe, index, gridColumns }}
+              onDelete={setToDelete}
+            />
+          ))}
         </div>
       )}
 
-      {/* Delete Confirm Dialog */}
-      <Dialog open={!!toDelete} onOpenChange={(open) => !open && setToDelete(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Xóa công thức?</DialogTitle>
-          </DialogHeader>
-          <p className="text-slate-500 text-sm">
-            Bạn có chắc muốn xóa <span className="font-semibold text-slate-700 dark:text-slate-300">"{toDelete?.title}"</span>? Thao tác này không thể hoàn tác.
-          </p>
-          <DialogFooter className="gap-2 mt-2">
-            <Button variant="outline" onClick={() => setToDelete(null)}>Hủy</Button>
-            <Button
-              className="bg-red-500 hover:bg-red-600 text-white"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Xóa
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {!isLoading && !isError && (
+        <ListPagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
+      )}
+
+      {/* Modal Xác Nhận Xóa (Delete Confirmation Dialog) */}
+      </div>
+      <RecipeDeleteDialog
+        recipe={toDelete}
+        pending={deleting}
+        onClose={() => setToDelete(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import express from "express";
 import { uploadCloud } from "../config/cloudinary";
 import imageController from "../controllers/imageController";
-import { checkUserJWT } from "../middleware/JWTAction";
+import { checkUserJWT, checkAdminPermission } from "../middleware/JWTAction";
 
 const router = express.Router();
 
@@ -31,6 +31,6 @@ const uploadMiddleware = (req, res, next) => {
 router.post("/", checkUserJWT, uploadMiddleware, imageController.handleUploadSingleImage);
 
 // 8.2 DELETE /api/v1/images/{publicId} (Xóa hình ảnh)
-router.delete("/:publicId(*)", checkUserJWT, imageController.handleDeleteImage);
+router.delete("/:publicId(*)", checkUserJWT, checkAdminPermission, imageController.handleDeleteImage);
 
 export default router;

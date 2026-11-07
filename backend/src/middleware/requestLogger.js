@@ -14,11 +14,12 @@ const requestLogger = (req, res, next) => {
     const logData = {
       requestId,
       method: req.method,
-      url: req.originalUrl,
+      url: req.originalUrl.split("?")[0],
       statusCode: res.statusCode,
       duration: `${duration}ms`,
       ip: req.ip,
       userAgent: req.get("user-agent"),
+      ...(req.rateLimitViolation ? { rateLimit: req.rateLimitViolation } : {}),
     };
 
     if (res.statusCode >= 500) {

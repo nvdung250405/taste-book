@@ -1,14 +1,14 @@
 require("dotenv").config();
 import jwt from "jsonwebtoken";
+import { randomUUID } from "node:crypto";
 import db from "../models/index";
-
-const nonSecurePaths = ["/login", "/register"];
+import { isTokenRevoked } from "../services/tokenRevocationService";
 
 const createJWT = (payload) => {
   let key = process.env.JWT_SECRET;
   let token = null;
   try {
-    token = jwt.sign(payload, key, {
+    token = jwt.sign({ ...payload, jti: randomUUID() }, key, {
       expiresIn: process.env.JWT_EXPIRES_IN || "1d",
     });
   } catch (err) {
@@ -39,17 +39,11 @@ const extractToken = (req) => {
 
 const checkUserJWT = async (req, res, next) => {
   try {
-    if (nonSecurePaths.some((path) => req.path.endsWith(path))) return next();
-
-    let tokenFromHeader = extractToken(req);
-    let cookies = req.cookies;
-
-    // Ưu tiên Authorization Header trước, nếu không có mới lấy từ Cookie
-    let token = tokenFromHeader || (cookies && cookies.jwt ? cookies.jwt : null);
+    let token = extractToken(req);
 
     if (token) {
       let decoded = verifyToken(token);
-      if (decoded) {
+      if (decoded && !(await isTokenRevoked(token))) {
         let currentUserId = decoded.userId || decoded.id;
         let user = null;
         if (currentUserId) {
@@ -65,11 +59,9 @@ const checkUserJWT = async (req, res, next) => {
             phone: user.phone,
             role: user.role,
           };
-        } else {
-          req.user = decoded;
+          req.token = token;
+          return next();
         }
-        req.token = token;
-        return next();
       }
     }
 
@@ -100,14 +92,15 @@ const checkAdminPermission = (req, res, next) => {
 };
 
 const checkUserJWTOptional = async (req, res, next) => {
+  // Token không hợp lệ hoặc đã thu hồi chỉ có quyền Guest.
+  delete req.user;
+  delete req.token;
   try {
-    let tokenFromHeader = extractToken(req);
-    let cookies = req.cookies;
-    let token = tokenFromHeader || (cookies && cookies.jwt ? cookies.jwt : null);
+    let token = extractToken(req);
 
     if (token) {
       let decoded = verifyToken(token);
-      if (decoded) {
+      if (decoded && !(await isTokenRevoked(token))) {
         let currentUserId = decoded.userId || decoded.id;
         let user = null;
         if (currentUserId) {
@@ -122,10 +115,8 @@ const checkUserJWTOptional = async (req, res, next) => {
             phone: user.phone,
             role: user.role,
           };
-        } else {
-          req.user = decoded;
+          req.token = token;
         }
-        req.token = token;
       }
     }
     return next();

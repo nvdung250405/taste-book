@@ -1,5 +1,5 @@
 
-import { cn } from "cn"
+import { cn } from "../../lib/utils"
 import { XIcon } from "lucide-react"
 import { Dialog as SheetPrimitive } from "radix-ui"
 

@@ -1,161 +1,363 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Loader2, Save } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { Button } from '../components/ui/button'
-import { useCategories } from '../hooks/queries/useCategoryQueries'
+import {
+  useCategories,
+  useAdminCategories,
+} from '../hooks/queries/useCategoryQueries'
 import {
   useRecipeDetail,
   useCreateRecipe,
-  useUpdateRecipe
+  useUpdateRecipe,
+  useAdminRecipes,
+  useCreateAdminRecipe,
+  useUpdateAdminRecipe,
 } from '../hooks/queries/useRecipeQueries'
 import { toast } from 'sonner'
+import QueryError from '../components/ui/QueryError'
+import { useSearchIngredients, useUnits } from '../hooks/queries/useIngredientQueries'
+import { changeRecipeIngredient, recipeIngredientPayload } from '../lib/recipeIngredientSelection'
+import { recipeStatus } from '../lib/collectionFilters'
+import { isQualitativeUnit } from '../lib/shoppingList'
+import { adminRecipePayload } from '../lib/adminRecipeForm'
 
 import RecipeBasicInfoForm from '../components/recipe/RecipeBasicInfoForm'
 import RecipeIngredientsForm from '../components/recipe/RecipeIngredientsForm'
 import RecipeStepsForm from '../components/recipe/RecipeStepsForm'
 
-export default function RecipeFormPage() {
+export default function RecipeFormPage({ admin = false }) {
   const { id } = useParams()
+  const navigate = useNavigate()
+  const { data: recipeRes, isPending, refetch } = useRecipeDetail(id)
+  const adminList = useAdminRecipes({}, { enabled: admin && !!id })
+  if (admin && id) {
+    if (adminList.isPending)
+      return (
+        <p role="status" className="p-8">
+          Đang kiểm tra công thức chuẩn…
+        </p>
+      )
+    if (adminList.isError)
+      return (
+        <QueryError
+          title="Không thể kiểm tra công thức chuẩn"
+          onRetry={adminList.refetch}
+          isRetrying={adminList.isFetching}
+        />
+      )
+    if (
+      !adminList.data?.DT?.recipes?.some(
+        (row) => String(row.recipeId) === String(id),
+      )
+    )
+      return (
+        <div role="alert" className="space-y-4 p-8">
+          <h1 className="text-xl font-bold">
+            Công thức không thuộc danh sách chuẩn hệ thống hoặc đã bị xóa.
+          </h1>
+          <Button onClick={() => navigate('/admin/recipes')}>
+            Về danh sách công thức
+          </Button>
+        </div>
+      )
+  }
+
+  if (id && !recipeRes?.DT) {
+    if (isPending) {
+      return (
+        <div
+          role="status"
+          aria-label="Đang tải công thức"
+          className="max-w-4xl mx-auto px-4 py-8 animate-pulse"
+        >
+          <div className="h-10 w-48 bg-slate-200 dark:bg-slate-800 rounded mb-8"></div>
+          <div className="space-y-6">
+            <div className="h-20 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+            <div className="h-40 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+            <div className="h-64 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div
+        role="alert"
+        className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center"
+      >
+        <h1 className="text-2xl font-bold">Không thể tải công thức</h1>
+        <p className="text-slate-500">
+          Vui lòng thử lại để chỉnh sửa công thức.
+        </p>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => navigate(-1)}>
+            Quay lại
+          </Button>
+          <Button onClick={() => refetch()}>Thử lại</Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!admin && id && ['pending', 'approved'].includes(recipeStatus(recipeRes.DT))) {
+    return <Navigate to="/my-recipes" replace state={{ notice: 'Công thức đang chờ duyệt hoặc đã duyệt công khai, không thể sửa/xóa.' }} />
+  }
+  // A different recipe (or create mode) gets its own form state.
+  return (
+    <RecipeForm
+      key={`${admin ? 'admin' : 'user'}-${id || 'create'}`}
+      id={id}
+      recipe={recipeRes?.DT}
+      admin={admin}
+    />
+  )
+}
+
+function RecipeForm({ id, recipe, admin }) {
   const navigate = useNavigate()
   const isEdit = !!id
 
-  const { data: categoriesRes } = useCategories()
-  const { data: recipeRes, isLoading: loadingRecipe } = useRecipeDetail(id, { enabled: isEdit })
-  const { mutate: createRecipe, isPending: creating } = useCreateRecipe()
-  const { mutate: updateRecipe, isPending: updating } = useUpdateRecipe()
+  const userCategories = useCategories({ enabled: !admin })
+  const adminCategories = useAdminCategories({ enabled: admin })
+  const {
+    data: categoriesRes,
+    isError: categoriesError,
+    isFetching: fetchingCategories,
+    refetch: refetchCategories,
+  } = admin ? adminCategories : userCategories
+  const [isUploading, setIsUploading] = useState(false)
+  const userCreate = useCreateRecipe()
+  const userUpdate = useUpdateRecipe()
+  const adminCreate = useCreateAdminRecipe()
+  const adminUpdate = useUpdateAdminRecipe()
+  const { mutate: createRecipe, isPending: creating } = admin
+    ? adminCreate
+    : userCreate
+  const { mutate: updateRecipe, isPending: updating } = admin
+    ? adminUpdate
+    : userUpdate
+  const [submitError, setSubmitError] = useState('')
+  const [confirmSubmission, setConfirmSubmission] = useState(false)
+  const back = () => (admin ? navigate('/admin/recipes') : navigate(-1))
 
   const categories = categoriesRes?.DT || []
+  const ingredientQuery = useSearchIngredients({}, { staleTime: 5 * 60 * 1000 })
+  const unitsQuery = useUnits()
+  const ingredients = ingredientQuery.data?.DT || []
+  const units = unitsQuery.data?.DT || []
 
-  // Form State
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    thumbnail: '',
-    prepTime: '',
-    servings: 4,
-    difficulty: 'Trung bình',
-    categories: [],
-    tags: [],
-    ingredients: [{ name: '', quantity: '', unit: '' }],
-    steps: [{ title: '', content: '' }],
-  })
+  // Initialize once after the recipe loads; refetches must not replace the draft.
+  const [formData, setFormData] = useState(() => {
+    if (!recipe)
+      return {
+        title: '',
+        description: '',
+        thumbnail: '',
+        prepTime: '',
+        servings: 4,
+        difficulty: 'Trung bình',
+        categories: [],
+        tags: [],
+        isPublic: true,
+        ingredients: [{ name: '', quantity: '', unit: '' }],
+        steps: [{ title: '', content: '' }],
+      }
 
-  // Load edit data
-  useEffect(() => {
-    if (isEdit && recipeRes?.DT) {
-      const r = recipeRes.DT
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFormData({
-        title: r.title || '',
-        description: r.description || '',
-        thumbnail: r.thumbnail || r.image || '',
-        prepTime: r.prepTime || r.time || '',
-        servings: r.servings || r.portions || 4,
-        difficulty: r.difficulty || 'Trung bình',
-        categories: r.categories?.map(c => c._id || c.id || c) || [],
-        tags: r.tags?.map(t => t.name || t) || [],
-        ingredients: r.ingredients?.length ? r.ingredients.map(i => ({
-          name: i.ingredient?.name || i.name || '',
-          quantity: i.quantity || '',
-          unit: i.unit || i.ingredient?.unit || ''
-        })) : [{ name: '', quantity: '', unit: '' }],
-        steps: r.steps?.length ? r.steps.map(s => ({
-          title: s.title || '',
-          content: s.description || s.content || s.instruction || ''
-        })) : [{ title: '', content: '' }],
-      })
+    const r = recipe
+    return {
+      title: r.title || '',
+      description: r.description || '',
+      thumbnail: r.thumbnailUrl || r.thumbnail || r.image || '',
+      prepTime: r.cookTimeMinutes || r.prepTime || r.time || '',
+      servings: r.defaultServings || r.servings || r.portions || 4,
+      difficulty:
+        r.difficulty === 'Easy'
+          ? 'Dễ'
+          : r.difficulty === 'Hard'
+            ? 'Khó'
+            : 'Trung bình',
+      categories:
+        r.categories?.map((c) => c.categoryId || c._id || c.id || c) || [],
+      tags: r.tags?.map((t) => t.name || t) || [],
+      isPublic: r.isPublic !== undefined ? r.isPublic : true,
+      ingredients: r.ingredients?.length
+        ? r.ingredients.map((i) => ({
+            name: i.ingredientName || i.ingredient?.name || i.name || '',
+            quantity: i.quantity ?? '',
+            unit: i.unit || i.ingredient?.unit || '',
+            ingredientId: i.ingredientId, unitId: i.unitId,
+          }))
+        : [{ name: '', quantity: '', unit: '' }],
+      steps: r.steps?.length
+        ? r.steps.map((s, idx) => {
+            let title = s.title || ''
+            let content = s.instruction || s.description || s.content || ''
+            // Try to extract title from "Title: Content" format if instruction has it
+            if (!s.title && s.instruction && s.instruction.includes(': ')) {
+              const parts = s.instruction.split(': ')
+              if (parts.length > 1 && parts[0].length < 30) {
+                // arbitrary length check for title
+                title = parts[0]
+                content = parts.slice(1).join(': ')
+              }
+            }
+            return {
+              title: title || `Bước ${s.stepNumber || idx + 1}`,
+              content: content,
+            }
+          })
+        : [{ title: '', content: '' }],
     }
-  }, [isEdit, recipeRes])
+  })
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   // Ingredients handlers
   const handleIngChange = (index, field, value) => {
     const newIngs = [...formData.ingredients]
-    newIngs[index][field] = value
-    setFormData(prev => ({ ...prev, ingredients: newIngs }))
+    newIngs[index] = changeRecipeIngredient(newIngs[index], field, value, ingredients, units)
+    setFormData((prev) => ({ ...prev, ingredients: newIngs }))
   }
   const addIngredient = () => {
-    setFormData(prev => ({ ...prev, ingredients: [...prev.ingredients, { name: '', quantity: '', unit: '' }] }))
+    setFormData((prev) => ({
+      ...prev,
+      ingredients: [...prev.ingredients, { name: '', quantity: '', unit: '' }],
+    }))
   }
   const removeIngredient = (index) => {
     if (formData.ingredients.length <= 1) return
     const newIngs = formData.ingredients.filter((_, i) => i !== index)
-    setFormData(prev => ({ ...prev, ingredients: newIngs }))
+    setFormData((prev) => ({ ...prev, ingredients: newIngs }))
   }
 
   // Steps handlers
   const handleStepChange = (index, field, value) => {
     const newSteps = [...formData.steps]
     newSteps[index][field] = value
-    setFormData(prev => ({ ...prev, steps: newSteps }))
+    setFormData((prev) => ({ ...prev, steps: newSteps }))
   }
   const addStep = () => {
-    setFormData(prev => ({ ...prev, steps: [...prev.steps, { title: '', content: '' }] }))
+    setFormData((prev) => ({
+      ...prev,
+      steps: [...prev.steps, { title: '', content: '' }],
+    }))
   }
   const removeStep = (index) => {
     if (formData.steps.length <= 1) return
     const newSteps = formData.steps.filter((_, i) => i !== index)
-    setFormData(prev => ({ ...prev, steps: newSteps }))
+    setFormData((prev) => ({ ...prev, steps: newSteps }))
   }
 
   // Category toggle
   const toggleCategory = (catId) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       const cats = [...prev.categories]
-      if (cats.includes(catId)) return { ...prev, categories: cats.filter(id => id !== catId) }
+      if (cats.includes(catId))
+        return { ...prev, categories: cats.filter((id) => id !== catId) }
       cats.push(catId)
       return { ...prev, categories: cats }
     })
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    
-    // Validate
-    if (!formData.title.trim()) return toast.error('Vui lòng nhập tên món')
-    const validIngs = formData.ingredients.filter(i => i.name.trim())
-    if (validIngs.length === 0) return toast.error('Cần ít nhất 1 nguyên liệu')
-    const validSteps = formData.steps.filter(s => s.content.trim())
-    if (validSteps.length === 0) return toast.error('Cần ít nhất 1 bước thực hiện')
-
-    const payload = {
-      ...formData,
-      ingredients: validIngs,
-      steps: validSteps,
+  const handleSubmit = (e, confirmed = false) => {
+    e?.preventDefault()
+    if (creating || updating) return
+    if (isUploading) return toast.error('Vui lòng đợi ảnh tải lên hoàn tất')
+    setSubmitError('')
+    let standardPayload
+    if (admin) {
+      if (categoriesError || fetchingCategories) {
+        setSubmitError('Vui lòng tải danh mục hệ thống trước khi lưu.')
+        return
+      }
+      try {
+        standardPayload = adminRecipePayload(formData, categories)
+      } catch (error) {
+        setSubmitError(error.message)
+        return
+      }
     }
 
+    // Validate
+    if (!formData.title.trim()) return toast.error('Vui lòng nhập tên món')
+    if (formData.title.length > 255) {
+      setSubmitError('Tên món ăn không được vượt quá 255 ký tự.')
+      return
+    }
+    if (!formData.description.trim())
+      return toast.error('Vui lòng nhập mô tả món ăn')
+    if (!formData.prepTime || Number(formData.prepTime) <= 0)
+      return toast.error('Thời gian nấu phải lớn hơn 0')
+    if (!formData.servings || Number(formData.servings) <= 0)
+      return toast.error('Khẩu phần phải lớn hơn 0')
+    if (formData.categories.length === 0)
+      return toast.error('Vui lòng chọn ít nhất 1 danh mục')
+
+    const validIngs = formData.ingredients.filter((i) => i.name.trim())
+    if (validIngs.length === 0) return toast.error('Cần ít nhất 1 nguyên liệu')
+    if (validIngs.some(i => !isQualitativeUnit(i.unit) && (!Number.isFinite(Number(i.quantity)) || Number(i.quantity) <= 0)))
+      return toast.error('Số lượng nguyên liệu định lượng phải lớn hơn 0')
+    const validSteps = formData.steps.filter((s) => s.content.trim())
+    if (validSteps.length === 0)
+      return toast.error('Cần ít nhất 1 bước thực hiện')
+
+    const payload = standardPayload || {
+      title: formData.title,
+      description: formData.description,
+      thumbnailUrl: formData.thumbnail,
+      cookTimeMinutes: Number(formData.prepTime),
+      difficulty:
+        formData.difficulty === 'Dễ'
+          ? 'Easy'
+          : formData.difficulty === 'Khó'
+            ? 'Hard'
+            : 'Medium',
+      defaultServings: Number(formData.servings),
+      isPublic: formData.isPublic,
+      categoryIds: formData.categories,
+      ingredients: validIngs.map(recipeIngredientPayload),
+      steps: validSteps.map((s) => ({
+        instruction: s.title ? `${s.title}: ${s.content}` : s.content,
+      })),
+    }
+
+    if (!admin && formData.isPublic && !confirmed) { setConfirmSubmission(true); return }
+    setConfirmSubmission(false)
     if (isEdit) {
-      updateRecipe({ recipeId: id, data: payload }, {
-        onSuccess: () => {
-          toast.success('Cập nhật công thức thành công')
-          navigate(`/recipe/${id}`)
+      updateRecipe(
+        { recipeId: id, data: payload },
+        {
+          onSuccess: () => {
+            toast.success('Cập nhật công thức thành công')
+            if (admin) navigate('/admin/recipes')
+            else navigate(`/recipe/${id}`)
+          },
+          onError: (error) => {
+            setSubmitError(error?.EM || 'Lỗi khi cập nhật')
+            toast.error(error?.EM || 'Lỗi khi cập nhật')
+          },
         },
-        onError: () => toast.error('Lỗi khi cập nhật'),
-      })
+      )
     } else {
       createRecipe(payload, {
         onSuccess: (res) => {
           toast.success('Đã tạo công thức thành công')
-          const newId = res?.DT?._id || res?.DT?.id
-          if (newId) navigate(`/recipe/${newId}`)
+          const newId = res?.DT?.recipeId || res?.DT?.id || res?.DT?._id
+          if (admin) navigate('/admin/recipes')
+          else if (newId) navigate(`/recipe/${newId}`)
           else navigate('/my-recipes')
         },
-        onError: () => toast.error('Lỗi khi tạo'),
+        onError: (error) => {
+          setSubmitError(error?.EM || 'Lỗi khi tạo')
+          toast.error(error?.EM || 'Lỗi khi tạo')
+        },
       })
     }
-  }
-
-  if (isEdit && loadingRecipe) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3">
-        <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-        <p className="text-slate-500">Đang tải dữ liệu...</p>
-      </div>
-    )
   }
 
   return (
@@ -163,57 +365,107 @@ export default function RecipeFormPage() {
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <button
-          onClick={() => navigate(-1)}
+          aria-label="Quay lại"
+          type="button"
+          onClick={back}
+          disabled={creating || updating || isUploading}
           className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
         >
           <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
         </button>
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
-            {isEdit ? 'Chỉnh sửa công thức' : 'Tạo công thức mới'}
+            {admin
+              ? isEdit
+                ? 'Sửa công thức chuẩn'
+                : 'Thêm công thức chuẩn'
+              : isEdit
+                ? 'Chỉnh sửa công thức'
+                : 'Tạo công thức mới'}
           </h1>
-          <p className="text-slate-500 mt-1">Chia sẻ công thức nấu ăn của bạn với mọi người</p>
+          <p className="text-slate-500 mt-1">
+            {admin
+              ? 'Công thức hệ thống được công khai và duyệt ngay sau khi lưu.'
+              : 'Chia sẻ công thức nấu ăn của bạn với mọi người'}
+          </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        <RecipeBasicInfoForm 
-          formData={formData} 
-          handleChange={handleChange} 
-          setFormData={setFormData} 
-          categories={categories} 
-          toggleCategory={toggleCategory} 
-        />
+        <fieldset disabled={creating || updating} className="min-w-0 space-y-8">
+          <RecipeBasicInfoForm
+            admin={admin}
+            confirmPublic={isEdit && !admin && recipe?.isPublic === false}
+            isUploading={isUploading}
+            setIsUploading={setIsUploading}
+            formData={formData}
+            handleChange={handleChange}
+            setFormData={setFormData}
+            categories={categories}
+            categoriesError={categoriesError}
+            fetchingCategories={fetchingCategories}
+            refetchCategories={refetchCategories}
+            toggleCategory={toggleCategory}
+          />
 
-        <RecipeIngredientsForm 
-          formData={formData} 
-          handleIngChange={handleIngChange} 
-          removeIngredient={removeIngredient} 
-          addIngredient={addIngredient} 
-        />
+          <RecipeIngredientsForm
+            ingredients={ingredients}
+            units={units}
+            loading={ingredientQuery.isPending || unitsQuery.isPending}
+            error={ingredientQuery.isError || unitsQuery.isError}
+            onRetry={() => { ingredientQuery.refetch(); unitsQuery.refetch() }}
+            formData={formData}
+            handleIngChange={handleIngChange}
+            removeIngredient={removeIngredient}
+            addIngredient={addIngredient}
+          />
 
-        <RecipeStepsForm 
-          formData={formData} 
-          handleStepChange={handleStepChange} 
-          removeStep={removeStep} 
-          addStep={addStep} 
-        />
+          <RecipeStepsForm
+            formData={formData}
+            handleStepChange={handleStepChange}
+            removeStep={removeStep}
+            addStep={addStep}
+          />
+        </fieldset>
+        {submitError && (
+          <p
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300"
+          >
+            {submitError}
+          </p>
+        )}
 
         {/* Submit */}
         <div className="flex justify-end gap-3 sticky bottom-4 p-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg">
-          <Button type="button" variant="outline" onClick={() => navigate(-1)} className="rounded-xl px-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={back}
+            disabled={creating || updating || isUploading}
+            className="rounded-xl px-6"
+          >
             Hủy
           </Button>
-          <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl px-8" disabled={creating || updating}>
-            {(creating || updating) ? (
+          <Button
+            type="submit"
+            className="bg-orange-700 hover:bg-orange-800 text-white rounded-xl px-8"
+            disabled={creating || updating || isUploading}
+          >
+            {creating || updating || isUploading ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            {isEdit ? 'Lưu thay đổi' : 'Đăng công thức'}
+            {isUploading
+              ? 'Đang tải ảnh...'
+              : isEdit
+                ? 'Lưu thay đổi'
+                : 'Đăng công thức'}
           </Button>
         </div>
       </form>
+      <Dialog open={confirmSubmission} onOpenChange={setConfirmSubmission}><DialogContent><DialogHeader><DialogTitle>Gửi công thức để kiểm duyệt?</DialogTitle><DialogDescription>Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa, xóa hoặc chuyển công thức về riêng tư trong thời gian chờ kết quả.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setConfirmSubmission(false)}>Hủy</Button><Button onClick={() => handleSubmit(null, true)}>Xác nhận gửi duyệt</Button></DialogFooter></DialogContent></Dialog>
     </div>
   )
 }

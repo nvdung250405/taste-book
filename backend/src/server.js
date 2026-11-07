@@ -3,20 +3,27 @@ import configViewEngine from "./config/viewEngine";
 import initApiRoutes from "./routes/api";
 import configCors from "./config/cors";
 require("dotenv").config();
-import cookieParser from "cookie-parser";
 import connection from "./config/connectDB";
 import configSwagger from "./config/swagger";
 import logger from "./config/logger";
 import requestLogger from "./middleware/requestLogger";
 import errorHandler from "./middleware/errorHandler";
+import { configureTrustProxy } from "./config/trustProxy";
+import { apiLimiter } from "./middleware/apiRateLimit";
+import { startTokenCleanup } from "./services/tokenRevocationService";
 const app = express();
+configureTrustProxy(app);
 const PORT = process.env.PORT || 5000;
 
-//config cors
+// Log CORS rejections as well as rate-limited responses.
+app.use(requestLogger);
 configCors(app);
 
-//config request logger
-app.use(requestLogger);
+// Liveness only: this does not assert database readiness.
+app.get("/healthz", (req, res) => res.status(200).json({ status: "ok" }));
+
+// Shared budget across all API routes, before parsing/authentication/DB work.
+app.use("/api/v1", apiLimiter);
 
 //config view engine
 configViewEngine(app);
@@ -25,11 +32,10 @@ configViewEngine(app);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-//config cookie parser
-app.use(cookieParser());
-
 //test connection db
-connection();
+if (process.env.NODE_ENV !== "test") {
+  connection();
+}
 
 // Khởi chạy Swagger UI
 configSwagger(app);
@@ -40,7 +46,7 @@ initApiRoutes(app);
 //req => middleware => res
 app.use((req, res) => {
   return res.status(404).json({
-    EC: -1,
+    EC: 3,
     EM: "API endpoint not found.",
     DT: null,
   });
@@ -49,6 +55,11 @@ app.use((req, res) => {
 //config error handler
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log("tastebook backend is running on the port = ", PORT);
-});
+if (process.env.NODE_ENV !== "test") {
+  startTokenCleanup();
+  app.listen(PORT, () => {
+    logger.info(`tastebook backend is running on the port = ${PORT}`);
+  });
+}
+
+export default app;

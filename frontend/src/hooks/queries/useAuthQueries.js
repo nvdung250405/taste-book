@@ -1,5 +1,7 @@
+import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import authApi from '../../api/auth.api';
+import { clearAuthSession, startAuthSession } from '../../lib/authSession';
 
 // --- AUTH MUTATIONS ---
 
@@ -13,15 +15,13 @@ export const useLogin = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['login'],
     mutationFn: (data) => authApi.login(data),
     onSuccess: (response) => {
       // API spec says response.DT contains accessToken and user
       if (response.DT && response.DT.accessToken) {
-        localStorage.setItem('token', response.DT.accessToken);
-        // Tùy thuộc bạn lưu user info ở đâu (localStorage, Zustand)
-        // localStorage.setItem('user', JSON.stringify(response.DT.user));
-        
-        // Invalidate profile query to refetch after login
+        startAuthSession(queryClient, response.DT.accessToken);
+        // Load the profile for the new session rather than reuse the previous user.
         queryClient.invalidateQueries({ queryKey: ['profile'] });
       }
     },
@@ -33,11 +33,13 @@ export const useLogout = () => {
   
   return useMutation({
     mutationFn: () => authApi.logout(),
+    retry: false,
+    networkMode: 'always',
+    onSuccess: () => toast.success('Đã đăng xuất thành công'),
+    onError: () => toast.warning('Phiên trên thiết bị đã đóng. Chưa thể xác nhận thu hồi token trên máy chủ.'),
     onSettled: () => {
-      // Xóa token và invalidate query dù logout thành công hay lỗi
-      localStorage.removeItem('token');
-      // localStorage.removeItem('user');
-      queryClient.clear(); // Xóa toàn bộ cache
+      // Clear the session even when the logout request fails.
+      clearAuthSession(queryClient);
     },
   });
 };

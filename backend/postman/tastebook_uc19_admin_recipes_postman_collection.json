@@ -1,0 +1,3816 @@
+{
+  "info": {
+    "_postman_id": "d940f64f-a6f7-4009-87d7-fb606306c751",
+    "name": "TasteBook UC-19 Admin API - Normal, Abnormal, Boundary (TB-98)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Bộ độc lập UC-19, dùng sáu biến environment hiện có. Có setup, xác minh dữ liệu, cleanup riêng và assertion cuối kiểm tra đủ 45 mã TC. Không sửa dữ liệu seed. Các giới hạn lấy từ code chưa được tài liệu duyệt được ghi rõ trong CSV/spec gaps; BE/BA phải chốt trước nghiệm thu Staging. Runner trên Staging có delay 11000ms/request để giữ hạn mức 100 request/15 phút; không chạy đồng thời nhiều bộ trên cùng IP. Nhóm nguyên liệu không có API xóa: UC-22 để lại 4 nhóm; các UC khác không tạo nhóm. Xem README_admin_rbac.md."
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "tb98RunId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98UserToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AdminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98UserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AdminId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98CategoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98GroupId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98UnitId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98IngredientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98RecipeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98PendingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98ImageId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98ImageIdEncoded",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryCategoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryGroupId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryIngredientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryUnitId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryRecipeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryPendingOneId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryPendingTwoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryBeyondLastPage",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryExpectedName",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryCategoryQueue",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryUnitQueue",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryIngredientQueue",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryRecipeQueue",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98BoundaryPendingQueue",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalRecipeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalPendingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalRejectedId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalCategoryAId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalCategoryBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalIngredientAId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalIngredientBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalUnitAId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98AbnormalUnitBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98ExecutedCases",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tb98RemainingGroups",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Đọc cấu hình từ environment Local/Staging đang được chọn.",
+          "var environmentKeys = [\"baseUrl\",\"userAEmail\",\"userPassword\",\"adminEmail\",\"adminPassword\",\"maxResponseMs\"];",
+          "environmentKeys.forEach(function (key) {",
+          "  pm.variables.set(key, pm.environment.get(key));",
+          "});",
+          "",
+          "// Dùng phạm vi cục bộ để environment không ghi đè ID và token của lượt chạy.",
+          "      Object.keys(pm.collectionVariables.toObject()).forEach(function (key) {",
+          "        if (key.indexOf('tb98') === 0) pm.variables.set(key, pm.collectionVariables.get(key));",
+          "      });",
+          "// Mỗi request dùng lại ngưỡng environment; chỉ warm-up được nới riêng.",
+          "pm.variables.set('tb98ResponseLimitMs', Number(pm.environment.get('maxResponseMs')));"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Cấu trúc phản hồi: JSON có đủ EC/EM/DT', function () {",
+          "        pm.expect(pm.response.headers.get('Content-Type') || '').to.include('application/json');",
+          "        var data = pm.response.json();",
+          "        pm.expect(data).to.be.an('object');",
+          "        pm.expect(data).to.have.all.keys('EC', 'EM', 'DT');",
+          "        pm.expect(data.EC).to.be.a('number');",
+          "        pm.expect(data.EM).to.be.a('string'); pm.expect(data.EM.trim()).not.to.eql('');",
+          "        pm.expect(data.DT === null || typeof data.DT === 'object').to.eql(true);",
+          "      });",
+          "      pm.test('Cấu trúc phản hồi: lỗi không trả dữ liệu', function () {",
+          "        if (pm.response.code >= 400) pm.expect(pm.response.json().DT).to.eql(null);",
+          "      });",
+          "",
+          "pm.test('Hiệu năng: thời gian phản hồi nhỏ hơn ngưỡng của request', function () {",
+          "  var maxResponseMs = Number(pm.variables.get('tb98ResponseLimitMs'));",
+          "  pm.expect(Number.isFinite(maxResponseMs) && maxResponseMs > 0).to.eql(true);",
+          "  pm.expect(pm.response.responseTime).to.be.below(maxResponseMs);",
+          "});",
+          "var caseId = pm.info.requestName.match(/^TC-\\d{2}-\\d{2}[a-z]?\\b/);",
+          "if (caseId) { var seen = JSON.parse(pm.collectionVariables.get('tb98ExecutedCases') || '[]'); if (seen.indexOf(caseId[0]) < 0) seen.push(caseId[0]); pm.collectionVariables.set('tb98ExecutedCases', JSON.stringify(seen)); }",
+          "if (pm.request.method === 'POST' && pm.request.url.toString().split('?')[0].endsWith('/admin/ingredient-categories') && pm.response.code === 201) {",
+          "  var groupData = null; try { groupData = pm.response.json(); } catch (error) {}",
+          "  if (groupData && groupData.EC === 0 && groupData.DT && Number.isSafeInteger(groupData.DT.ingredientCategoryId)) {",
+          "    var group = { runId: pm.collectionVariables.get('tb98RunId'), ingredientCategoryId: groupData.DT.ingredientCategoryId, categoryName: groupData.DT.categoryName };",
+          "    var groups = JSON.parse(pm.collectionVariables.get('tb98RemainingGroups') || '[]'); groups.push(group); pm.collectionVariables.set('tb98RemainingGroups', JSON.stringify(groups));",
+          "    console.log('QA_LEFTOVER_GROUP ' + JSON.stringify(group));",
+          "  }",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00_Setup",
+      "item": [
+        {
+          "name": "TC-SETUP-01 Warm-up backend và khởi tạo lượt chạy (UC-19)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Kiểm tra các biến environment có sẵn trước khi tạo dữ liệu kiểm thử.",
+                  "var requiredKeys = [\"baseUrl\",\"userAEmail\",\"userPassword\",\"adminEmail\",\"adminPassword\",\"maxResponseMs\"];",
+                  "var missingKeys = requiredKeys.filter(function (key) {",
+                  "  var value = pm.environment.get(key);",
+                  "  return value === undefined || value === null || String(value).trim() === '';",
+                  "});",
+                  "if (missingKeys.length > 0) {",
+                  "  pm.execution.setNextRequest(null);",
+                  "  throw new Error('Environment đang chọn thiếu các biến: ' + missingKeys.join(', '));",
+                  "}",
+                  "if (!/^https?:\\/\\/.+\\/api\\/v1$/.test(String(pm.environment.get('baseUrl')))) {",
+                  "  pm.execution.setNextRequest(null);",
+                  "  throw new Error('Biến baseUrl trong environment phải là URL HTTP(S), kết thúc bằng /api/v1 và không có dấu gạch chéo cuối.');",
+                  "}",
+                  "var maxResponseMs = Number(pm.environment.get('maxResponseMs'));",
+                  "if (!Number.isFinite(maxResponseMs) || maxResponseMs <= 0) {",
+                  "  pm.execution.setNextRequest(null);",
+                  "  throw new Error('Biến maxResponseMs trong environment phải là số dương.');",
+                  "}",
+                  "",
+                  "pm.collectionVariables.toObject && Object.keys(pm.collectionVariables.toObject()).forEach(function (key) {",
+                  "          if (key.indexOf('tb98') === 0) pm.collectionVariables.unset(key);",
+                  "        });",
+                  "        pm.collectionVariables.set('tb98RunId', Date.now().toString(36) + Math.random().toString(36).slice(2, 7));",
+                  "pm.variables.set('tb98ResponseLimitMs', Math.max(60000, Number(pm.environment.get('maxResponseMs'))));",
+                  "pm.collectionVariables.set('tb98ExecutedCases', '[]');",
+                  "pm.collectionVariables.set('tb98RemainingGroups', '[]');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc sẽ báo JSON không hợp lệ. */ }",
+                  "pm.test('TC-SETUP-01 Máy chủ phản hồi HTTP 200 và EC 0', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(body).to.be.an('object');",
+                  "  pm.expect(body.EC).to.eql(0);",
+                  "});",
+                  "if (pm.response.code !== 200 || !body || body.EC !== 0) pm.execution.setNextRequest(null);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/home",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "home"
+              ]
+            },
+            "description": "Đánh thức máy chủ bằng GET /home trước khi đăng nhập. Chỉ request này được nới ngưỡng thời gian lên tối thiểu 60000 ms; các request kiểm thử vẫn dùng maxResponseMs trong environment."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SETUP-02 Đăng nhập User lấy token (UC-19)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-SETUP-02 HTTP 200 và EC 0', function () {",
+                  "      pm.response.to.have.status(200);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(0);",
+                  "    });",
+                  "    ",
+                  "        var dt = body && body.DT;",
+                  "        var valid = Boolean(dt && typeof dt.accessToken === 'string' && /^[\\w-]+\\.[\\w-]+\\.[\\w-]+$/.test(dt.accessToken) && dt.user && dt.user.role === 'User' && Number.isSafeInteger(dt.user.userId) && dt.user.userId > 0);",
+                  "        pm.test('Đăng nhập trả JWT hợp lệ và đúng vai trò User', function () { pm.expect(valid).to.eql(true); });",
+                  "        if (pm.response.code === 200 && body && body.EC === 0 && valid) {",
+                  "          pm.collectionVariables.set('tb98UserToken', dt.accessToken);",
+                  "          pm.collectionVariables.set('tb98UserId', dt.user.userId);",
+                  "        } else { pm.execution.setNextRequest(null); }",
+                  "      ",
+                  "    ",
+                  "    if (pm.response.code !== 200 || !body || body.EC !== 0) { pm.execution.setNextRequest(null); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "POST /auth/login. Kỳ vọng HTTP 200, EC=0. Vai trò: Khách chưa đăng nhập (Guest).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{userAEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SETUP-03 Đăng nhập Admin lấy token (UC-19)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-SETUP-03 HTTP 200 và EC 0', function () {",
+                  "      pm.response.to.have.status(200);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(0);",
+                  "    });",
+                  "    ",
+                  "        var dt = body && body.DT;",
+                  "        var valid = Boolean(dt && typeof dt.accessToken === 'string' && /^[\\w-]+\\.[\\w-]+\\.[\\w-]+$/.test(dt.accessToken) && dt.user && dt.user.role === 'Admin' && Number.isSafeInteger(dt.user.userId) && dt.user.userId > 0);",
+                  "        pm.test('Đăng nhập trả JWT hợp lệ và đúng vai trò Admin', function () { pm.expect(valid).to.eql(true); });",
+                  "        if (pm.response.code === 200 && body && body.EC === 0 && valid) {",
+                  "          pm.collectionVariables.set('tb98AdminToken', dt.accessToken);",
+                  "          pm.collectionVariables.set('tb98AdminId', dt.user.userId);",
+                  "        } else { pm.execution.setNextRequest(null); }",
+                  "      ",
+                  "    ",
+                  "    if (pm.response.code !== 200 || !body || body.EC !== 0) { pm.execution.setNextRequest(null); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "POST /auth/login. Kỳ vọng HTTP 200, EC=0. Vai trò: Khách chưa đăng nhập (Guest).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PRE-19-01 Quản trị viên - Tạo danh mục chuẩn (POST /admin/categories)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('PRE-19-01 HTTP 201 và EC 0', function () {",
+                  "      pm.response.to.have.status(201);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(0);",
+                  "    });",
+                  "    pm.test('Danh mục chuẩn có đúng tên yêu cầu và không thuộc người dùng cá nhân', function () {",
+                  "    pm.expect(body.DT.categoryName).to.eql(pm.variables.replaceIn('TB98-{{tb98RunId}}-category'));",
+                  "    pm.expect(body.DT.createdBy).to.eql(null);",
+                  "  });",
+                  "    ",
+                  "    var savedId = body && body.DT && body.DT.categoryId;",
+                  "    var validId = Number.isSafeInteger(savedId) && savedId > 0;",
+                  "    pm.test('PRE-19-01 ID dữ liệu kiểm thử vừa tạo hợp lệ', function () { pm.expect(validId).to.eql(true); });",
+                  "    if (pm.response.code === 201 && body && body.EC === 0 && validId) {",
+                  "      pm.collectionVariables.set('tb98CategoryId', savedId);",
+                  "      ",
+                  "    } else { pm.execution.setNextRequest(null); }",
+                  "    ",
+                  "    if (pm.response.code !== 201 || !body || body.EC !== 0) { pm.execution.setNextRequest(null); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "categories"
+              ]
+            },
+            "description": "POST /admin/categories. Kỳ vọng HTTP 201, EC=0. Vai trò: Quản trị viên (Admin).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB98-{{tb98RunId}}-category\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PRE-19-03 Tạo công thức chuẩn riêng cho các ca Abnormal",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "Tạo công thức chuẩn riêng cho các ca Abnormal. Kỳ vọng HTTP 201.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB98-{{tb98RunId}}-abnormal-recipe\",\n  \"description\": \"Công thức kiểm thử riêng của lượt chạy\",\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu chín nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('PRE-19-03 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([201]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});",
+                  "",
+                  "var createdId = data && data.DT && data.DT.recipeId;",
+                  "pm.test('PRE-19-03 Có ID kiểm thử hợp lệ', function () { pm.expect(Number.isSafeInteger(createdId) && createdId > 0).to.eql(true); });",
+                  "if (pm.response.code === 201 && data && data.EC === 0 && Number.isSafeInteger(createdId) && createdId > 0) pm.collectionVariables.set('tb98AbnormalRecipeId', createdId);",
+                  "else pm.execution.setNextRequest(null);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01_UC19_Normal_RBAC",
+      "item": [
+        {
+          "name": "TC-19-01 Admin Tạo công thức chuẩn",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-01 HTTP 201 và EC 0', function () {",
+                  "      pm.response.to.have.status(201);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(0);",
+                  "    });",
+                  "    pm.test('Công thức do Admin tạo được duyệt ngay', function () { pm.expect(body.DT.approvalStatus).to.eql('Approved'); });",
+                  "    ",
+                  "    var savedId = body && body.DT && body.DT.recipeId;",
+                  "    var validId = Number.isSafeInteger(savedId) && savedId > 0;",
+                  "    pm.test('TC-19-01 ID dữ liệu kiểm thử vừa tạo hợp lệ', function () { pm.expect(validId).to.eql(true); });",
+                  "    if (pm.response.code === 201 && body && body.EC === 0 && validId) {",
+                  "      pm.collectionVariables.set('tb98RecipeId', savedId);",
+                  "      ",
+                  "    } else { pm.execution.setNextRequest(null); }",
+                  "    ",
+                  "    if (pm.response.code !== 201 || !body || body.EC !== 0) { pm.execution.setNextRequest(null); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "POST /admin/recipes. Kỳ vọng HTTP 201, EC=0. Vai trò: Quản trị viên (Admin).\nUC: 19; Loại: Normal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB98-{{tb98RunId}}-recipe\",\n  \"description\": \"Dữ liệu kiểm thử phân quyền RBAC riêng cho TB-98\",\n  \"thumbnailUrl\": null,\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu nguyên liệu dùng cho kiểm thử phân quyền RBAC.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-02 Xem danh sách công thức chuẩn khi không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-02 HTTP 401 và EC 5', function () {",
+                  "      pm.response.to.have.status(401);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(5);",
+                  "    });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "GET /admin/recipes. Kỳ vọng HTTP 401, EC=5. Vai trò: Khách chưa đăng nhập (Guest).\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-03 Tạo công thức chuẩn khi không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-03 HTTP 401 và EC 5', function () {",
+                  "      pm.response.to.have.status(401);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(5);",
+                  "    });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "POST /admin/recipes. Kỳ vọng HTTP 401, EC=5. Vai trò: Khách chưa đăng nhập (Guest).\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB98-{{tb98RunId}}-guest-15\",\n  \"description\": \"Dữ liệu kiểm thử phân quyền RBAC riêng cho TB-98\",\n  \"thumbnailUrl\": null,\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu nguyên liệu dùng cho kiểm thử phân quyền RBAC.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-04 Sửa công thức chuẩn khi không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-04 HTTP 401 và EC 5', function () {",
+                  "      pm.response.to.have.status(401);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(5);",
+                  "    });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98RecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98RecipeId}}"
+              ]
+            },
+            "description": "PUT /admin/recipes/{{tb98RecipeId}}. Kỳ vọng HTTP 401, EC=5. Vai trò: Khách chưa đăng nhập (Guest).\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB98-{{tb98RunId}}-guest-16\",\n  \"description\": \"Dữ liệu kiểm thử phân quyền RBAC riêng cho TB-98\",\n  \"thumbnailUrl\": null,\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu nguyên liệu dùng cho kiểm thử phân quyền RBAC.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-05 Xóa công thức khi không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-05 HTTP 401 và EC 5', function () {",
+                  "      pm.response.to.have.status(401);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(5);",
+                  "    });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98RecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98RecipeId}}"
+              ]
+            },
+            "description": "DELETE /admin/recipes/{{tb98RecipeId}}. Kỳ vọng HTTP 401, EC=5. Vai trò: Khách chưa đăng nhập (Guest).\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-06 Xem danh sách công thức chuẩn bằng tài khoản User không có quyền Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-06 HTTP 403 và EC 4', function () {",
+                  "      pm.response.to.have.status(403);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(4);",
+                  "    });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98UserToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "GET /admin/recipes. Kỳ vọng HTTP 403, EC=4. Vai trò: Người dùng thường (User).\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-07 Tạo công thức chuẩn bằng tài khoản User không có quyền Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-07 HTTP 403 và EC 4', function () {",
+                  "      pm.response.to.have.status(403);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(4);",
+                  "    });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98UserToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "POST /admin/recipes. Kỳ vọng HTTP 403, EC=4. Vai trò: Người dùng thường (User).\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB98-{{tb98RunId}}-user-15\",\n  \"description\": \"Dữ liệu kiểm thử phân quyền RBAC riêng cho TB-98\",\n  \"thumbnailUrl\": null,\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu nguyên liệu dùng cho kiểm thử phân quyền RBAC.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-08 Sửa công thức chuẩn bằng tài khoản User không có quyền Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-08 HTTP 403 và EC 4', function () {",
+                  "      pm.response.to.have.status(403);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(4);",
+                  "    });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98UserToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98RecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98RecipeId}}"
+              ]
+            },
+            "description": "PUT /admin/recipes/{{tb98RecipeId}}. Kỳ vọng HTTP 403, EC=4. Vai trò: Người dùng thường (User).\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB98-{{tb98RunId}}-user-16\",\n  \"description\": \"Dữ liệu kiểm thử phân quyền RBAC riêng cho TB-98\",\n  \"thumbnailUrl\": null,\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu nguyên liệu dùng cho kiểm thử phân quyền RBAC.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-09 Xóa công thức bằng tài khoản User không có quyền Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-09 HTTP 403 và EC 4', function () {",
+                  "      pm.response.to.have.status(403);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(4);",
+                  "    });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98UserToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98RecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98RecipeId}}"
+              ]
+            },
+            "description": "DELETE /admin/recipes/{{tb98RecipeId}}. Kỳ vọng HTTP 403, EC=4. Vai trò: Người dùng thường (User).\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-13 Kiểm tra công thức gốc không bị thay đổi trái quyền",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-13 HTTP 200 và EC 0', function () {",
+                  "      pm.response.to.have.status(200);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(0);",
+                  "    });",
+                  "    pm.test('Yêu cầu sửa và xóa công thức bị từ chối không làm thay đổi dữ liệu', function () {",
+                  "    pm.expect(body.DT.title).to.eql(pm.variables.replaceIn('TB98-{{tb98RunId}}-recipe'));",
+                  "    pm.expect(body.DT.approvalStatus).to.eql('Approved');",
+                  "  });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{tb98RecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "{{tb98RecipeId}}"
+              ]
+            },
+            "description": "GET /recipes/{{tb98RecipeId}}. Kỳ vọng HTTP 200, EC=0. Vai trò: Quản trị viên (Admin).\nUC: 19; Loại: Normal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-14 Kiểm tra không có công thức công khai đã duyệt được tạo trái quyền",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-14 HTTP 200 và EC 0', function () {",
+                  "      pm.response.to.have.status(200);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(0);",
+                  "    });",
+                  "    pm.test('Không có công thức công khai đã duyệt mang tên của yêu cầu bị từ chối', function () {",
+                  "    pm.expect(body.DT.recipes).to.be.an('array');",
+                  "    ['guest', 'user'].forEach(function (role) { pm.expect(body.DT.recipes.some(function (x) { return x.title === pm.variables.replaceIn('TB98-{{tb98RunId}}-' + role + '-15'); })).to.eql(false); });",
+                  "  });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes?scope=all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ],
+              "query": [
+                {
+                  "key": "scope",
+                  "value": "all"
+                }
+              ]
+            },
+            "description": "GET /admin/recipes?scope=all. Kỳ vọng HTTP 200, EC=0. Vai trò: Quản trị viên (Admin). Phạm vi: chỉ công thức công khai đã duyệt; không dùng kết quả này để kết luận về công thức Pending hoặc riêng tư.\nUC: 19; Loại: Normal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-15 Kiểm tra mọi trang công thức của User không có dữ liệu tạo trái quyền",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var currentPage = Number(pm.collectionVariables.get('tb98UserMinePage') || 1);",
+                  "pm.collectionVariables.set('tb98UserMinePage', currentPage);",
+                  "pm.variables.set('tb98UserMinePage', currentPage);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc sẽ báo JSON không hợp lệ. */ }",
+                  "pm.test('TC-19-15 HTTP 200 và EC 0', function () {",
+                  "  pm.response.to.have.status(200); pm.expect(body).to.be.an('object'); pm.expect(body.EC).to.eql(0);",
+                  "});",
+                  "",
+                  "var currentPage = Number(pm.collectionVariables.get('tb98UserMinePage') || 1);",
+                  "var validPage = Boolean(body && body.DT && Array.isArray(body.DT.items) && body.DT.page === currentPage && Number.isSafeInteger(body.DT.totalPages) && body.DT.totalPages >= 0);",
+                  "pm.test('Danh sách công thức cá nhân có phân trang hợp lệ', function () { pm.expect(validPage).to.eql(true); });",
+                  "pm.test('Không có công thức của yêu cầu bị từ chối, kể cả riêng tư hoặc chưa duyệt', function () {",
+                  "  pm.expect(body.DT.items).to.be.an('array');",
+                  "  ['guest', 'user'].forEach(function (role) {",
+                  "    var title = pm.variables.replaceIn('TB98-{{tb98RunId}}-' + role + '-15');",
+                  "    pm.expect(body.DT.items.some(function (r) { return r.title === title; })).to.eql(false);",
+                  "  });",
+                  "});",
+                  "if (pm.response.code === 200 && body && body.EC === 0 && validPage && currentPage < body.DT.totalPages) {",
+                  "  pm.collectionVariables.set('tb98UserMinePage', currentPage + 1);",
+                  "  pm.execution.setNextRequest(pm.info.requestId);",
+                  "} else {",
+                  "  pm.collectionVariables.set('tb98UserMinePage', 1);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98UserToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes/mine?page={{tb98UserMinePage}}&limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "mine"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{tb98UserMinePage}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Đọc lại bằng token User để kiểm tra các yêu cầu tạo công thức bị từ chối không làm phát sinh dữ liệu ở trạng thái khác. Kỳ vọng HTTP 200, EC=0.\nUC: 19; Loại: Normal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-16 Kiểm tra mọi trang công thức của Admin không có dữ liệu tạo trái quyền",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var currentPage = Number(pm.collectionVariables.get('tb98AdminMinePage') || 1);",
+                  "pm.collectionVariables.set('tb98AdminMinePage', currentPage);",
+                  "pm.variables.set('tb98AdminMinePage', currentPage);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc sẽ báo JSON không hợp lệ. */ }",
+                  "pm.test('TC-19-16 HTTP 200 và EC 0', function () {",
+                  "  pm.response.to.have.status(200); pm.expect(body).to.be.an('object'); pm.expect(body.EC).to.eql(0);",
+                  "});",
+                  "",
+                  "var currentPage = Number(pm.collectionVariables.get('tb98AdminMinePage') || 1);",
+                  "var validPage = Boolean(body && body.DT && Array.isArray(body.DT.items) && body.DT.page === currentPage && Number.isSafeInteger(body.DT.totalPages) && body.DT.totalPages >= 0);",
+                  "pm.test('Danh sách công thức cá nhân có phân trang hợp lệ', function () { pm.expect(validPage).to.eql(true); });",
+                  "pm.test('Không có công thức của yêu cầu bị từ chối, kể cả riêng tư hoặc chưa duyệt', function () {",
+                  "  pm.expect(body.DT.items).to.be.an('array');",
+                  "  ['guest', 'user'].forEach(function (role) {",
+                  "    var title = pm.variables.replaceIn('TB98-{{tb98RunId}}-' + role + '-15');",
+                  "    pm.expect(body.DT.items.some(function (r) { return r.title === title; })).to.eql(false);",
+                  "  });",
+                  "});",
+                  "if (pm.response.code === 200 && body && body.EC === 0 && validPage && currentPage < body.DT.totalPages) {",
+                  "  pm.collectionVariables.set('tb98AdminMinePage', currentPage + 1);",
+                  "  pm.execution.setNextRequest(pm.info.requestId);",
+                  "} else {",
+                  "  pm.collectionVariables.set('tb98AdminMinePage', 1);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes/mine?page={{tb98AdminMinePage}}&limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "mine"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{tb98AdminMinePage}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Đọc lại bằng token Admin để kiểm tra các yêu cầu tạo công thức bị từ chối không làm phát sinh dữ liệu ở trạng thái khác. Kỳ vọng HTTP 200, EC=0.\nUC: 19; Loại: Normal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-10 Admin Xem danh sách công thức chuẩn",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-10 HTTP 200 và EC 0', function () {",
+                  "      pm.response.to.have.status(200);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(0);",
+                  "    });",
+                  "    pm.test('Danh sách công thức chuẩn chứa công thức kiểm thử đã duyệt', function () {",
+                  "    pm.expect(body.DT.recipes).to.be.an('array');",
+                  "    var row = body.DT.recipes.find(function (x) { return x.recipeId === Number(pm.collectionVariables.get('tb98RecipeId')); });",
+                  "    pm.expect(row).to.be.an('object');",
+                  "    pm.expect(row.isPublic).to.eql(true); pm.expect(row.approvalStatus).to.eql('Approved');",
+                  "  });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "GET /admin/recipes. Kỳ vọng HTTP 200, EC=0. Vai trò: Quản trị viên (Admin).\nUC: 19; Loại: Normal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-11 Admin Sửa công thức chuẩn",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-11 HTTP 200 và EC 0', function () {",
+                  "      pm.response.to.have.status(200);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(0);",
+                  "    });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98RecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98RecipeId}}"
+              ]
+            },
+            "description": "PUT /admin/recipes/{{tb98RecipeId}}. Kỳ vọng HTTP 200, EC=0. Vai trò: Quản trị viên (Admin).\nUC: 19; Loại: Normal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB98-{{tb98RunId}}-recipe-updated\",\n  \"description\": \"Dữ liệu kiểm thử phân quyền RBAC riêng cho TB-98\",\n  \"thumbnailUrl\": null,\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu nguyên liệu dùng cho kiểm thử phân quyền RBAC.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-17 Kiểm tra cập nhật công thức đã được lưu",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-17 HTTP 200 và EC 0', function () {",
+                  "      pm.response.to.have.status(200);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(0);",
+                  "    });",
+                  "    pm.test('Công thức sau cập nhật được lưu ở trạng thái công khai và đã duyệt', function () {",
+                  "    pm.expect(body.DT.title).to.eql(pm.variables.replaceIn('TB98-{{tb98RunId}}-recipe-updated'));",
+                  "    pm.expect(body.DT.isPublic).to.eql(true); pm.expect(body.DT.approvalStatus).to.eql('Approved');",
+                  "  });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{tb98RecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "{{tb98RecipeId}}"
+              ]
+            },
+            "description": "GET /recipes/{{tb98RecipeId}}. Kỳ vọng HTTP 200, EC=0. Vai trò: Quản trị viên (Admin).\nUC: 19; Loại: Normal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-12 Admin Xóa công thức",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-12 HTTP 200 và EC 0', function () {",
+                  "      pm.response.to.have.status(200);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(0);",
+                  "    });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98RecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98RecipeId}}"
+              ]
+            },
+            "description": "DELETE /admin/recipes/{{tb98RecipeId}}. Kỳ vọng HTTP 200, EC=0. Vai trò: Quản trị viên (Admin).\nUC: 19; Loại: Normal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-18 Kiểm tra công thức gốc đã xóa không còn truy cập được",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = null;",
+                  "    try { body = pm.response.json(); } catch (error) { /* Phép kiểm tra cấu trúc phản hồi sẽ báo lỗi nếu JSON không hợp lệ. */ }",
+                  "    pm.test('TC-19-18 HTTP 404 và EC 3', function () {",
+                  "      pm.response.to.have.status(404);",
+                  "      pm.expect(body).to.be.an('object');",
+                  "      pm.expect(body.EC).to.eql(3);",
+                  "    });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{tb98RecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "{{tb98RecipeId}}"
+              ]
+            },
+            "description": "GET /recipes/{{tb98RecipeId}}. Kỳ vọng HTTP 404, EC=3. Vai trò: Quản trị viên (Admin).\nUC: 19; Loại: Normal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-19-44 Sửa công thức với định lượng thập phân hợp lệ 0.25",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98AbnormalRecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98AbnormalRecipeId}}"
+              ]
+            },
+            "description": "Sửa công thức với định lượng thập phân hợp lệ 0.25. Kỳ vọng HTTP 200.\nUC: 19; Loại: Normal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB98-{{tb98RunId}}-abnormal-recipe\",\n  \"description\": \"Công thức kiểm thử riêng của lượt chạy\",\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 0.25,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu chín nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TC-19-44 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([200]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-44b Đọc lại định lượng 0.25 sau cập nhật",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{tb98AbnormalRecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "{{tb98AbnormalRecipeId}}"
+              ]
+            },
+            "description": "Đọc lại định lượng 0.25 sau cập nhật. Kỳ vọng HTTP 200.\nUC: 19; Loại: Normal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TC-19-44b HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([200]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});",
+                  "",
+                  "pm.test('Định lượng thập phân được lưu chính xác', function () { pm.expect(Number(data.DT.ingredients[0].quantity)).to.eql(0.25); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02_UC19_Abnormal",
+      "item": [
+        {
+          "name": "TC-19-33 PUT công thức đã xóa: ID không tồn tại",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98RecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98RecipeId}}"
+              ]
+            },
+            "description": "PUT công thức đã xóa: ID không tồn tại. Kỳ vọng HTTP 404.\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB98-{{tb98RunId}}-abnormal-recipe\",\n  \"description\": \"Công thức kiểm thử riêng của lượt chạy\",\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu chín nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TC-19-33 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([404]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-34 DELETE công thức đã xóa: ID không tồn tại",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98RecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98RecipeId}}"
+              ]
+            },
+            "description": "DELETE công thức đã xóa: ID không tồn tại. Kỳ vọng HTTP 404.\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TC-19-34 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([404]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-35 DELETE công thức với ID sai định dạng: 0",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "0"
+              ]
+            },
+            "description": "DELETE công thức với ID sai định dạng: 0. Kỳ vọng HTTP 400.\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TC-19-35 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([400]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-36 DELETE công thức với ID sai định dạng: abc",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "abc"
+              ]
+            },
+            "description": "DELETE công thức với ID sai định dạng: abc. Kỳ vọng HTTP 400.\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TC-19-36 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([400]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-37 DELETE công thức với ID sai định dạng: 9007199254740992",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/9007199254740992",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "9007199254740992"
+              ]
+            },
+            "description": "DELETE công thức với ID sai định dạng: 9007199254740992. Kỳ vọng HTTP 400.\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TC-19-37 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([400]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-38 POST công thức với difficulty ngoài Easy/Medium/Hard",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "POST công thức với difficulty ngoài Easy/Medium/Hard. Kỳ vọng HTTP 400.\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB98-{{tb98RunId}}-abnormal-recipe\",\n  \"description\": \"Công thức kiểm thử riêng của lượt chạy\",\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Impossible\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu chín nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TC-19-38 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([400]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-39 POST công thức với title rỗng",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "POST công thức với title rỗng. Kỳ vọng HTTP 400.\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"description\": \"Công thức kiểm thử riêng của lượt chạy\",\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu chín nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TC-19-39 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([400]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-40 POST công thức với description rỗng",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "POST công thức với description rỗng. Kỳ vọng HTTP 400.\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB98-{{tb98RunId}}-abnormal-recipe\",\n  \"description\": \"\",\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu chín nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TC-19-40 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([400]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-41 PUT công thức với difficulty ngoài Easy/Medium/Hard",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98AbnormalRecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98AbnormalRecipeId}}"
+              ]
+            },
+            "description": "PUT công thức với difficulty ngoài Easy/Medium/Hard. Kỳ vọng HTTP 400.\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB98-{{tb98RunId}}-abnormal-recipe\",\n  \"description\": \"Công thức kiểm thử riêng của lượt chạy\",\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Impossible\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu chín nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TC-19-41 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([400]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-42 PUT công thức với title rỗng",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98AbnormalRecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98AbnormalRecipeId}}"
+              ]
+            },
+            "description": "PUT công thức với title rỗng. Kỳ vọng HTTP 400.\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"description\": \"Công thức kiểm thử riêng của lượt chạy\",\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu chín nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TC-19-42 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([400]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-43 PUT công thức với description rỗng",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98AbnormalRecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98AbnormalRecipeId}}"
+              ]
+            },
+            "description": "PUT công thức với description rỗng. Kỳ vọng HTTP 400.\nUC: 19; Loại: Abnormal; Kỹ thuật: EP.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB98-{{tb98RunId}}-abnormal-recipe\",\n  \"description\": \"\",\n  \"cookTimeMinutes\": 10,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98CategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu chín nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TC-19-43 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([400]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03_UC19_Boundary",
+      "item": [
+        {
+          "name": "PRE-19-02 Tạo danh mục riêng cho kiểm thử công thức",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "categories"
+              ]
+            },
+            "description": "Tạo danh mục riêng cho kiểm thử công thức. Kỳ vọng HTTP 201, EC=0. Nguồn giới hạn: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"BVA-{{tb98RunId}}-19\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['CategoryQueue','UnitQueue','IngredientQueue','RecipeQueue','PendingQueue'].forEach(function (key) { pm.collectionVariables.set('tb98Boundary' + key, '[]'); });",
+                  "// Khởi tạo danh sách ID riêng cho nhóm UC."
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('PRE-19-02 HTTP 201 và EC 0', function () {",
+                  "  pm.response.to.have.status(201); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(0);",
+                  "});",
+                  "",
+                  "var createdId = data && data.DT && data.DT.categoryId;",
+                  "var validId = Number.isSafeInteger(createdId) && createdId > 0;",
+                  "pm.test('PRE-19-02 ID dữ liệu vừa tạo hợp lệ', function () { pm.expect(validId).to.eql(true); });",
+                  "if (pm.response.code === 201 && data && data.EC === 0 && validId) {",
+                  "  pm.collectionVariables.set('tb98BoundaryCategoryId', createdId);",
+                  "  var queue = JSON.parse(pm.collectionVariables.get('tb98BoundaryCategoryQueue') || '[]'); queue.push(createdId); pm.collectionVariables.set('tb98BoundaryCategoryQueue', JSON.stringify(queue));",
+                  "} else { pm.execution.setNextRequest(null); }",
+                  "",
+                  "",
+                  "if (pm.response.code !== 201 || !data || data.EC !== 0) pm.execution.setNextRequest(null);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-19 Thời gian nấu ngay dưới biên: 0",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "Thời gian nấu ngay dưới biên: 0. Kỳ vọng HTTP 400, EC=1. Nguồn giới hạn: backend/swagger.yaml.\nUC: 19; Loại: Boundary; Kỹ thuật: BVA.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"BVA-{{tb98RunId}}-recipe\",\n  \"description\": \"Công thức riêng cho kiểm thử giá trị biên\",\n  \"cookTimeMinutes\": 0,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 1,\n  \"categories\": [\n    {{tb98BoundaryCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 0.01,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TC-19-19 HTTP 400 và EC 1', function () {",
+                  "  pm.response.to.have.status(400); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-20 Khẩu phần ngay dưới biên: 0",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "Khẩu phần ngay dưới biên: 0. Kỳ vọng HTTP 400, EC=1. Nguồn giới hạn: backend/swagger.yaml.\nUC: 19; Loại: Boundary; Kỹ thuật: BVA.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"BVA-{{tb98RunId}}-recipe\",\n  \"description\": \"Công thức riêng cho kiểm thử giá trị biên\",\n  \"cookTimeMinutes\": 1,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 0,\n  \"categories\": [\n    {{tb98BoundaryCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 0.01,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TC-19-20 HTTP 400 và EC 1', function () {",
+                  "  pm.response.to.have.status(400); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-21 Danh sách danh mục rỗng: 0 phần tử",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "Danh sách danh mục rỗng: 0 phần tử. Kỳ vọng HTTP 400, EC=1. Nguồn giới hạn: backend/swagger.yaml.\nUC: 19; Loại: Boundary; Kỹ thuật: BVA.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"BVA-{{tb98RunId}}-recipe\",\n  \"description\": \"Công thức riêng cho kiểm thử giá trị biên\",\n  \"cookTimeMinutes\": 1,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 1,\n  \"categories\": [],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 0.01,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TC-19-21 HTTP 400 và EC 1', function () {",
+                  "  pm.response.to.have.status(400); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-22 Danh sách nguyên liệu rỗng: 0 phần tử",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "Danh sách nguyên liệu rỗng: 0 phần tử. Kỳ vọng HTTP 400, EC=1. Nguồn giới hạn: backend/swagger.yaml.\nUC: 19; Loại: Boundary; Kỹ thuật: BVA.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"BVA-{{tb98RunId}}-recipe\",\n  \"description\": \"Công thức riêng cho kiểm thử giá trị biên\",\n  \"cookTimeMinutes\": 1,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 1,\n  \"categories\": [\n    {{tb98BoundaryCategoryId}}\n  ],\n  \"ingredients\": [],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TC-19-22 HTTP 400 và EC 1', function () {",
+                  "  pm.response.to.have.status(400); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-23 Danh sách bước nấu rỗng: 0 phần tử",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "Danh sách bước nấu rỗng: 0 phần tử. Kỳ vọng HTTP 400, EC=1. Nguồn giới hạn: backend/swagger.yaml.\nUC: 19; Loại: Boundary; Kỹ thuật: BVA.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"BVA-{{tb98RunId}}-recipe\",\n  \"description\": \"Công thức riêng cho kiểm thử giá trị biên\",\n  \"cookTimeMinutes\": 1,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 1,\n  \"categories\": [\n    {{tb98BoundaryCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 0.01,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TC-19-23 HTTP 400 và EC 1', function () {",
+                  "  pm.response.to.have.status(400); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-24 Số thứ tự bước nấu ngay dưới biên: 0",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "Số thứ tự bước nấu ngay dưới biên: 0. Kỳ vọng HTTP 400, EC=1. Nguồn giới hạn: backend/swagger.yaml.\nUC: 19; Loại: Boundary; Kỹ thuật: BVA.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"BVA-{{tb98RunId}}-recipe\",\n  \"description\": \"Công thức riêng cho kiểm thử giá trị biên\",\n  \"cookTimeMinutes\": 1,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 1,\n  \"categories\": [\n    {{tb98BoundaryCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 0.01,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 0,\n      \"instruction\": \"Nấu nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TC-19-24 HTTP 400 và EC 1', function () {",
+                  "  pm.response.to.have.status(400); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-25 Định lượng bằng 0 với đơn vị định lượng",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "Định lượng bằng 0 với đơn vị định lượng. Kỳ vọng HTTP 400, EC=1. Nguồn giới hạn: backend/swagger.yaml.\nUC: 19; Loại: Boundary; Kỹ thuật: BVA.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"BVA-{{tb98RunId}}-recipe\",\n  \"description\": \"Công thức riêng cho kiểm thử giá trị biên\",\n  \"cookTimeMinutes\": 1,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 1,\n  \"categories\": [\n    {{tb98BoundaryCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 0,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TC-19-25 HTTP 400 và EC 1', function () {",
+                  "  pm.response.to.have.status(400); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-26 Tạo công thức tại biên hợp lệ: thời gian 1, khẩu phần 1, mỗi danh sách 1 phần tử, bước số 1 và định lượng 0.01",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes"
+              ]
+            },
+            "description": "Tạo công thức tại biên hợp lệ: thời gian 1, khẩu phần 1, mỗi danh sách 1 phần tử, bước số 1 và định lượng 0.01. Kỳ vọng HTTP 201, EC=0. Nguồn giới hạn: backend/swagger.yaml.\nUC: 19; Loại: Boundary; Kỹ thuật: BVA.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"BVA-{{tb98RunId}}-recipe\",\n  \"description\": \"Công thức riêng cho kiểm thử giá trị biên\",\n  \"cookTimeMinutes\": 1,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 1,\n  \"categories\": [\n    {{tb98BoundaryCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 0.01,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TC-19-26 HTTP 201 và EC 0', function () {",
+                  "  pm.response.to.have.status(201); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(0);",
+                  "});",
+                  "",
+                  "var createdId = data && data.DT && data.DT.recipeId;",
+                  "var validId = Number.isSafeInteger(createdId) && createdId > 0;",
+                  "pm.test('TC-19-26 ID dữ liệu vừa tạo hợp lệ', function () { pm.expect(validId).to.eql(true); });",
+                  "if (pm.response.code === 201 && data && data.EC === 0 && validId) {",
+                  "  pm.collectionVariables.set('tb98BoundaryRecipeId', createdId);",
+                  "  var queue = JSON.parse(pm.collectionVariables.get('tb98BoundaryRecipeQueue') || '[]'); queue.push(createdId); pm.collectionVariables.set('tb98BoundaryRecipeQueue', JSON.stringify(queue));",
+                  "} else { pm.execution.setNextRequest(null); }",
+                  "",
+                  "pm.test('Công thức biên được duyệt', function () { pm.expect(data.DT.approvalStatus).to.eql('Approved'); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-27 Sửa công thức với cookTimeMinutes ngay dưới biên: 0",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98BoundaryRecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98BoundaryRecipeId}}"
+              ]
+            },
+            "description": "Sửa công thức với cookTimeMinutes ngay dưới biên: 0. Kỳ vọng HTTP 400, EC=1. Nguồn giới hạn: backend/swagger.yaml.\nUC: 19; Loại: Boundary; Kỹ thuật: BVA.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"BVA-{{tb98RunId}}-recipe\",\n  \"description\": \"Công thức riêng cho kiểm thử giá trị biên\",\n  \"cookTimeMinutes\": 0,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 1,\n  \"categories\": [\n    {{tb98BoundaryCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 0.01,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TC-19-27 HTTP 400 và EC 1', function () {",
+                  "  pm.response.to.have.status(400); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-28 Sửa công thức với defaultServings ngay dưới biên: 0",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98BoundaryRecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98BoundaryRecipeId}}"
+              ]
+            },
+            "description": "Sửa công thức với defaultServings ngay dưới biên: 0. Kỳ vọng HTTP 400, EC=1. Nguồn giới hạn: backend/swagger.yaml.\nUC: 19; Loại: Boundary; Kỹ thuật: BVA.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"BVA-{{tb98RunId}}-recipe\",\n  \"description\": \"Công thức riêng cho kiểm thử giá trị biên\",\n  \"cookTimeMinutes\": 1,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 0,\n  \"categories\": [\n    {{tb98BoundaryCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 0.01,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TC-19-28 HTTP 400 và EC 1', function () {",
+                  "  pm.response.to.have.status(400); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-29 Sửa công thức ngay trên biên: thời gian 2, khẩu phần 2",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98BoundaryRecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98BoundaryRecipeId}}"
+              ]
+            },
+            "description": "Sửa công thức ngay trên biên: thời gian 2, khẩu phần 2. Kỳ vọng HTTP 200, EC=0. Nguồn giới hạn: backend/swagger.yaml.\nUC: 19; Loại: Boundary; Kỹ thuật: BVA.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"BVA-{{tb98RunId}}-recipe-updated\",\n  \"description\": \"Công thức riêng cho kiểm thử giá trị biên\",\n  \"cookTimeMinutes\": 2,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 2,\n  \"categories\": [\n    {{tb98BoundaryCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 1,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TC-19-29 HTTP 200 và EC 0', function () {",
+                  "  pm.response.to.have.status(200); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-30 Đọc lại dữ liệu sau TC-19-29 Sửa công thức ngay trên biên: thời gian 2, khẩu phần 2",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{tb98BoundaryRecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "{{tb98BoundaryRecipeId}}"
+              ]
+            },
+            "description": "Đọc lại giá trị tại biên sau cập nhật. Kỳ vọng HTTP 200, EC=0. Nguồn giới hạn: backend/swagger.yaml.\nUC: 19; Loại: Boundary; Kỹ thuật: BVA.\nNguồn kỳ vọng: backend/swagger.yaml."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TC-19-30 HTTP 200 và EC 0', function () {",
+                  "  pm.response.to.have.status(200); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(0);",
+                  "});",
+                  "",
+                  "pm.test('Các giá trị tại biên đã lưu', function () { pm.expect(data.DT.cookTimeMinutes).to.eql(2); pm.expect(data.DT.defaultServings).to.eql(2); pm.expect(data.DT.title).to.eql(pm.variables.replaceIn('BVA-{{tb98RunId}}-recipe-updated')); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-31 ID sửa công thức ngoài biên: 0",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "0"
+              ]
+            },
+            "description": "ID sửa công thức ngoài biên: 0. Kỳ vọng HTTP 400, EC=1. Nguồn giới hạn: Swagger: ID nguyên dương an toàn; backend recipeAdminService.js isAdminRecipeId.\nUC: 19; Loại: Boundary; Kỹ thuật: BVA.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"BVA-{{tb98RunId}}-recipe\",\n  \"description\": \"Công thức riêng cho kiểm thử giá trị biên\",\n  \"cookTimeMinutes\": 1,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 1,\n  \"categories\": [\n    {{tb98BoundaryCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 0.01,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TC-19-31 HTTP 400 và EC 1', function () {",
+                  "  pm.response.to.have.status(400); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TC-19-32 ID sửa công thức ngoài biên: 9007199254740992",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/9007199254740992",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "9007199254740992"
+              ]
+            },
+            "description": "ID sửa công thức ngoài biên: 9007199254740992. Kỳ vọng HTTP 400, EC=1. Nguồn giới hạn: Swagger: ID nguyên dương an toàn; backend recipeAdminService.js isAdminRecipeId.\nUC: 19; Loại: Boundary; Kỹ thuật: BVA.\nNguồn kỳ vọng: backend/swagger.yaml.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"BVA-{{tb98RunId}}-recipe\",\n  \"description\": \"Công thức riêng cho kiểm thử giá trị biên\",\n  \"cookTimeMinutes\": 1,\n  \"difficulty\": \"Easy\",\n  \"defaultServings\": 1,\n  \"categories\": [\n    {{tb98BoundaryCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Nguyên liệu kiểm thử\",\n      \"quantity\": 0.01,\n      \"customUnit\": \"g\"\n    }\n  ],\n  \"cookingSteps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Nấu nguyên liệu kiểm thử.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TC-19-32 HTTP 400 và EC 1', function () {",
+                  "  pm.response.to.have.status(400); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TD-19-01 Dọn các ID do nhóm kiểm thử này tạo",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98BoundaryCleanupId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98BoundaryCleanupId}}"
+              ]
+            },
+            "description": "Dọn các ID do nhóm kiểm thử này tạo. Kỳ vọng HTTP 200, EC=0. Nguồn giới hạn: backend/swagger.yaml."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var queue = JSON.parse(pm.collectionVariables.get('tb98BoundaryRecipeQueue') || '[]');",
+                  "if (queue.length === 0) throw new Error('Không có ID kiểm thử để dọn; cần chạy đúng thứ tự nhóm UC.');",
+                  "pm.variables.set('tb98BoundaryCleanupId', queue[0]);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TD-19-01 HTTP 200 và EC 0', function () {",
+                  "  pm.response.to.have.status(200); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(0);",
+                  "});",
+                  "",
+                  "",
+                  "var queue = JSON.parse(pm.collectionVariables.get('tb98BoundaryRecipeQueue') || '[]');",
+                  "queue.shift(); pm.collectionVariables.set('tb98BoundaryRecipeQueue', JSON.stringify(queue));",
+                  "if (queue.length > 0) pm.execution.setNextRequest(pm.info.requestId);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TD-19-02 Dọn các ID do nhóm kiểm thử này tạo",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/categories/{{tb98BoundaryCleanupId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "categories",
+                "{{tb98BoundaryCleanupId}}"
+              ]
+            },
+            "description": "Dọn các ID do nhóm kiểm thử này tạo. Kỳ vọng HTTP 200, EC=0. Nguồn giới hạn: backend/swagger.yaml."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var queue = JSON.parse(pm.collectionVariables.get('tb98BoundaryCategoryQueue') || '[]');",
+                  "if (queue.length === 0) throw new Error('Không có ID kiểm thử để dọn; cần chạy đúng thứ tự nhóm UC.');",
+                  "pm.variables.set('tb98BoundaryCleanupId', queue[0]);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Kiểm tra cấu trúc chung sẽ báo lỗi JSON. */ }",
+                  "pm.test('TD-19-02 HTTP 200 và EC 0', function () {",
+                  "  pm.response.to.have.status(200); pm.expect(data).to.be.an('object'); pm.expect(data.EC).to.eql(0);",
+                  "});",
+                  "",
+                  "",
+                  "var queue = JSON.parse(pm.collectionVariables.get('tb98BoundaryCategoryQueue') || '[]');",
+                  "queue.shift(); pm.collectionVariables.set('tb98BoundaryCategoryQueue', JSON.stringify(queue));",
+                  "if (queue.length > 0) pm.execution.setNextRequest(pm.info.requestId);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "99_Teardown",
+      "item": [
+        {
+          "name": "TD-19-03 Dọn công thức Abnormal",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98AbnormalRecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98AbnormalRecipeId}}"
+              ]
+            },
+            "description": "Dọn công thức Abnormal. Kỳ vọng HTTP 200/404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TD-19-03 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([200,404]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TD-19-04 Dọn công thức chuẩn nếu còn tồn tại",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/recipes/{{tb98RecipeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recipes",
+                "{{tb98RecipeId}}"
+              ]
+            },
+            "description": "Dọn công thức chuẩn nếu còn tồn tại. Kỳ vọng HTTP 200/404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TD-19-04 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([200,404]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TD-19-05 Dọn danh mục riêng",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tb98AdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/categories/{{tb98CategoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "categories",
+                "{{tb98CategoryId}}"
+              ]
+            },
+            "description": "Dọn danh mục riêng. Kỳ vọng HTTP 200/404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TD-19-05 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([200,404]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "TD-19-99 Kiểm tra đủ mã TC đã được thực thi",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/home",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "home"
+              ]
+            },
+            "description": "Kiểm tra đủ mã TC đã được thực thi. Kỳ vọng HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var data = null;",
+                  "try { data = pm.response.json(); } catch (error) { /* Assertion chung ghi nhận JSON sai. */ }",
+                  "pm.test('TD-19-99 HTTP và EC đúng kỳ vọng', function () {",
+                  "  pm.expect([200]).to.include(pm.response.code);",
+                  "  pm.expect(data).to.be.an('object');",
+                  "  pm.expect(data.EC).to.eql({\"200\":0,\"201\":0,\"400\":1,\"401\":5,\"403\":4,\"404\":3,\"409\":2}[pm.response.code]);",
+                  "  if (pm.response.code >= 400) pm.expect(data.DT).to.eql(null);",
+                  "});",
+                  "",
+                  "pm.test('Đã thực thi đủ mã TC của UC-19', function () { var seen=JSON.parse(pm.collectionVariables.get('tb98ExecutedCases')||'[]');pm.expect(seen.slice().sort()).to.eql([\"TC-19-01\",\"TC-19-02\",\"TC-19-03\",\"TC-19-04\",\"TC-19-05\",\"TC-19-06\",\"TC-19-07\",\"TC-19-08\",\"TC-19-09\",\"TC-19-13\",\"TC-19-14\",\"TC-19-15\",\"TC-19-16\",\"TC-19-10\",\"TC-19-11\",\"TC-19-17\",\"TC-19-12\",\"TC-19-18\",\"TC-19-33\",\"TC-19-34\",\"TC-19-35\",\"TC-19-36\",\"TC-19-37\",\"TC-19-38\",\"TC-19-39\",\"TC-19-40\",\"TC-19-41\",\"TC-19-42\",\"TC-19-43\",\"TC-19-44\",\"TC-19-44b\",\"TC-19-19\",\"TC-19-20\",\"TC-19-21\",\"TC-19-22\",\"TC-19-23\",\"TC-19-24\",\"TC-19-25\",\"TC-19-26\",\"TC-19-27\",\"TC-19-28\",\"TC-19-29\",\"TC-19-30\",\"TC-19-31\",\"TC-19-32\"].slice().sort()); });",
+                  "var remainingGroups = JSON.parse(pm.collectionVariables.get('tb98RemainingGroups') || '[]'); if (remainingGroups.length) console.log('QA_LEFTOVER_GROUPS ' + JSON.stringify(remainingGroups));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}

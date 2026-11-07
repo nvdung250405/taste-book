@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react'
-import { UserCircle, Loader2 } from 'lucide-react'
+import { isVietnamesePhone, normalizePhone } from '../lib/phone'
+import { useState } from 'react'
+import { UserCircle } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { useProfile, useUpdateProfile, useChangePassword } from '../hooks/queries/useAuthQueries'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
+
+import QueryError from '../components/ui/QueryError'
 
 import ProfileSidebar from '../components/profile/ProfileSidebar'
 import ProfileInfoForm from '../components/profile/ProfileInfoForm'
@@ -11,21 +14,31 @@ import PasswordChangeForm from '../components/profile/PasswordChangeForm'
 
 export default function ProfilePage() {
   const navigate = useNavigate()
-  const { data: profileRes, isLoading: loadingProfile } = useProfile()
+  const { data: profileRes, isLoading, isError, isFetching, refetch } = useProfile()
+  const user = profileRes?.DT
+  if (isLoading) return <div role="status" className="py-20 text-center">Đang tải hồ sơ…</div>
+  if (isError && !user) return <QueryError title="Không thể tải hồ sơ" onRetry={refetch} isRetrying={isFetching} />
+  if (!user) return <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4"><UserCircle className="w-16 h-16 text-slate-500" /><p>Bạn chưa đăng nhập</p><Button onClick={() => navigate('/login')}>Đăng nhập ngay</Button></div>
+  return <>
+    <h1 className="text-3xl font-bold mb-6">Hồ sơ cá nhân</h1>
+    {isError && <QueryError title="Không thể cập nhật dữ liệu hồ sơ" onRetry={refetch} isRetrying={isFetching} />}
+    <ProfileEditor key={user.userId} user={user} />
+  </>
+}
+
+function ProfileEditor({ user }) {
   const { mutate: updateProfile, isPending: updating } = useUpdateProfile()
   const { mutate: changePassword, isPending: changingPassword } = useChangePassword()
 
-  const user = profileRes?.DT || null
 
   const [activeTab, setActiveTab] = useState('info') // info, security
 
   // Profile Form State
-  const [profileForm, setProfileForm] = useState({
-    name: '',
-    phone: '',
-    address: '',
-    avatar: '',
-  })
+  const [profileForm, setProfileForm] = useState(() => ({
+    name: user.username || user.name || '',
+    phone: user.phone || '',
+    avatar: user.avatarUrl || user.avatar || '',
+  }))
 
   // Password Form State
   const [passwordForm, setPasswordForm] = useState({
@@ -34,44 +47,14 @@ export default function ProfilePage() {
     confirmPassword: '',
   })
 
-  useEffect(() => {
-    if (user) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setProfileForm({
-        name: user.name || user.username || '',
-        phone: user.phone || '',
-        address: user.address || '',
-        avatar: user.avatarUrl || user.avatar || user.profileImage || '',
-      })
-    }
-  }, [user])
-
-  if (loadingProfile) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-        <p className="text-slate-500">Đang tải hồ sơ...</p>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <UserCircle className="w-16 h-16 text-slate-300" />
-        <p className="text-slate-500">Bạn chưa đăng nhập</p>
-        <Button onClick={() => navigate('/login')}>Đăng nhập ngay</Button>
-      </div>
-    )
-  }
-
   const handleProfileSubmit = (e) => {
     e.preventDefault()
     if (!profileForm.name.trim()) return toast.error('Tên không được để trống')
 
+    if (profileForm.phone.trim() && !isVietnamesePhone(profileForm.phone)) return toast.error('Số điện thoại phải có dạng 09… hoặc +849… hợp lệ')
     const payload = {
       username: profileForm.name.trim(),
-      phone: profileForm.phone ? profileForm.phone.trim() : undefined,
+      phone: profileForm.phone ? normalizePhone(profileForm.phone) : undefined,
       avatarUrl: profileForm.avatar ? profileForm.avatar.trim() : '',
     }
 
@@ -106,7 +89,8 @@ export default function ProfilePage() {
         setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' })
       },
       onError: (err) => {
-        const msg = err?.response?.data?.EM || err?.response?.data?.message || 'Lỗi khi đổi mật khẩu'
+        // axiosClient interceptor rejects with error.response.data directly ({ EC, EM, DT })
+        const msg = err?.EM || err?.message || 'Lỗi khi đổi mật khẩu'
         toast.error(msg)
       },
     })

@@ -89,6 +89,8 @@ export const useUpdateAdminUnit = () => {
     mutationFn: ({ unitId, data }) => ingredientsApi.updateAdminUnit(unitId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['units'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe'] });
     },
   });
 };
@@ -99,6 +101,7 @@ export const useDeleteAdminUnit = () => {
     mutationFn: (unitId) => ingredientsApi.deleteAdminUnit(unitId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['units'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
     },
   });
 };

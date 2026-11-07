@@ -1,68 +1,156 @@
-import { Toaster } from 'sonner'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { Toaster, toast } from 'sonner'
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import { clearAuthSession } from './lib/authSession'
+import { isAdminPath } from './lib/navigation'
+import ApiRateLimitNotice from './components/ui/ApiRateLimitNotice'
+
+function AppBehaviorHandler() {
+  const location = useLocation()
+  const { pathname } = location
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  // Scroll to top when pathname changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [pathname])
+
+  // Register before checking expiration so an expired token on mount is handled.
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      clearAuthSession(queryClient)
+      if (pathname !== '/login' && pathname !== '/register') {
+        toast.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại')
+        navigate('/login', { replace: true, state: { from: location } })
+      }
+    }
+    const handleForbidden = () => {
+      if (isAdminPath(pathname)) navigate('/403', { replace: true, state: { from: location } })
+    }
+
+    window.addEventListener('unauthorized', handleUnauthorized)
+    window.addEventListener('forbidden', handleForbidden)
+    return () => {
+      window.removeEventListener('unauthorized', handleUnauthorized)
+      window.removeEventListener('forbidden', handleForbidden)
+    }
+  }, [navigate, pathname, location, queryClient])
+
+  // Auto-check token expiration every 10 seconds
+  useEffect(() => {
+    const checkToken = () => {
+      const token = localStorage.getItem('token')
+      if (token) {
+        try {
+          // Decode JWT payload (middle part)
+          const payload = JSON.parse(atob(token.split('.')[1]))
+          // Check if expired (payload.exp is in seconds)
+          if (payload.exp * 1000 <= Date.now()) {
+            window.dispatchEvent(new Event('unauthorized'))
+          }
+        } catch {
+          // Ignore parse error
+        }
+      }
+    }
+
+    // Check immediately on mount, then every 10 seconds
+    checkToken()
+    const interval = setInterval(checkToken, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  return null
+}
+
+import { Suspense, lazy } from 'react'
 
 // Layouts
 import MainLayout from './components/layouts/MainLayout'
 import AdminLayout from './components/layouts/AdminLayout'
+import AdminRoute from './components/auth/AdminRoute'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+import PublicOnlyRoute from './components/auth/PublicOnlyRoute'
 
-// Pages
+// Pages (Lazy loaded for better performance, except HomePage)
 import HomePage from './pages/HomePage'
-import NotFound from './pages/NotFound'
-import LoginPage from './pages/auth/LoginPage'
-import RegisterPage from './pages/auth/RegisterPage'
-import DashboardPage from './pages/admin/DashboardPage'
-import AdminApprovalsPage from './pages/admin/AdminApprovalsPage'
-import AdminCategoriesPage from './pages/admin/AdminCategoriesPage'
-import AdminUsersPage from './pages/admin/AdminUsersPage'
-import AdminIngredientsPage from './pages/admin/AdminIngredientsPage'
-import AdminUnitsPage from './pages/admin/AdminUnitsPage'
-import ExplorePage from './pages/ExplorePage'
-import MyRecipesPage from './pages/MyRecipesPage'
-import MenuPage from './pages/MenuPage'
-import FavoritesPage from './pages/FavoritesPage'
-import ShoppingListPage from './pages/ShoppingListPage'
 import RecipeDetailPage from './pages/RecipeDetailPage'
-import RecipeFormPage from './pages/RecipeFormPage'
-import ProfilePage from './pages/ProfilePage'
+const NotFound = lazy(() => import('./pages/NotFound'))
+const ForbiddenPage = lazy(() => import('./pages/ForbiddenPage'))
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
+const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
+const AdminApprovalsPage = lazy(() => import('./pages/admin/AdminApprovalsPage'))
+const AdminRecipesPage = lazy(() => import('./pages/admin/AdminRecipesPage'))
+const AdminCategoriesPage = lazy(() => import('./pages/admin/AdminCategoriesPage'))
+const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'))
+const AdminIngredientsPage = lazy(() => import('./pages/admin/AdminIngredientsPage'))
+const AdminUnitsPage = lazy(() => import('./pages/admin/AdminUnitsPage'))
+const RecipeSearchPage = lazy(() => import('./pages/RecipeSearchPage'))
+const MyRecipesPage = lazy(() => import('./pages/MyRecipesPage'))
+const MyCategoriesPage = lazy(() => import('./pages/MyCategoriesPage'))
+const MenuPage = lazy(() => import('./pages/MenuPage'))
+const FavoritesPage = lazy(() => import('./pages/FavoritesPage'))
+const ShoppingListPage = lazy(() => import('./pages/ShoppingListPage'))
+const RecipeFormPage = lazy(() => import('./pages/RecipeFormPage'))
+const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 
 function App() {
   return (
     <>
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" richColors closeButton />
 
       <BrowserRouter>
-        <Routes>
-          {/* Public & User Routes with MainLayout */}
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            {/* User routes */}
-            <Route path="/explore" element={<ExplorePage />} />
-            <Route path="/my-recipes" element={<MyRecipesPage />} />
-            <Route path="/menu" element={<MenuPage />} />
-            <Route path="/favorites" element={<FavoritesPage />} />
-            <Route path="/shopping-list" element={<ShoppingListPage />} />
-            <Route path="/recipe/create" element={<RecipeFormPage />} />
-            <Route path="/recipe/:id/edit" element={<RecipeFormPage />} />
-            <Route path="/recipe/:id" element={<RecipeDetailPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/profile/settings" element={<ProfilePage />} />
-          </Route>
+        <AppBehaviorHandler />
+        <ApiRateLimitNotice />
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+          <Routes>
+            <Route path="/403" element={<ForbiddenPage />} />
+            {/* Public & User Routes with MainLayout */}
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route element={<PublicOnlyRoute />}>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              </Route>
+              {/* User routes */}
+              <Route path="/search" element={<RecipeSearchPage />} />
+              <Route path="/recipe/:id" element={<RecipeDetailPage />} />
+              <Route element={<ProtectedRoute />}>
+              <Route path="/my-recipes" element={<MyRecipesPage />} />
+              <Route path="/my-categories" element={<MyCategoriesPage />} />
+              <Route path="/menu" element={<MenuPage />} />
+              <Route path="/favorites" element={<FavoritesPage />} />
+              <Route path="/shopping-list" element={<ShoppingListPage />} />
+              <Route path="/recipe/create" element={<RecipeFormPage />} />
+              <Route path="/recipe/:id/edit" element={<RecipeFormPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/profile/settings" element={<ProfilePage />} />
+              </Route>
+            </Route>
 
-          {/* Admin Routes with AdminLayout */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="approvals" element={<AdminApprovalsPage />} />
-            <Route path="categories" element={<AdminCategoriesPage />} />
-            <Route path="users" element={<AdminUsersPage />} />
-            <Route path="ingredients" element={<AdminIngredientsPage />} />
-            <Route path="units" element={<AdminUnitsPage />} />
-          </Route>
+            {/* Admin Routes with AdminLayout */}
+            <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+              <Route index element={<DashboardPage />} />
+              <Route path="approvals" element={<AdminApprovalsPage />} />
+              <Route path="recipes" element={<AdminRecipesPage />} />
+              <Route path="recipes/create" element={<RecipeFormPage admin />} />
+              <Route path="recipes/:id/edit" element={<RecipeFormPage admin />} />
+              <Route path="categories" element={<AdminCategoriesPage />} />
+              <Route path="users" element={<AdminUsersPage />} />
+              <Route path="ingredients" element={<AdminIngredientsPage />} />
+              <Route path="units" element={<AdminUnitsPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
 
-          {/* Fallback 404 Route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            {/* Fallback 404 Route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </>
   )

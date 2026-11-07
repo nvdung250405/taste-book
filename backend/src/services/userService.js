@@ -2,44 +2,38 @@ import db from "../models/index";
 import bcrypt from "bcryptjs";
 import { Op } from "sequelize";
 import { cloudinary } from "../config/cloudinary";
+import { normalizePhoneNumber, isPhoneUniqueError } from "../utils/phoneUtils";
 
-const salt = bcrypt.genSaltSync(10);
 const hashUserPassword = (userPassword) => {
-  return bcrypt.hashSync(userPassword, salt);
-};
-
-const isPhoneValid = (phone) => {
-  const re = /^(0|\+84)[35789][0-9]{8}$/;
-  return re.test(String(phone).trim());
+  return bcrypt.hashSync(userPassword, 10);
 };
 
 const getPublicIdFromUrl = (url) => {
-  if (!url) return null;
-  let cleanUrl = url.split("?")[0].split("#")[0];
-  let matches = cleanUrl.match(/\/upload\/(?:v\d+\/)?(.+?)\.[a-zA-Z0-9]+$/);
-  return matches ? matches[1] : null;
+  if (typeof url !== "string" || !process.env.CLOUDINARY_CLOUD_NAME) return null;
+  try {
+    const parsedUrl = new URL(url);
+    if (
+      parsedUrl.protocol !== "https:" ||
+      parsedUrl.hostname !== "res.cloudinary.com" ||
+      parsedUrl.port || parsedUrl.username || parsedUrl.password
+    ) return null;
+
+    const matches = parsedUrl.pathname.match(
+      /^\/([^/]+)\/image\/upload\/(?:v\d+\/)?(.+?)\.(?:jpg|jpeg|png|webp)$/i,
+    );
+    if (!matches || matches[1] !== process.env.CLOUDINARY_CLOUD_NAME) return null;
+    return matches[2];
+  } catch {
+    return null;
+  }
 };
 
-const checkImageSize = async (url) => {
+const checkImageSize = async (publicId) => {
   try {
-    let publicId = getPublicIdFromUrl(url);
-    if (publicId) {
-      try {
-        let resource = await cloudinary.api.resource(publicId);
-        if (resource && resource.bytes) {
-          return resource.bytes;
-        }
-      } catch {
-        // Fallback to fetch HEAD
-      }
-    }
-    const response = await fetch(url, { method: "HEAD" });
-    const contentLength = response.headers.get("content-length");
-    if (contentLength) {
-      return parseInt(contentLength, 10);
-    }
+    const resource = await cloudinary.api.resource(publicId);
+    if (Number.isSafeInteger(resource?.bytes) && resource.bytes > 0) return resource.bytes;
   } catch {
-    // Ignore error if URL unreachable
+    // Không gọi trực tiếp URL do người dùng nhập, kể cả khi SDK thất bại.
   }
   return null;
 };
@@ -103,24 +97,20 @@ const updateUserProfile = async (userId, data) => {
       };
     }
 
-    const oldAvatarUrl = user.avatarUrl;
-    const DEFAULT_AVATAR_URL =
-      "https://res.cloudinary.com/sf4yjct9/image/upload/v1788611681/tastebook_uploads/f1plgomkateq3nufqchm.png";
-
     const updateData = {
       username: data.username.trim(),
     };
 
-    if (data.phone) {
-      const cleanPhone = String(data.phone).trim();
-      if (!isPhoneValid(cleanPhone)) {
+    if (data.phone !== undefined) {
+      const cleanPhone = normalizePhoneNumber(data.phone);
+      if (!cleanPhone) {
         return {
           EC: 1,
           EM: "Số điện thoại không đúng định dạng (phải là số điện thoại 10 số hợp lệ)!",
           DT: null,
         };
       }
-      if (cleanPhone !== user.phone) {
+      if (cleanPhone !== normalizePhoneNumber(user.phone)) {
         let isPhoneExist = await db.User.findOne({
           where: {
             phone: cleanPhone,
@@ -134,14 +124,25 @@ const updateUserProfile = async (userId, data) => {
             DT: null,
           };
         }
-        updateData.phone = cleanPhone;
       }
+      updateData.phone = cleanPhone;
     }
 
     if (data.avatarUrl !== undefined && data.avatarUrl !== null && data.avatarUrl !== "") {
+      const publicId = getPublicIdFromUrl(data.avatarUrl);
+      if (!publicId) {
+        return {
+          EC: 1,
+          EM: "Ảnh đại diện phải là URL HTTPS thuộc Cloudinary của dự án!",
+          DT: null,
+        };
+      }
       if (data.avatarUrl !== user.avatarUrl) {
-        let size = await checkImageSize(data.avatarUrl);
-        if (size && size > 5 * 1024 * 1024) {
+        const size = await checkImageSize(publicId);
+        if (size === null) {
+          return { EC: 1, EM: "Không thể xác minh dung lượng ảnh đại diện, vui lòng thử lại!", DT: null };
+        }
+        if (size > 5 * 1024 * 1024) {
           return {
             EC: 1,
             EM: "Dung lượng tệp ảnh đại diện vượt quá giới hạn cho phép (tối đa 5MB)!",
@@ -154,21 +155,8 @@ const updateUserProfile = async (userId, data) => {
 
     await user.update(updateData);
 
-    // Tự động dọn dẹp ảnh cũ trên Cloudinary (nếu đổi ảnh mới và ảnh cũ không phải ảnh mặc định)
-    if (
-      data.avatarUrl &&
-      oldAvatarUrl &&
-      oldAvatarUrl !== data.avatarUrl &&
-      oldAvatarUrl !== DEFAULT_AVATAR_URL &&
-      !oldAvatarUrl.includes("f1plgomkateq3nufqchm")
-    ) {
-      const oldPublicId = getPublicIdFromUrl(oldAvatarUrl);
-      if (oldPublicId) {
-        cloudinary.uploader.destroy(oldPublicId).catch((err) => {
-          console.log("Lỗi khi dọn dẹp ảnh đại diện cũ trên Cloudinary:", err);
-        });
-      }
-    }
+    // Không tự xóa ảnh cũ: avatarUrl không chứng minh quyền sở hữu ảnh.
+    // Việc xóa tài nguyên Cloudinary được thực hiện qua endpoint dành cho Admin.
 
     return {
       EC: 0,
@@ -181,6 +169,9 @@ const updateUserProfile = async (userId, data) => {
       },
     };
   } catch (e) {
+    if (isPhoneUniqueError(e)) {
+      return { EC: 2, EM: "Số điện thoại đã được đăng ký trên hệ thống!", DT: null };
+    }
     console.log(e);
     return {
       EC: -1,
@@ -271,6 +262,20 @@ const changeUserPassword = async (userId, data) => {
 // 1.7 GET /admin/users - Danh sách người dùng (Admin)
 const getAllUsersAdmin = async (query = {}) => {
   try {
+    const invalidQuery = (message) => ({ EC: 1, EM: message, DT: null });
+    const isPositiveInteger = (value) =>
+      (typeof value === "string" || typeof value === "number") &&
+      /^[1-9]\d*$/.test(String(value)) && Number.isSafeInteger(Number(value));
+    const page = query.page === undefined ? 1 : query.page;
+    const limit = query.limit === undefined ? 20 : query.limit;
+    if (!isPositiveInteger(page) || !isPositiveInteger(limit) || Number(limit) > 100 ||
+      !Number.isSafeInteger((Number(page) - 1) * Number(limit))) {
+      return invalidQuery("Tham số page phải là số nguyên dương, limit phải từ 1 đến 100!");
+    }
+    if ((query.keyword !== undefined && typeof query.keyword !== "string") ||
+      (query.role !== undefined && typeof query.role !== "string")) {
+      return invalidQuery("Tham số keyword và role phải là chuỗi!");
+    }
     let whereClause = {};
 
     if (query.keyword && query.keyword.trim()) {
@@ -286,13 +291,16 @@ const getAllUsersAdmin = async (query = {}) => {
       let roleVal = query.role.trim();
       if (roleVal.toLowerCase() === "admin") roleVal = "Admin";
       else if (roleVal.toLowerCase() === "user") roleVal = "User";
+      else return invalidQuery("Vai trò không hợp lệ (chỉ nhận User hoặc Admin)!");
       whereClause.role = roleVal;
     }
 
-    let users = await db.User.findAll({
+    const { rows: users, count } = await db.User.findAndCountAll({
       where: whereClause,
       attributes: ["id", "username", "email", "phone", "role", "createdAt"],
-      order: [["createdAt", "DESC"]],
+      order: [["createdAt", "DESC"], ["id", "DESC"]],
+      limit: Number(limit),
+      offset: (Number(page) - 1) * Number(limit),
     });
 
     let formattedUsers = users.map((u) => ({
@@ -309,6 +317,10 @@ const getAllUsersAdmin = async (query = {}) => {
       EM: "Lấy danh sách người dùng thành công!",
       DT: {
         users: formattedUsers,
+        page: Number(page),
+        limit: Number(limit),
+        total: count,
+        totalPages: Math.ceil(count / Number(limit)),
       },
     };
   } catch (e) {
@@ -324,8 +336,8 @@ const getAllUsersAdmin = async (query = {}) => {
 // 1.8 GET /admin/users/:userId - Chi tiết người dùng (Admin)
 const getUserDetailAdmin = async (userId) => {
   try {
-    let parsedId = parseInt(userId, 10);
-    if (isNaN(parsedId) || parsedId <= 0) {
+    const parsedId = Number(userId);
+    if (!/^[1-9]\d*$/.test(String(userId)) || !Number.isSafeInteger(parsedId) || parsedId > 2147483647) {
       return {
         EC: 3,
         EM: "Người dùng không tồn tại!",

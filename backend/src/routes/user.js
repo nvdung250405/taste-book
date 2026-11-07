@@ -1,6 +1,7 @@
 import express from "express";
 import userController from "../controllers/userController";
 import { checkUserJWT } from "../middleware/JWTAction";
+import { passwordChangeLimiter } from "../middleware/authRateLimit";
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ router.get("/me", checkUserJWT, userController.handleGetProfile);
 router.put("/me", checkUserJWT, userController.handleUpdateProfile);
 
 // 1.6 PUT /api/v1/users/me/password - Đổi mật khẩu
-router.put("/me/password", checkUserJWT, userController.handleChangePassword);
+router.put("/me/password", checkUserJWT, passwordChangeLimiter, userController.handleChangePassword);
 
 export default router;
 

@@ -6,7 +6,7 @@ const errorHandler = (err, req, res, next) => {
     message: err.message,
     stack: err.stack,
     method: req.method,
-    url: req.originalUrl,
+    url: req.originalUrl.split("?")[0],
   });
 
   if (err.message === "Not allowed by CORS") {

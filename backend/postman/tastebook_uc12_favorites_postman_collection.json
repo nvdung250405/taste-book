@@ -1,0 +1,1836 @@
+{
+  "info": {
+    "_postman_id": "b6f0c1d2-3a4e-4b5c-8d7e-9f1a2b3c4d5e",
+    "name": "TasteBook UC-12 Yêu thích công thức API v1.0",
+    "description": "UC-12 (Sprint 4): GET/POST/PUT/DELETE /favorites. Đặc tả API mục 5.1 - 5.4.\n\n- File độc lập: tự đăng nhập (00_Setup), tự dọn dữ liệu (99_Teardown). Chạy riêng bằng: npm run test:favorites\n- baseUrl lấy từ environment (tastebook_environment.local / .staging).\n- Mã TC-12-xx khớp Sprint4_test_cases.csv. \n- Dùng dữ liệu seed: User A (id 2) chưa có yêu thích; công thức id 1, 3, 4, 8, 9 và id 2; chạy npm run db:reset trước khi chạy lần đầu.\n- Thứ tự request trong folder 01_Favorite là thứ tự chạy, không đảo vị trí.\n- Dự kiến Fail (code lệch đặc tả, xem LƯU Ý trong request): TC-12-17, TC-12-18 (limit=101).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "runId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenA",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenB",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userAId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userBId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// ===== CONTRACT CHUNG: JSON Envelope {EC, EM, DT} + HTTP status + hiệu năng =====",
+          "// Bảng quy chuẩn theo Đặc tả API: EC 5 và EC 6 đều trả HTTP 401 (EC 6 = sai tài khoản/mật khẩu).",
+          "var STATUS_TO_EC = { 200: [0], 201: [0], 400: [1], 401: [5, 6], 403: [4], 404: [3], 409: [2], 500: [-1] };",
+          "var contentType = pm.response.headers.get('Content-Type') || '';",
+          "var jsonData = null;",
+          "try { jsonData = pm.response.json(); } catch (e) { jsonData = null; }",
+          "",
+          "pm.test('Envelope: Content-Type là application/json', function () {",
+          "    pm.expect(contentType, 'HTTP ' + pm.response.code).to.include('application/json');",
+          "});",
+          "",
+          "pm.test('Envelope: body là JSON object', function () {",
+          "    pm.expect(jsonData, 'Body không phải JSON (route chưa mount / Render đang ngủ / trang lỗi HTML) - HTTP ' + pm.response.code).to.be.an('object');",
+          "});",
+          "",
+          "if (jsonData && typeof jsonData === 'object') {",
+          "    pm.test('Envelope: có đủ EC (number), EM (string không rỗng), DT', function () {",
+          "        pm.expect(jsonData).to.have.property('EC');",
+          "        pm.expect(jsonData).to.have.property('EM');",
+          "        pm.expect(jsonData).to.have.property('DT');",
+          "        pm.expect(jsonData.EC).to.be.a('number');",
+          "        pm.expect(jsonData.EM).to.be.a('string');",
+          "        pm.expect(jsonData.EM.trim()).to.not.eql('');",
+          "        pm.expect(jsonData.DT === null || typeof jsonData.DT === 'object', 'DT phải là null / object / array').to.eql(true);",
+          "    });",
+          "",
+          "    pm.test('Envelope: HTTP status khớp EC theo bảng quy chuẩn', function () {",
+          "        var allowed = STATUS_TO_EC[pm.response.code];",
+          "        pm.expect(allowed, 'HTTP ' + pm.response.code + ' không thuộc bảng quy chuẩn (200/201/400/401/403/404/409/500)').to.be.an('array');",
+          "        pm.expect(allowed, 'EC=' + jsonData.EC + ' không khớp HTTP ' + pm.response.code).to.include(jsonData.EC);",
+          "    });",
+          "",
+          "    if (pm.response.code >= 400) {",
+          "        pm.test('Envelope: response lỗi có DT = null', function () {",
+          "            pm.expect(jsonData.DT).to.eql(null);",
+          "        });",
+          "    }",
+          "}",
+          "",
+          "// Ngưỡng lấy từ environment (local 3000ms, staging 10000ms). Request đặc biệt có thể ghi đè bằng pm.variables.set('maxResponseMs', ...) ở pre-request.",
+          "var maxMs = Number(pm.variables.get('maxResponseMs')) || 5000;",
+          "pm.test('Hiệu năng: phản hồi < ' + maxMs + ' ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(maxMs);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00_Setup",
+      "description": "Warm-up backend, đăng nhập User A và User B, kiểm tra DB đã seed. Nếu một bước thất bại, lượt chạy dừng.",
+      "item": [
+        {
+          "name": "TC-SETUP-01 Warm-up backend và khởi tạo runId",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// runId dùng đặt tên dữ liệu test duy nhất: TB-AUTO-{{runId}}-...",
+                  "pm.collectionVariables.set('runId', String(Date.now()));",
+                  "// Request đầu tiên có thể gặp cold-start Render (RSK-04) nên nới ngưỡng thời gian riêng cho request này.",
+                  "pm.variables.set('maxResponseMs', 60000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-SETUP-01 Backend sẵn sàng (GET /home) - 200 OK, EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-SETUP-01 runId đã được tạo', function () {",
+                  "    pm.expect(pm.collectionVariables.get('runId')).to.match(/^\\d{10,}$/);",
+                  "});",
+                  "if (pm.response.code !== 200) {",
+                  "    postman.setNextRequest(null); // Backend không sống thì dừng cả lượt chạy",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/home",
+              "host": ["{{baseUrl}}"],
+              "path": ["home"]
+            },
+            "description": "Đánh thức backend (Render free ngủ sau 15 phút) và tạo biến runId cho cả lượt chạy."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SETUP-02 Đăng nhập User A (chủ sở hữu) lấy token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var res = null;",
+                  "try { res = pm.response.json(); } catch (e) { res = null; }",
+                  "pm.test('TC-SETUP-02 Đăng nhập User A (chủ sở hữu) - 200 OK, EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(res.EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-SETUP-02 DT.accessToken là JWT, user.role = User, email khớp', function () {",
+                  "    pm.expect(res.DT.accessToken).to.be.a('string');",
+                  "    pm.expect(res.DT.accessToken).to.match(/^[\\w-]+\\.[\\w-]+\\.[\\w-]+$/);",
+                  "    pm.expect(res.DT.user.role).to.eql('User');",
+                  "    pm.expect(res.DT.user.email).to.eql(pm.variables.get('userAEmail'));",
+                  "});",
+                  "if (res && res.EC === 0 && res.DT && res.DT.accessToken) {",
+                  "    pm.collectionVariables.set('tokenA', res.DT.accessToken);",
+                  "    pm.collectionVariables.set('userAId', String(res.DT.user.userId));",
+                  "} else {",
+                  "    postman.setNextRequest(null); // Không có token thì mọi test phía sau đều vô nghĩa",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{userAEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Spec 1.2 - POST /auth/login. Lưu tokenA và userAId vào collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SETUP-03 Đăng nhập User B (người khác - dùng test 403) lấy token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var res = null;",
+                  "try { res = pm.response.json(); } catch (e) { res = null; }",
+                  "pm.test('TC-SETUP-03 Đăng nhập User B (người khác - dùng test 403) - 200 OK, EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(res.EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-SETUP-03 DT.accessToken là JWT, user.role = User, email khớp', function () {",
+                  "    pm.expect(res.DT.accessToken).to.be.a('string');",
+                  "    pm.expect(res.DT.accessToken).to.match(/^[\\w-]+\\.[\\w-]+\\.[\\w-]+$/);",
+                  "    pm.expect(res.DT.user.role).to.eql('User');",
+                  "    pm.expect(res.DT.user.email).to.eql(pm.variables.get('userBEmail'));",
+                  "});",
+                  "pm.test('TC-SETUP-03 User B khác User A (cần để test phân quyền 403)', function () {",
+                  "    pm.expect(String(res.DT.user.userId)).to.not.eql(pm.collectionVariables.get('userAId'));",
+                  "});",
+                  "if (res && res.EC === 0 && res.DT && res.DT.accessToken) {",
+                  "    pm.collectionVariables.set('tokenB', res.DT.accessToken);",
+                  "    pm.collectionVariables.set('userBId', String(res.DT.user.userId));",
+                  "} else {",
+                  "    postman.setNextRequest(null); // Không có token thì mọi test phía sau đều vô nghĩa",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{userBEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Spec 1.2 - POST /auth/login. Lưu tokenB và userBId vào collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SETUP-04 Kiểm tra DB đã seed (công thức id=3 'Phở bò')",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var res = null;",
+                  "try { res = pm.response.json(); } catch (e) { res = null; }",
+                  "pm.test('TC-SETUP-04 DB đã seed: công thức id=3 là Phở bò (nếu Fail, chạy npm run db:reset)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(res.DT.title).to.include('Phở bò');",
+                  "});",
+                  "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipes/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "3"]
+            },
+            "description": "Nếu Fail: DB chưa seed đúng. Chạy npm run db:reset (chỉ trên DB local) rồi chạy lại.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01_Favorite",
+      "description": "Đặc tả mục 5.1 - 5.4 (UC-12). Thứ tự request là thứ tự chạy.",
+      "item": [
+        {
+          "name": "TC-12-20 User chưa có món yêu thích nào",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-20 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-12-20 items rỗng, total = 0, totalPages = 0', function () {",
+                  "    var dt = pm.response.json().DT;",
+                  "    pm.expect(dt.items).to.eql([]);",
+                  "    pm.expect(dt.total).to.eql(0);",
+                  "    pm.expect(dt.totalPages).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites"]
+            },
+            "description": "Loại: Boundary | Kỹ thuật: BVA\nKết quả mong đợi: 200, EC 0, DT.items = [], total = 0, totalPages = 0\nLƯU Ý: Dùng User A ngay đầu lượt chạy (seed không có yêu thích nào của User A) thay cho 'tài khoản mới đăng ký'. Nếu Fail do còn dữ liệu của lượt chạy trước bị ngắt giữa chừng, chạy npm run db:reset.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-01 Thêm yêu thích, không ghi chú",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-01 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-12-01 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Đã thêm vào bộ sưu tập yêu thích!\");",
+                  "});",
+                  "pm.test('TC-12-01 DT = null', function () { pm.expect(pm.response.json().DT).to.eql(null); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "3"]
+            },
+            "description": "Loại: Normal | Kỹ thuật: EP\nKết quả mong đợi: 201, EC 0, EM 'Đã thêm vào bộ sưu tập yêu thích!', DT = null\nLƯU Ý: Công thức id 3 (công khai, đã duyệt, tác giả User B).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-02 Thêm yêu thích kèm ghi chú cá nhân",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-02 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-12-02 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Đã thêm vào bộ sưu tập yêu thích!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/4",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "4"]
+            },
+            "description": "Loại: Normal | Kỹ thuật: EP\nKết quả mong đợi: 201, EC 0\nLƯU Ý: Công thức id 4.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"personalNotes\": \"Thử nấu vào cuối tuần\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-03 Danh sách yêu thích hiển thị đủ thông tin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-03 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-12-03 DT có page, limit, total, totalPages và items; có món id 3 và 4', function () {",
+                  "    var dt = pm.response.json().DT;",
+                  "    pm.expect(dt.page).to.eql(1);",
+                  "    pm.expect(dt.limit).to.eql(10);",
+                  "    pm.expect(dt.total).to.be.at.least(2);",
+                  "    pm.expect(dt.totalPages).to.be.at.least(1);",
+                  "    var ids = dt.items.map(function (i) { return i.recipeId; });",
+                  "    pm.expect(ids).to.include(3);",
+                  "    pm.expect(ids).to.include(4);",
+                  "});",
+                  "pm.test('TC-12-03 Mỗi item đủ trường: recipeId, title, thumbnailUrl, cookTimeMinutes, difficulty, author {userId, username}, personalNotes, createdAt', function () {",
+                  "    pm.response.json().DT.items.forEach(function (i) {",
+                  "        pm.expect(i.recipeId).to.be.a('number');",
+                  "        pm.expect(i.title).to.be.a('string');",
+                  "        pm.expect(i).to.have.property('thumbnailUrl');",
+                  "        pm.expect(i.cookTimeMinutes).to.be.a('number');",
+                  "        pm.expect(i.difficulty).to.be.a('string');",
+                  "        pm.expect(i.author.userId).to.be.a('number');",
+                  "        pm.expect(i.author.username).to.be.a('string');",
+                  "        pm.expect(i.personalNotes).to.be.a('string');",
+                  "        pm.expect(i.createdAt).to.be.a('string');",
+                  "    });",
+                  "});",
+                  "pm.test('TC-12-03 Món id 4 giữ đúng ghi chú đã thêm ở TC-12-02', function () {",
+                  "    var m = pm.response.json().DT.items.filter(function (i) { return i.recipeId === 4; })[0];",
+                  "    pm.expect(m.personalNotes).to.eql('Thử nấu vào cuối tuần');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites"]
+            },
+            "description": "Loại: Normal | Kỹ thuật: EP\nKết quả mong đợi: 200, EC 0, DT {page, limit, total, totalPages, items[]}; mỗi item có recipeId, title, thumbnailUrl, cookTimeMinutes, difficulty, author {userId, username}, personalNotes, createdAt",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-04 Sửa ghi chú món yêu thích",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-04 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-12-04 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Cập nhật ghi chú thành công!\");",
+                  "});",
+                  "pm.test('TC-12-04 DT = null', function () { pm.expect(pm.response.json().DT).to.eql(null); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "3"]
+            },
+            "description": "Loại: Normal | Kỹ thuật: EP\nKết quả mong đợi: 200, EC 0, EM 'Cập nhật ghi chú thành công!'; GET /favorites thấy ghi chú mới",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"personalNotes\": \"Nấu ít ớt lại\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-04 (bước 2) Ghi chú mới đã được lưu",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-04 (bước 2) HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-12-04 (bước 2) Món id 3 có ghi chú mới', function () {",
+                  "    var m = pm.response.json().DT.items.filter(function (i) { return i.recipeId === 3; })[0];",
+                  "    pm.expect(m, 'Không thấy món id 3 trong danh sách').to.be.an('object');",
+                  "    pm.expect(m.personalNotes).to.eql('Nấu ít ớt lại');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites"]
+            },
+            "description": "Xem lại danh sách sau khi sửa ghi chú món id 3.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-06 Yêu thích công thức của chính mình chưa được duyệt",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-06 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-12-06 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Đã thêm vào bộ sưu tập yêu thích!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/8",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "8"]
+            },
+            "description": "Loại: Normal | Kỹ thuật: EP\nKết quả mong đợi: 201, EC 0\nLƯU Ý: Dùng seed id 8 (tác giả User A, công khai đang chờ duyệt) thay cho 'công thức riêng tư của A' để không phải tạo dữ liệu mới; cùng nhánh quy tắc: tác giả được yêu thích công thức chưa duyệt công khai.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-07 Yêu thích công thức chưa duyệt của người khác",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-07 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});",
+                  "pm.test('TC-12-07 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Không tìm thấy món ăn để thêm vào yêu thích!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/9",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "9"]
+            },
+            "description": "Loại: Abnormal | Kỹ thuật: Decision Table\nKết quả mong đợi: 404, EC 3, EM 'Không tìm thấy món ăn để thêm vào yêu thích!' (không lộ công thức chưa công khai)\nLƯU Ý: Dùng seed id 9 (tác giả User A, bị từ chối) với User B, vì seed id 5 trong bản project mới đã là công khai đã duyệt.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-08 Thêm trùng món đã yêu thích",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-08 HTTP 409 + EC = 2', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "    pm.expect(pm.response.json().EC).to.eql(2);",
+                  "});",
+                  "pm.test('TC-12-08 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Món ăn này đã tồn tại trong danh sách yêu thích!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "3"]
+            },
+            "description": "Loại: Abnormal | Kỹ thuật: EP\nKết quả mong đợi: 409, EC 2, EM 'Món ăn này đã tồn tại trong danh sách yêu thích!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-09 Thêm yêu thích công thức không tồn tại",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-09 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});",
+                  "pm.test('TC-12-09 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Không tìm thấy món ăn để thêm vào yêu thích!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/999999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "999999999"]
+            },
+            "description": "Loại: Abnormal | Kỹ thuật: EP\nKết quả mong đợi: 404, EC 3, EM 'Không tìm thấy món ăn để thêm vào yêu thích!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-10 ID món ăn không phải số",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-10 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-12-10 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"ID món ăn không hợp lệ!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/abc",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "abc"]
+            },
+            "description": "Loại: Abnormal | Kỹ thuật: EP\nKết quả mong đợi: 400, EC 1, EM 'ID món ăn không hợp lệ!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-11 Sửa ghi chú món chưa yêu thích",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-11 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});",
+                  "pm.test('TC-12-11 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Món ăn chưa có trong danh sách yêu thích của bạn!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/2",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "2"]
+            },
+            "description": "Loại: Abnormal | Kỹ thuật: EP\nKết quả mong đợi: 404, EC 3, EM 'Món ăn chưa có trong danh sách yêu thích của bạn!'\nLƯU Ý: Công thức id 2 chưa có trong yêu thích của User A.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"personalNotes\": \"ghi chú thử\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-12 Bỏ yêu thích món chưa yêu thích",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-12 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});",
+                  "pm.test('TC-12-12 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Món ăn chưa có trong danh sách yêu thích của bạn!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/2",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "2"]
+            },
+            "description": "Loại: Abnormal | Kỹ thuật: EP\nKết quả mong đợi: 404, EC 3, EM 'Món ăn chưa có trong danh sách yêu thích của bạn!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-13 (PUT) Sửa ghi chú với ID không phải số",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-13 (PUT) HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-12-13 (PUT) EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"ID món ăn không hợp lệ!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/abc",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "abc"]
+            },
+            "description": "Loại: Abnormal | Kỹ thuật: EP\nKết quả mong đợi: 400, EC 1, EM 'ID món ăn không hợp lệ!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"personalNotes\": \"ghi chú thử\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-13 (DELETE) Bỏ yêu thích với ID không phải số",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-13 (DELETE) HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-12-13 (DELETE) EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"ID món ăn không hợp lệ!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/abc",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "abc"]
+            },
+            "description": "Loại: Abnormal | Kỹ thuật: EP\nKết quả mong đợi: 400, EC 1, EM 'ID món ăn không hợp lệ!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-14 (GET) Không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-14 (GET) HTTP 401 + EC = 5', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "    pm.expect(pm.response.json().EC).to.eql(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites"]
+            },
+            "description": "Loại: Abnormal | Kỹ thuật: EP\nKết quả mong đợi: 401, EC 5",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-14 (POST) Không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-14 (POST) HTTP 401 + EC = 5', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "    pm.expect(pm.response.json().EC).to.eql(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "3"]
+            },
+            "description": "Loại: Abnormal | Kỹ thuật: EP\nKết quả mong đợi: 401, EC 5",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-14 (PUT) Không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-14 (PUT) HTTP 401 + EC = 5', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "    pm.expect(pm.response.json().EC).to.eql(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "3"]
+            },
+            "description": "Loại: Abnormal | Kỹ thuật: EP\nKết quả mong đợi: 401, EC 5",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"personalNotes\": \"ghi chú thử\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-14 (DELETE) Không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-14 (DELETE) HTTP 401 + EC = 5', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "    pm.expect(pm.response.json().EC).to.eql(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "3"]
+            },
+            "description": "Loại: Abnormal | Kỹ thuật: EP\nKết quả mong đợi: 401, EC 5",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-15 personalNotes đúng 500 ký tự",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.variables.set('note500', 'a'.repeat(500));"]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-15 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-12-15 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Đã thêm vào bộ sưu tập yêu thích!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "1"]
+            },
+            "description": "Loại: Boundary | Kỹ thuật: BVA\nKết quả mong đợi: 201, EC 0\nLƯU Ý: Dùng công thức id 1 (đã duyệt, công khai) vì id 4 đã được thêm ở TC-12-02.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"personalNotes\": \"{{note500}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-16 personalNotes 501 ký tự (vượt biên)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.variables.set('note501', 'a'.repeat(501));"]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-16 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "3"]
+            },
+            "description": "Loại: Boundary | Kỹ thuật: BVA\nKết quả mong đợi: 400, EC 1\nLƯU Ý: Đặc tả chưa nêu EM cho trường hợp này nên chỉ kiểm tra status và EC (code hiện trả EM 'Ghi chú cá nhân không được vượt quá 500 ký tự!').",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"personalNotes\": \"{{note501}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-17 Sửa ghi chú thành rỗng",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-17', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "3"]
+            },
+            "description": "Loại: Boundary | Kỹ thuật: Error Guessing\nKết quả mong đợi: 200, EC 0",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"personalNotes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-18 (limit=100) Phân trang tại biên trên hợp lệ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-18 (limit=100) HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-12-18 (limit=100) DT.limit = 100', function () { pm.expect(pm.response.json().DT.limit).to.eql(100); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites?limit=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Loại: Boundary | Kỹ thuật: BVA\nKết quả mong đợi: 200, EC 0",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-18 (limit=101) Phân trang vượt biên trên",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-18 (limit=101) HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites?limit=101",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "101"
+                }
+              ]
+            },
+            "description": "Loại: Boundary | Kỹ thuật: BVA\nKết quả mong đợi: 400, EC 1, EM 'Tham số phân trang page hoặc limit không hợp lệ!'\nLƯU Ý: LỆCH, dự kiến Fail: đặc tả ghi 1 <= limit <= 100 nhưng code hiện tự ép limit > 100 về 100 và trả 200. Cần BE/PM xác nhận.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-19 Phân trang page = 0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-19 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-12-19 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Tham số phân trang page hoặc limit không hợp lệ!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites?page=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Loại: Boundary | Kỹ thuật: BVA\nKết quả mong đợi: 400, EC 1, EM 'Tham số phân trang page hoặc limit không hợp lệ!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-21 Yêu thích của User A không hiện ở User B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-21 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-12-21 Danh sách của User B không chứa món id 3, 4, 8 của User A', function () {",
+                  "    var ids = pm.response.json().DT.items.map(function (i) { return i.recipeId; });",
+                  "    pm.expect(ids).to.not.include(3);",
+                  "    pm.expect(ids).to.not.include(4);",
+                  "    pm.expect(ids).to.not.include(8);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites"]
+            },
+            "description": "Loại: Normal | Kỹ thuật: Decision Table\nKết quả mong đợi: 200; danh sách của User B không chứa món yêu thích của User A (id 3, 4, 8)\nLƯU Ý: User B có sẵn 1 món yêu thích trong seed (công thức id 1).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-05 Bỏ yêu thích",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-05 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-12-05 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Đã xóa khỏi danh sách yêu thích!\");",
+                  "});",
+                  "pm.test('TC-12-05 DT = null', function () { pm.expect(pm.response.json().DT).to.eql(null); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "3"]
+            },
+            "description": "Loại: Normal | Kỹ thuật: EP\nKết quả mong đợi: 200, EC 0, EM 'Đã xóa khỏi danh sách yêu thích!'; GET /favorites không còn recipe 3\nLƯU Ý: Đặt gần cuối folder vì các test case trước dùng món id 3.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-12-05 (bước 2) Món đã bỏ không còn trong danh sách",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-12-05 (bước 2) HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-12-05 (bước 2) Danh sách không còn món id 3', function () {",
+                  "    var ids = pm.response.json().DT.items.map(function (i) { return i.recipeId; });",
+                  "    pm.expect(ids).to.not.include(3);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites"]
+            },
+            "description": "Xem lại danh sách sau khi bỏ yêu thích món id 3.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "99_Teardown",
+      "description": "Bỏ các món yêu thích do collection này đã thêm cho User A.",
+      "item": [
+        {
+          "name": "TD-12-01 Dọn món yêu thích id 3 của User A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TD-12-01 Dọn dữ liệu - 200 hoặc 404', function () { pm.expect([200, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "3"]
+            },
+            "description": "Bỏ yêu thích món id 3 nếu còn. Chấp nhận 404 (đã được bỏ rồi).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TD-12-02 Dọn món yêu thích id 4 của User A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TD-12-02 Dọn dữ liệu - 200 hoặc 404', function () { pm.expect([200, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/4",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "4"]
+            },
+            "description": "Bỏ yêu thích món id 4 nếu còn. Chấp nhận 404 (đã được bỏ rồi).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TD-12-03 Dọn món yêu thích id 8 của User A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TD-12-03 Dọn dữ liệu - 200 hoặc 404', function () { pm.expect([200, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/8",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "8"]
+            },
+            "description": "Bỏ yêu thích món id 8 nếu còn. Chấp nhận 404 (đã được bỏ rồi).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TD-12-04 Dọn món yêu thích id 1 của User A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TD-12-04 Dọn dữ liệu - 200 hoặc 404', function () { pm.expect([200, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "1"]
+            },
+            "description": "Bỏ yêu thích món id 1 nếu còn. Chấp nhận 404 (đã được bỏ rồi).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

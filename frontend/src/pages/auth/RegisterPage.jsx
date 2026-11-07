@@ -1,3 +1,4 @@
+import { isVietnamesePhone, normalizePhone } from '../../lib/phone'
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
@@ -36,9 +37,8 @@ export default function RegisterPage() {
       return;
     }
 
-    const phoneRegex = /^(0|\+84)[35789][0-9]{8}$/;
-    if (!phoneRegex.test(phone.trim())) {
-      toast.error('Số điện thoại không hợp lệ (phải là số điện thoại 10 số hợp lệ)');
+    if (!isVietnamesePhone(phone)) {
+      toast.error('Số điện thoại không hợp lệ (dùng dạng 0912345678 hoặc +84912345678)');
       return;
     }
     
@@ -56,7 +56,7 @@ export default function RegisterPage() {
       {
         username: username.trim(),
         email: email.trim(),
-        phone: phone.trim(),
+        phone: normalizePhone(phone),
         password,
         confirmPassword
       },
@@ -122,7 +122,7 @@ export default function RegisterPage() {
                 <Input 
                   id="phone" 
                   type="tel" 
-                  placeholder="0912345678" 
+                  placeholder="0912345678 hoặc +84912345678"
                   value={formData.phone}
                   onChange={handleChange}
                   className="bg-slate-50 dark:bg-slate-800"

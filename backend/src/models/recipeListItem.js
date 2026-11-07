@@ -27,6 +27,11 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: "RecipeListItem",
       tableName: "RecipeListItems",
+      indexes: [{
+        name: "UQ_RecipeListItems_List_Recipe",
+        unique: true,
+        fields: ["recipeListId", "recipeId"],
+      }],
     },
   );
   return RecipeListItem;

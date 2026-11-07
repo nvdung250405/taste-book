@@ -1,32 +1,21 @@
 import { useCategories } from '../hooks/queries/useCategoryQueries'
-import { useRecipes } from '../hooks/queries/useRecipeQueries'
-
+import { useHomeRecipes } from '../hooks/queries/useRecipeQueries'
 import HeroSection from '../components/home/HeroSection'
 import CategorySection from '../components/home/CategorySection'
-import FeaturedRecipesSection from '../components/home/FeaturedRecipesSection'
+import { LatestRecipesSection, TrendingRecipesSection } from '../components/home/FeaturedRecipesSection'
+import QueryError from '../components/ui/QueryError'
 
-function HomePage() {
-  const { data: categoriesRes, isLoading: loadingCats } = useCategories()
-  const { data: recipesRes, isLoading: loadingRecipes } = useRecipes({ limit: 6 })
-
-  const categories = categoriesRes?.DT || []
-  const recipes = Array.isArray(recipesRes?.DT) ? recipesRes.DT : (recipesRes?.DT?.items || recipesRes?.DT?.recipes || [])
-
-  return (
-    <div className="flex flex-col gap-12 pb-12 -mt-8">
-      <HeroSection />
-      
-      <CategorySection 
-        categories={categories} 
-        loadingCats={loadingCats} 
-      />
-      
-      <FeaturedRecipesSection 
-        recipes={recipes} 
-        loadingRecipes={loadingRecipes} 
-      />
+export default function HomePage() {
+  const categories = useCategories()
+  const home = useHomeRecipes()
+  return <div className="flex flex-col gap-12 pb-16 -mt-8">
+    <HeroSection />
+    <div className="container mx-auto flex flex-col gap-12 px-4">
+    {categories.isError && !categories.data ? <QueryError title="Không thể tải danh mục" onRetry={categories.refetch} isRetrying={categories.isFetching} /> : <CategorySection categories={categories.data?.DT || []} loadingCats={categories.isLoading} />}
+    {home.isError && !home.data ? <QueryError title="Không thể tải công thức trang chủ" onRetry={home.refetch} isRetrying={home.isFetching} /> : <>
+      <LatestRecipesSection recipes={home.data?.DT?.latestRecipes || []} isLoading={home.isLoading} />
+      <TrendingRecipesSection recipes={home.data?.DT?.trendingRecipes || []} isLoading={home.isLoading} />
+    </>}
     </div>
-  )
+  </div>
 }
-
-export default HomePage

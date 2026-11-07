@@ -2,23 +2,17 @@ require("dotenv").config();
 import db from "../models/index";
 import bcrypt from "bcryptjs";
 import { Op } from "sequelize";
-import { createJWT } from "../middleware/JWTAction";
-
-const salt = bcrypt.genSaltSync(10);
+import { createJWT, verifyToken } from "../middleware/JWTAction";
+import { revokeToken } from "./tokenRevocationService";
+import { normalizePhoneNumber, isPhoneUniqueError } from "../utils/phoneUtils";
 
 const hashUserPassword = (userPassword) => {
-  let hashPassword = bcrypt.hashSync(userPassword, salt);
-  return hashPassword;
+  return bcrypt.hashSync(userPassword, 10);
 };
 
 const isEmailValid = (email) => {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(email);
-};
-
-const isPhoneValid = (phone) => {
-  const re = /^(0|\+84)[35789][0-9]{8}$/;
-  return re.test(String(phone).trim());
 };
 
 const checkEmailExist = async (userEmail) => {
@@ -34,9 +28,11 @@ const checkEmailExist = async (userEmail) => {
 };
 
 const checkPhoneExist = async (userPhone) => {
+  const phone = normalizePhoneNumber(userPhone);
+  if (!phone) return false;
   let user = await db.User.findOne({
     where: {
-      phone: userPhone.trim(),
+      phone,
     },
   });
   if (user) {
@@ -58,7 +54,7 @@ const registerNewUser = async (rawUserData) => {
       !phone ||
       !username.trim() ||
       !email.trim() ||
-      !phone.trim()
+      (typeof phone === "string" && !phone.trim())
     ) {
       return {
         EC: 1,
@@ -77,7 +73,8 @@ const registerNewUser = async (rawUserData) => {
     }
 
     // 3. Kiểm tra định dạng Số điện thoại
-    if (!isPhoneValid(phone)) {
+    const cleanPhone = normalizePhoneNumber(phone);
+    if (!cleanPhone) {
       return {
         EC: 1,
         EM: "Số điện thoại không đúng định dạng (phải là số điện thoại 10 số hợp lệ)!",
@@ -114,11 +111,11 @@ const registerNewUser = async (rawUserData) => {
     }
 
     // 7. Kiểm tra số điện thoại đã tồn tại
-    let isPhoneExist = await checkPhoneExist(phone);
+    let isPhoneExist = await checkPhoneExist(cleanPhone);
     if (isPhoneExist === true) {
       return {
         EC: 2,
-        EM: "Email hoặc số điện thoại đã được đăng ký trên hệ thống!",
+        EM: "Số điện thoại đã được đăng ký trên hệ thống!",
         DT: null,
       };
     }
@@ -131,7 +128,7 @@ const registerNewUser = async (rawUserData) => {
       email: email.trim(),
       username: username.trim(),
       password: hashPassword,
-      phone: phone.trim(),
+      phone: cleanPhone,
       avatarUrl:
         "https://res.cloudinary.com/sf4yjct9/image/upload/v1788611681/tastebook_uploads/f1plgomkateq3nufqchm.png",
       role: "User",
@@ -150,6 +147,9 @@ const registerNewUser = async (rawUserData) => {
       },
     };
   } catch (e) {
+    if (isPhoneUniqueError(e)) {
+      return { EC: 2, EM: "Số điện thoại đã được đăng ký trên hệ thống!", DT: null };
+    }
     console.log(e);
     return {
       EC: -1,
@@ -175,7 +175,7 @@ const handleUserLogin = async (rawData) => {
       };
     }
 
-    let cleanValue = valueLogin.trim();
+    let cleanValue = normalizePhoneNumber(valueLogin) || valueLogin.trim();
 
     let user = await db.User.findOne({
       where: {
@@ -227,12 +227,18 @@ const handleUserLogin = async (rawData) => {
   }
 };
 
-const handleUserLogout = () => {
-  return {
-    EC: 0,
-    EM: "Đăng xuất thành công!",
-    DT: null,
-  };
+const handleUserLogout = async (token) => {
+  try {
+    const claims = verifyToken(token);
+    if (!claims || !(claims.userId || claims.id) || !Number.isFinite(claims.exp)) {
+      return { EC: 5, EM: "Chưa xác thực hoặc phiên đăng nhập đã hết hạn!", DT: null };
+    }
+    await revokeToken(token, claims);
+    return { EC: 0, EM: "Đăng xuất thành công!", DT: null };
+  } catch (error) {
+    console.error("handleUserLogout error:", error);
+    return { EC: -1, EM: "Lỗi kết nối máy chủ!", DT: null };
+  }
 };
 
 module.exports = {

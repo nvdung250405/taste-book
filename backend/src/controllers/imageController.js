@@ -31,11 +31,12 @@ const handleDeleteImage = async (req, res) => {
       (req.query && (req.query.url || req.query.publicId)) ||
       (req.body && (req.body.publicId || req.body.url));
 
-    let result = await imageService.deleteImageByPublicId(publicId);
+    let result = await imageService.deleteImageByPublicId(publicId, req.user);
 
     let statusCode = 200;
     if (result.EC === 1) statusCode = 400;
     if (result.EC === 3) statusCode = 404;
+    if (result.EC === 4) statusCode = 403;
     if (result.EC === 5) statusCode = 401;
     if (result.EC === -1) statusCode = 500;
 

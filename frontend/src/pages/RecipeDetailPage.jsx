@@ -1,70 +1,145 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ChefHat, Loader2 } from 'lucide-react'
+import { ArrowLeft, ChefHat } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { useRecipeDetail } from '../hooks/queries/useRecipeQueries'
-import { useAddFavorite, useRemoveFavorite, useFavorites } from '../hooks/queries/useFavoriteQueries'
+import {
+  useAddFavorite,
+  useRemoveFavorite,
+  useFavoriteIds,
+} from '../hooks/queries/useFavoriteQueries'
 import { useProfile } from '../hooks/queries/useAuthQueries'
 import { toast } from 'sonner'
+import QueryError from '../components/ui/QueryError'
+
+import { Badge } from '../components/ui/badge'
 
 import RecipeHero from '../components/recipe/RecipeHero'
 import RecipeQuickInfo from '../components/recipe/RecipeQuickInfo'
 import RecipeIngredients from '../components/recipe/RecipeIngredients'
 import RecipeSteps from '../components/recipe/RecipeSteps'
 import RecipeSidebar from '../components/recipe/RecipeSidebar'
+import AddToMenuDialog from '../components/menu/AddToMenuDialog'
+
+const DIFFICULTY_TEXT = {
+  Easy: 'Dễ',
+  Medium: 'Trung bình',
+  Hard: 'Khó',
+}
 
 export default function RecipeDetailPage() {
   const { id } = useParams()
-  const navigate = useNavigate()
+  return <RecipeDetail key={id} id={id} />
+}
 
-  const { data: recipeRes, isLoading, error } = useRecipeDetail(id)
+function RecipeDetail({ id }) {
+  const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  const {
+    data: recipeRes,
+    isLoading,
+    error,
+    refetch,
+    isFetching,
+  } = useRecipeDetail(id)
   const { data: profileRes } = useProfile()
-  const { data: favRes } = useFavorites()
+  const {
+    data: favoriteIds,
+    isPending: favoritesPending,
+    isError: favoritesError,
+  } = useFavoriteIds([id])
   const { mutate: addFav, isPending: adding } = useAddFavorite()
   const { mutate: removeFav, isPending: removing } = useRemoveFavorite()
 
-  const [servings, setServings] = useState(null)  // null = dùng servings gốc
+  const [servings, setServings] = useState(null) // null = dùng servings gốc
   const [checkedSteps, setCheckedSteps] = useState({})
 
   const recipe = recipeRes?.DT || null
   const isLoggedIn = !!profileRes?.DT
 
   // Check if recipe is favorited
-  const favorites = Array.isArray(favRes?.DT) ? favRes.DT : (favRes?.DT?.items || [])
-  const isFavorited = favorites.some(f => {
-    const rid = f.recipe?._id || f.recipe?.id || f._id || f.id
-    return rid === id
-  })
+  const isFavorited = favoriteIds?.has(String(id)) || false
 
-  const actualServings = servings || recipe?.servings || recipe?.portions || 4
-  const originalServings = recipe?.servings || recipe?.portions || 4
+  const actualServings =
+    servings || recipe?.defaultServings || recipe?.servings || 4
+  const originalServings = recipe?.defaultServings || recipe?.servings || 4
   const ratio = actualServings / originalServings
 
-  const toggleStep = (idx) => setCheckedSteps(p => ({ ...p, [idx]: !p[idx] }))
+  const toggleStep = (idx) => setCheckedSteps((p) => ({ ...p, [idx]: !p[idx] }))
 
   const handleFavorite = () => {
-    if (!isLoggedIn) { toast.error('Vui lòng đăng nhập để thêm yêu thích'); return }
+    if (!isLoggedIn) {
+      toast.error('Vui lòng đăng nhập để thêm yêu thích')
+      return
+    }
+    if (favoritesPending || favoritesError) {
+      toast.error('Chưa thể kiểm tra trạng thái yêu thích. Vui lòng thử lại!')
+      return
+    }
     if (isFavorited) {
       removeFav(id, {
         onSuccess: () => toast.success('Đã xóa khỏi yêu thích'),
-        onError: () => toast.error('Thất bại'),
+        onError: (error) => toast.error(error?.EM || 'Không thể bỏ yêu thích. Vui lòng thử lại!'),
       })
     } else {
-      addFav({ recipeId: id, data: {} }, {
-        onSuccess: () => toast.success('Đã thêm vào yêu thích ❤️'),
-        onError: () => toast.error('Thất bại'),
-      })
+      addFav(
+        { recipeId: id, data: {} },
+        {
+          onSuccess: () => toast.success('Đã thêm vào yêu thích ❤️'),
+          onError: (error) => toast.error(error?.EM || 'Không thể thêm yêu thích. Vui lòng thử lại!'),
+        },
+      )
     }
   }
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 className="w-12 h-12 animate-spin text-orange-500" />
-        <p className="text-slate-500">Đang tải công thức...</p>
+      <div className="max-w-5xl mx-auto animate-pulse">
+        <div className="w-24 h-5 bg-slate-200 dark:bg-slate-800 rounded mb-6"></div>
+        <div className="mb-6 lg:mb-8 mt-2">
+          <div className="w-3/4 md:w-1/2 h-10 md:h-12 bg-slate-200 dark:bg-slate-800 rounded mb-4"></div>
+          <div className="flex gap-2">
+            <div className="w-20 h-6 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+            <div className="w-24 h-6 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            {/* Hero skeleton */}
+            <div className="w-full aspect-[16/9] sm:aspect-[21/9] lg:aspect-video rounded-3xl bg-slate-200 dark:bg-slate-800"></div>
+            {/* Quick info skeleton */}
+            <div className="h-24 rounded-2xl bg-slate-200 dark:bg-slate-800"></div>
+            {/* Ingredients skeleton */}
+            <div className="space-y-4">
+              <div className="h-8 w-1/3 bg-slate-200 dark:bg-slate-800 rounded"></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="h-12 rounded-xl bg-slate-200 dark:bg-slate-800"
+                  ></div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="space-y-5">
+            <div className="h-32 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+            <div className="h-40 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+          </div>
+        </div>
       </div>
     )
   }
+
+  if (error && error.EC !== 3)
+    return (
+      <QueryError
+        title="Không thể tải công thức"
+        onRetry={refetch}
+        isRetrying={isFetching}
+      />
+    )
 
   if (error || !recipe) {
     return (
@@ -72,8 +147,12 @@ export default function RecipeDetailPage() {
         <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
           <ChefHat className="w-10 h-10 text-slate-400" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-300">Không tìm thấy công thức</h2>
-        <p className="text-slate-500 text-sm">Công thức này có thể đã bị xóa hoặc không tồn tại.</p>
+        <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-300">
+          Không tìm thấy công thức
+        </h2>
+        <p className="text-slate-500 text-sm">
+          Công thức này có thể đã bị xóa hoặc không tồn tại.
+        </p>
         <Button onClick={() => navigate(-1)} variant="outline">
           <ArrowLeft className="w-4 h-4 mr-2" /> Quay lại
         </Button>
@@ -82,9 +161,17 @@ export default function RecipeDetailPage() {
   }
 
   const ingredients = recipe.ingredients || []
-  const steps = recipe.steps || recipe.instructions || []
-  const tags = recipe.tags || []
-  const author = recipe.author || recipe.user || {}
+  const steps = recipe.steps || recipe.cookingSteps || []
+  const tags = recipe.categories || recipe.tags || []
+  // Backend trả về authorName (string), không phải object author
+  const author = {
+    name:
+      recipe.authorName ||
+      recipe.author?.username ||
+      recipe.author?.name ||
+      'TasteBook Chef',
+    email: recipe.author?.email || '',
+  }
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -96,51 +183,94 @@ export default function RecipeDetailPage() {
         <ArrowLeft className="w-4 h-4" /> Quay lại
       </button>
 
-      <RecipeHero 
-        recipe={recipe} 
-        tags={tags} 
-        isFavorited={isFavorited} 
-        handleFavorite={handleFavorite} 
-        disabledBtn={adding || removing} 
-      />
+      {/* Header */}
+      <div className="mb-6 lg:mb-8 mt-2">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-slate-50 mb-4 tracking-tight leading-tight">
+          {recipe.title}
+        </h1>
+        <div className="flex flex-wrap items-center gap-2">
+          {tags.map((tag, idx) => (
+            <Badge
+              key={tag.categoryId || tag.id || tag._id || idx}
+              variant="secondary"
+              className="bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 border-none px-3 py-1 text-sm font-medium"
+            >
+              {tag.categoryName || tag.name || String(tag)}
+            </Badge>
+          ))}
+          {recipe.difficulty && (
+            <Badge
+              variant="outline"
+              className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm"
+            >
+              Độ khó: {DIFFICULTY_TEXT[recipe.difficulty] || recipe.difficulty}
+            </Badge>
+          )}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left: Main Content */}
         <div className="lg:col-span-2 space-y-8">
+          <RecipeHero
+            recipe={recipe}
+            isFavorited={isFavorited}
+            handleFavorite={handleFavorite}
+            disabledBtn={adding || removing}
+          />
+
           <RecipeQuickInfo recipe={recipe} actualServings={actualServings} />
 
           {/* Description */}
           {recipe.description && (
             <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-3">Giới thiệu</h2>
-              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{recipe.description}</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-3">
+                Giới thiệu
+              </h2>
+              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                {recipe.description}
+              </p>
             </div>
           )}
 
-          <RecipeIngredients 
-            ingredients={ingredients} 
-            actualServings={actualServings} 
-            setServings={setServings} 
-            ratio={ratio} 
+          <RecipeIngredients
+            ingredients={ingredients}
+            actualServings={actualServings}
+            setServings={setServings}
+            ratio={ratio}
           />
 
-          <RecipeSteps 
-            steps={steps} 
-            checkedSteps={checkedSteps} 
-            toggleStep={toggleStep} 
+          <RecipeSteps
+            steps={steps}
+            checkedSteps={checkedSteps}
+            toggleStep={toggleStep}
           />
         </div>
 
         {/* Right: Sidebar */}
-        <RecipeSidebar 
-          author={author} 
-          recipe={recipe} 
-          tags={tags} 
-          isFavorited={isFavorited} 
-          handleFavorite={handleFavorite} 
-          disabledBtn={adding || removing} 
+        <RecipeSidebar
+          onAddToMenu={() => {
+            if (!localStorage.getItem('token')) {
+              toast.info('Vui lòng đăng nhập để thêm món vào thực đơn')
+              return
+            }
+            setMenuOpen(true)
+          }}
+          author={author}
+          recipe={recipe}
+          tags={tags}
+          isFavorited={isFavorited}
+          handleFavorite={handleFavorite}
+          disabledBtn={adding || removing}
         />
       </div>
+      {menuOpen && (
+        <AddToMenuDialog
+          recipeId={id}
+          servings={actualServings}
+          onClose={() => setMenuOpen(false)}
+        />
+      )}
     </div>
   )
 }

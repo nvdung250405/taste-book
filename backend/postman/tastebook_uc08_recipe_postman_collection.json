@@ -1,0 +1,3553 @@
+{
+  "info": {
+    "_postman_id": "c8a1f3d2-08e4-4b7a-9d15-2f6b0a7e8c09",
+    "name": "TasteBook UC-08 Tạo công thức mới API v2.0 (theo Sprint4_test_cases.csv)",
+    "description": "UC-08 (Sprint 4): POST /recipes (đặc tả 4.4) và upload ảnh POST/DELETE /images (đặc tả 8.1, 8.2).\n\n- Mã TC-08-01 -> TC-08-42 khớp 1:1 với Sprint4_test_cases.csv (Loại, Kỹ thuật, Dữ liệu, Kết quả mong đợi lấy từ file này). TC-08-43 -> TC-08-58 là test giao diện, thực hiện thủ công, không có trong collection.\n- TC có nhiều bước (05, 07, 39) được tách thành nhiều request cùng mã, đánh dấu 'bước n'.\n- File độc lập: tự đăng nhập (00_Setup), tự dọn dữ liệu (99_Teardown). baseUrl lấy từ environment. Cần biến environment: userAEmail, userBEmail, userPassword, adminEmail, adminPassword, seedIngredientId (tuỳ chọn, mặc định 1).\n- Nhóm upload ảnh cần thư mục file mẫu (postman/data): anh-mau.jpg, anh-mau.png, anh-mau.webp, tai-lieu.pdf, gia-anh.jpg, anh-5mb.jpg (đúng 5.242.880 byte), anh-5mb-vuot.jpg (5.242.881 byte). run-newman.js đã tự dùng thư mục này làm --working-dir; trên Postman app cần đặt working directory trỏ tới đó. Ảnh tải lên được tự xóa ở TD-08-02.\n- Contract chung EC/EM/DT, HTTP status khớp EC, DT = null khi lỗi, hiệu năng: collection-level test, dùng lại của UC-25.\n- Công thức CÔNG KHAI (Pending) không xóa được qua API (UC-11) nên ở lại DB: dọn bằng SQL UPDATE \"Recipes\" SET \"isDeleted\" = true WHERE title LIKE 'TB-AUTO-%'.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "runId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenA",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenB",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenAdmin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userAId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "stdCategoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "stdCategoryId2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catIdA",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "catIdB",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ingredientIdA",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "ingredientIdB",
+      "value": "2",
+      "type": "string"
+    },
+    {
+      "key": "ingredientIdC",
+      "value": "3",
+      "type": "string"
+    },
+    {
+      "key": "unitIdKg",
+      "value": "2",
+      "type": "string"
+    },
+    {
+      "key": "rIdPublicA",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rIdPublicAdmin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rIdFull",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rIdTrim",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rIdQual",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rIdXss",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rIdSqli",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "totalBefore",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cleanupList",
+      "value": "[]",
+      "type": "string"
+    },
+    {
+      "key": "cleanupId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cleanupToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "unitIdG",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "uploadedImageUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "publicIdPng",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "publicIdPngEnc",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cleanupImages",
+      "value": "[]",
+      "type": "string"
+    },
+    {
+      "key": "cleanupImageId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rIdThumb",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00_Setup",
+      "item": [
+        {
+          "name": "TC-SETUP-01 Warm-up backend và khởi tạo runId",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// runId dùng đặt tên dữ liệu test duy nhất: TB-AUTO-{{runId}}-...",
+                  "pm.collectionVariables.set('runId', String(Date.now()));",
+                  "pm.collectionVariables.set('cleanupList', '[]');",
+                  "// Nguyên liệu seed: lấy từ environment (seedIngredientId), mặc định 1 = Thịt ba chỉ heo (đơn vị mặc định g).",
+                  "pm.collectionVariables.set('ingredientIdA', String(pm.environment.get('seedIngredientId') || '1'));",
+                  "// Request đầu tiên có thể gặp cold-start Render (RSK-04) nên nới ngưỡng thời gian riêng cho request này.",
+                  "pm.variables.set('maxResponseMs', 60000);",
+                  "pm.collectionVariables.set('cleanupImages', '[]');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-SETUP-01 Backend sẵn sàng (GET /home) - 200 OK, EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-SETUP-01 runId đã được tạo', function () {",
+                  "    pm.expect(pm.collectionVariables.get('runId')).to.match(/^\\d{10,}$/);",
+                  "});",
+                  "if (pm.response.code !== 200) {",
+                  "    postman.setNextRequest(null); // Backend không sống thì dừng cả lượt chạy",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/home",
+              "host": ["{{baseUrl}}"],
+              "path": ["home"]
+            },
+            "description": "Đánh thức backend (Render free ngủ sau 15 phút) và tạo biến runId cho cả lượt chạy."
+          }
+        },
+        {
+          "name": "TC-SETUP-02 Đăng nhập User A (người tạo công thức) lấy token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "pm.test('TC-SETUP-02 Đăng nhập User A (người tạo công thức) - 200 OK, EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(_res.EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-SETUP-02 DT.accessToken là JWT, user.role = User', function () {",
+                  "    pm.expect(_res.DT.accessToken).to.be.a('string');",
+                  "    pm.expect(_res.DT.accessToken).to.match(/^[\\w-]+\\.[\\w-]+\\.[\\w-]+$/);",
+                  "    pm.expect(_res.DT.user.role).to.eql('User');",
+                  "});",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.accessToken) {",
+                  "    pm.collectionVariables.set('tokenA', _res.DT.accessToken);",
+                  "    pm.collectionVariables.set('userAId', String(_res.DT.user.userId));",
+                  "} else {",
+                  "    postman.setNextRequest(null); // Không có token thì mọi test phía sau đều vô nghĩa",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Spec 1.2 - POST /auth/login. Lưu tokenA vào collection variables. ",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{userAEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-SETUP-03 Đăng nhập User B (người khác - dùng test danh mục không thuộc quyền) lấy token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "pm.test('TC-SETUP-03 Đăng nhập User B (người khác - dùng test danh mục không thuộc quyền) - 200 OK, EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(_res.EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-SETUP-03 DT.accessToken là JWT, user.role = User', function () {",
+                  "    pm.expect(_res.DT.accessToken).to.be.a('string');",
+                  "    pm.expect(_res.DT.accessToken).to.match(/^[\\w-]+\\.[\\w-]+\\.[\\w-]+$/);",
+                  "    pm.expect(_res.DT.user.role).to.eql('User');",
+                  "});",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.accessToken) {",
+                  "    pm.collectionVariables.set('tokenB', _res.DT.accessToken);",
+                  "    pm.collectionVariables.set('userBId', String(_res.DT.user.userId));",
+                  "} else {",
+                  "    postman.setNextRequest(null); // Không có token thì mọi test phía sau đều vô nghĩa",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Spec 1.2 - POST /auth/login. Lưu tokenB vào collection variables. ",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{userBEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-SETUP-04 Đăng nhập Admin lấy token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "pm.test('TC-SETUP-04 Đăng nhập Admin - 200 OK, EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(_res.EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-SETUP-04 DT.accessToken là JWT, user.role = Admin', function () {",
+                  "    pm.expect(_res.DT.accessToken).to.be.a('string');",
+                  "    pm.expect(_res.DT.accessToken).to.match(/^[\\w-]+\\.[\\w-]+\\.[\\w-]+$/);",
+                  "    pm.expect(_res.DT.user.role).to.eql('Admin');",
+                  "});",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.accessToken) {",
+                  "    pm.collectionVariables.set('tokenAdmin', _res.DT.accessToken);",
+                  "} else {",
+                  "    postman.setNextRequest(null); // Không có token thì mọi test phía sau đều vô nghĩa",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Spec 1.2 - POST /auth/login. Lưu tokenAdmin vào collection variables. ",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-SETUP-05 Lấy danh mục chuẩn (stdCategoryId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "pm.test('TC-SETUP-05 GET /categories - 200 OK, DT là mảng không rỗng', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(_res.EC).to.eql(0);",
+                  "    pm.expect(_res.DT).to.be.an('array');",
+                  "    pm.expect(_res.DT.length).to.be.at.least(1);",
+                  "});",
+                  "var list = (_res && Array.isArray(_res.DT)) ? _res.DT : [];",
+                  "// Danh mục chuẩn = createdBy null. Bỏ 'Đóng góp của cộng đồng' vì hệ thống tự gắn khi công thức công khai được duyệt.",
+                  "var std = list.filter(function (c) {",
+                  "    return c.createdBy === null && c.categoryName !== 'Đóng góp của cộng đồng';",
+                  "});",
+                  "pm.test('TC-SETUP-05 Có >= 2 danh mục chuẩn để gắn vào công thức', function () {",
+                  "    pm.expect(std.length).to.be.at.least(2);",
+                  "});",
+                  "if (std.length >= 2) {",
+                  "    pm.collectionVariables.set('stdCategoryId', String(std[0].categoryId));",
+                  "    pm.collectionVariables.set('stdCategoryId2', String(std[1].categoryId));",
+                  "} else {",
+                  "    postman.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.1 - GET /categories (kèm token). Lưu stdCategoryId, stdCategoryId2.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PRE-08-01 [Chuẩn bị] User A tạo danh mục cá nhân",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE-08-01 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.categoryId) { pm.collectionVariables.set('catIdA', String(_res.DT.categoryId)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.2 | Loại: - | Kỹ thuật: -\nDữ liệu vào: categoryName = TB-AUTO-{{runId}}-A-Cat\nKết quả mong đợi: 201, EC 0; lưu catIdA",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-A-Cat\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE-08-02 [Chuẩn bị] User B tạo danh mục cá nhân",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE-08-02 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.categoryId) { pm.collectionVariables.set('catIdB', String(_res.DT.categoryId)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Spec 2.2 | Loại: - | Kỹ thuật: -\nDữ liệu vào: categoryName = TB-AUTO-{{runId}}-B-Cat\nKết quả mong đợi: 201, EC 0; lưu catIdB",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"TB-AUTO-{{runId}}-B-Cat\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01_Create_Recipe_API",
+      "item": [
+        {
+          "name": "TC-08-01 Tạo công thức riêng tư hợp lệ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-01 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-08-01 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Tạo công thức riêng tư thành công!\");",
+                  "});",
+                  "pm.test('TC-08-01 DT: recipeId là số, approvalStatus = Approved', function () {",
+                  "    var dt = pm.response.json().DT;",
+                  "    pm.expect(dt.recipeId).to.be.a('number');",
+                  "    pm.expect(dt.approvalStatus).to.eql('Approved');",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: isPublic = false\nKết quả mong đợi: HTTP 201, EC 0, EM 'Tạo công thức riêng tư thành công!', DT {recipeId (số), approvalStatus = 'Approved'}\nLƯU Ý: Đặc tả 4.4 chỉ nêu EM của bài công khai; EM bài riêng tư lấy từ code.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Private\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-02 Tạo công thức công khai (chờ duyệt)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-02 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-08-02 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Tạo công thức thành công! Đang chờ phê duyệt.\");",
+                  "});",
+                  "pm.test('TC-08-02 DT: recipeId là số, approvalStatus = Pending', function () {",
+                  "    var dt = pm.response.json().DT;",
+                  "    pm.expect(dt.recipeId).to.be.a('number');",
+                  "    pm.expect(dt.approvalStatus).to.eql('Pending');",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeId) { pm.collectionVariables.set('rIdPublicA', String(_res.DT.recipeId)); }",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: isPublic = true\nKết quả mong đợi: HTTP 201, EC 0, EM 'Tạo công thức thành công! Đang chờ phê duyệt.', DT {recipeId, approvalStatus = 'Pending'}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Public\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": true,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-03 Nguyên liệu tự nhập (ngoài từ điển) kèm đơn vị tự nhập",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-03 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: customIngredientName + customUnit\nKết quả mong đợi: HTTP 201, EC 0",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Ngò gai\",\n      \"quantity\": 50,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-04 Nguyên liệu tự nhập kèm đơn vị hệ thống",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-04 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: customIngredientName + unitId\nKết quả mong đợi: HTTP 201, EC 0",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Ngò gai\",\n      \"quantity\": 50,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-05 Nhiều danh mục, nhiều nguyên liệu (hệ thống + tự nhập), nhiều bước; xem lại chi tiết khớp dữ liệu - bước 1: tạo công thức",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-05 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeId) { pm.collectionVariables.set('rIdFull', String(_res.DT.recipeId)); }",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: 2 danh mục, 2 nguyên liệu, 3 bước\nKết quả mong đợi: Tạo: 201, EC 0. Chi tiết: 200, có đủ 2 danh mục, 2 nguyên liệu, 3 bước đúng thứ tự stepNumber, quantity khớp",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Full\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}},\n    {{stdCategoryId2}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    },\n    {\n      \"customIngredientName\": \"Ngò gai\",\n      \"quantity\": 50,\n      \"customUnit\": \"nắm\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế nguyên liệu.\"\n    },\n    {\n      \"stepNumber\": 2,\n      \"instruction\": \"Nấu chín.\"\n    },\n    {\n      \"stepNumber\": 3,\n      \"instruction\": \"Trình bày ra đĩa.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-05 Nhiều danh mục, nhiều nguyên liệu (hệ thống + tự nhập), nhiều bước; xem lại chi tiết khớp dữ liệu - bước 2: xem chi tiết",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-05 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "var d = (_res && _res.DT) ? _res.DT : {};",
+                  "pm.test('TC-08-05 Chi tiết có đủ 2 danh mục đã chọn', function () {",
+                  "    var ids = (d.categories || []).map(function (c) { return String(c.categoryId); }).sort();",
+                  "    var expected = [String(pm.collectionVariables.get('stdCategoryId')), String(pm.collectionVariables.get('stdCategoryId2'))].sort();",
+                  "    pm.expect(ids).to.eql(expected);",
+                  "});",
+                  "pm.test('TC-08-05 Chi tiết có đủ 2 nguyên liệu, quantity khớp dữ liệu đã gửi', function () {",
+                  "    pm.expect(d.ingredients).to.be.an('array').with.lengthOf(2);",
+                  "    pm.expect(String(d.ingredients[0].ingredientId)).to.eql(String(pm.collectionVariables.get('ingredientIdA')));",
+                  "    pm.expect(d.ingredients[0].quantity).to.eql(500);",
+                  "    pm.expect(d.ingredients[1].ingredientId).to.eql(null);",
+                  "    pm.expect(d.ingredients[1].ingredientName).to.eql('Ngò gai');",
+                  "    pm.expect(d.ingredients[1].quantity).to.eql(50);",
+                  "    pm.expect(d.ingredients[1].unit).to.eql('nắm');",
+                  "});",
+                  "pm.test('TC-08-05 Chi tiết có đủ 3 bước đúng thứ tự stepNumber', function () {",
+                  "    pm.expect(d.steps).to.be.an('array').with.lengthOf(3);",
+                  "    d.steps.forEach(function (s, idx) { pm.expect(s.stepNumber).to.eql(idx + 1); });",
+                  "    pm.expect(d.steps[0].instruction).to.eql('Sơ chế nguyên liệu.');",
+                  "    pm.expect(d.steps[2].instruction).to.eql('Trình bày ra đĩa.');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{rIdFull}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{rIdFull}}"]
+            },
+            "description": "Spec 4.2 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: 2 danh mục, 2 nguyên liệu, 3 bước\nKết quả mong đợi: Tạo: 201, EC 0. Chi tiết: 200, có đủ 2 danh mục, 2 nguyên liệu, 3 bước đúng thứ tự stepNumber, quantity khớp",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-08-06 Dùng danh mục cá nhân của chính mình (UC-25) khi tạo công thức",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-06 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: Danh mục cá nhân của User A\nKết quả mong đợi: HTTP 201, EC 0",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{catIdA}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-07 Tiêu đề có khoảng trắng hai đầu - bước 1: tạo công thức",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-07 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeId) { pm.collectionVariables.set('rIdTrim', String(_res.DT.recipeId)); }",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Normal | Kỹ thuật: Error Guessing\nDữ liệu vào: title có khoảng trắng hai đầu\nKết quả mong đợi: HTTP 201, EC 0; GET chi tiết trả title đã cắt khoảng trắng\nLƯU Ý: Đặc tả không nêu; code cắt khoảng trắng. Xác nhận với BE.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"   TB-AUTO-{{runId}}-Trim   \",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-07 Tiêu đề có khoảng trắng hai đầu - bước 2: xem chi tiết",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-07 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-08-07 GET chi tiết trả title đã cắt khoảng trắng hai đầu', function () {",
+                  "    pm.expect(pm.response.json().DT.title).to.eql('TB-AUTO-' + pm.collectionVariables.get('runId') + '-Trim');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{rIdTrim}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{rIdTrim}}"]
+            },
+            "description": "Spec 4.2 | Loại: Normal | Kỹ thuật: Error Guessing\nDữ liệu vào: title có khoảng trắng hai đầu\nKết quả mong đợi: HTTP 201, EC 0; GET chi tiết trả title đã cắt khoảng trắng\nLƯU Ý: Đặc tả không nêu; code cắt khoảng trắng. Xác nhận với BE.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-08-08 Tiêu đề rỗng",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-08 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-08 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Tiêu đề công thức không được để trống!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: title = ''\nKết quả mong đợi: HTTP 400, EC 1, EM 'Tiêu đề công thức không được để trống!'\nLƯU Ý: Đặc tả 4.4 chỉ có 1 dòng 400 chung; EM riêng lấy từ code.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-09 Mô tả rỗng",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-09 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-09 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Mô tả công thức không được để trống!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: description = ''\nKết quả mong đợi: HTTP 400, EC 1, EM 'Mô tả công thức không được để trống!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-10 Thiếu ảnh đại diện (thumbnailUrl)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-10 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "    pm.expect(pm.response.json().EM).to.eql('Tạo công thức riêng tư thành công!');",
+                  "    pm.expect(pm.response.json().DT).to.be.a('object');",
+                  "    pm.expect(pm.response.json().DT.approvalStatus).to.eql('Approved');",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Không có thumbnailUrl\nKết quả mong đợi: HTTP 400, EC 1 (đặc tả đánh dấu thumbnailUrl là bắt buộc)\nLƯU Ý: LỆCH: code coi thumbnailUrl là không bắt buộc (trả 201). Hỏi BE/PM xác nhận trước khi tạo bug.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-11 Không có nguyên liệu nào",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-11 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-11 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Công thức phải có ít nhất 1 nguyên liệu và 1 bước làm!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: ingredients = []\nKết quả mong đợi: HTTP 400, EC 1, EM 'Công thức phải có ít nhất 1 nguyên liệu và 1 bước làm!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-12 Không có bước làm nào",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-12 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-12 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Công thức phải có ít nhất 1 nguyên liệu và 1 bước làm!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: steps = []\nKết quả mong đợi: HTTP 400, EC 1, EM 'Công thức phải có ít nhất 1 nguyên liệu và 1 bước làm!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-13 Không chọn danh mục",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-13 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-13 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Công thức phải thuộc ít nhất 1 danh mục!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: categoryIds = []\nKết quả mong đợi: HTTP 400, EC 1, EM 'Công thức phải thuộc ít nhất 1 danh mục!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-14 Dùng danh mục cá nhân của người khác",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-14 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-14 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Danh mục không hợp lệ hoặc bạn không có quyền sử dụng danh mục của người khác!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: Decision Table\nDữ liệu vào: User A dùng danh mục của User B\nKết quả mong đợi: HTTP 400, EC 1, EM 'Danh mục không hợp lệ hoặc bạn không có quyền sử dụng danh mục của người khác!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{catIdB}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-15 Độ khó không thuộc Easy/Medium/Hard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-15 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-15 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Độ khó không hợp lệ (Chỉ nhận Easy, Medium, Hard)!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: difficulty = 'Dễ'\nKết quả mong đợi: HTTP 400, EC 1, EM 'Độ khó không hợp lệ (Chỉ nhận Easy, Medium, Hard)!'\nLƯU Ý: Giao diện hiện gửi nhãn 'Dễ/Trung bình/Khó' (RecipeBasicInfoForm) nên có nguy cơ lỗi tích hợp FE-BE.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Dễ\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-16 Độ khó viết chữ thường",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-16 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Normal | Kỹ thuật: Error Guessing\nDữ liệu vào: difficulty = 'easy'\nKết quả mong đợi: HTTP 201, EC 0 (hoặc 400 nếu BE quyết định phân biệt hoa/thường)\nLƯU Ý: Đặc tả ghi 'Easy'; code chấp nhận 'easy'. Xác nhận với BE.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"easy\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-17 cookTimeMinutes = 0 (dưới biên)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-17 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-17 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Thời gian nấu phải là số nguyên dương!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Boundary | Kỹ thuật: BVA\nDữ liệu vào: cookTimeMinutes = 0\nKết quả mong đợi: HTTP 400, EC 1, EM 'Thời gian nấu phải là số nguyên dương!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 0,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-18 cookTimeMinutes = 1 (biên dưới hợp lệ)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-18 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Boundary | Kỹ thuật: BVA\nDữ liệu vào: cookTimeMinutes = 1\nKết quả mong đợi: HTTP 201, EC 0",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 1,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-19 cookTimeMinutes không phải số",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-19 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-19 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Thời gian nấu phải là số nguyên dương!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: Error Guessing\nDữ liệu vào: cookTimeMinutes = 'abc'\nKết quả mong đợi: HTTP 400, EC 1, EM 'Thời gian nấu phải là số nguyên dương!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": \"abc\",\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-20 cookTimeMinutes là số thập phân",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-20 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-20 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Thời gian nấu phải là số nguyên dương!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Boundary | Kỹ thuật: Error Guessing\nDữ liệu vào: cookTimeMinutes = 1.5\nKết quả mong đợi: HTTP 400, EC 1, EM 'Thời gian nấu phải là số nguyên dương!'\nLƯU Ý: Code hiện chỉ kiểm tra > 0 nên có thể trả 201. Xác nhận với BE.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 1.5,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-21 defaultServings = 0 (dưới biên)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-21 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-21 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Khẩu phần mặc định phải là số nguyên dương!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Boundary | Kỹ thuật: BVA\nDữ liệu vào: defaultServings = 0\nKết quả mong đợi: HTTP 400, EC 1, EM 'Khẩu phần mặc định phải là số nguyên dương!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 0,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-22 defaultServings = 1 (biên dưới hợp lệ)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-22 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Boundary | Kỹ thuật: BVA\nDữ liệu vào: defaultServings = 1\nKết quả mong đợi: HTTP 201, EC 0",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 1,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-23 quantity = 0 (dưới biên)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-23 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-23 EM đúng đặc tả (chứa nội dung kỳ vọng)', function () {",
+                  "    pm.expect(pm.response.json().EM).to.include(\"Định lượng nguyên liệu ở vị trí 1 phải lớn hơn 0\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Boundary | Kỹ thuật: BVA\nDữ liệu vào: quantity = 0\nKết quả mong đợi: HTTP 400, EC 1, EM 'Định lượng nguyên liệu ở vị trí 1 phải lớn hơn 0!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 0,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-24 ingredientId không tồn tại",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-24 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-24 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Nguyên liệu hệ thống với ID 999999999 không tồn tại!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: ingredientId = 999999999\nKết quả mong đợi: HTTP 400, EC 1, EM 'Nguyên liệu hệ thống với ID 999999999 không tồn tại!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": 999999999,\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-25 Nguyên liệu hệ thống nhưng dùng đơn vị khác đơn vị mặc định",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-25 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-25 EM đúng đặc tả (chứa nội dung kỳ vọng)', function () {",
+                  "    pm.expect(pm.response.json().EM).to.include(\"chỉ được sử dụng đơn vị đo mặc định của hệ thống!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: Decision Table\nDữ liệu vào: ingredientId 1 (Thịt ba chỉ heo, mặc định g) với unitId 2\nKết quả mong đợi: HTTP 400, EC 1, EM chứa 'chỉ được sử dụng đơn vị đo mặc định của hệ thống!'\nLƯU Ý: unitId 2 giả định là 'kg' theo thứ tự seed; xác nhận trong DB.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdKg}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-26 Nguyên liệu tự nhập thiếu đơn vị",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-26 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-26 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Nguyên liệu tự nhập \\\"Ngò gai\\\" phải chọn đơn vị hệ thống hoặc tự nhập đơn vị!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Thiếu đơn vị\nKết quả mong đợi: HTTP 400, EC 1, EM 'Nguyên liệu tự nhập \"Ngò gai\" phải chọn đơn vị hệ thống hoặc tự nhập đơn vị!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"customIngredientName\": \"Ngò gai\",\n      \"quantity\": 50\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-27 Nguyên liệu không chọn từ hệ thống cũng không tự nhập tên",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-27 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-27 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Nguyên liệu ở vị trí 1 phải chọn từ hệ thống hoặc tự nhập tên nguyên liệu!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Thiếu ingredientId và customIngredientName\nKết quả mong đợi: HTTP 400, EC 1, EM 'Nguyên liệu ở vị trí 1 phải chọn từ hệ thống hoặc tự nhập tên nguyên liệu!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"quantity\": 50,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-28 Bước làm có nội dung rỗng",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-28 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-28 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Nội dung bước làm thứ 1 không được để trống!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: instruction = ''\nKết quả mong đợi: HTTP 400, EC 1, EM 'Nội dung bước làm thứ 1 không được để trống!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-29 Tạo công thức khi không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-29 HTTP 401 + EC = 5', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "    pm.expect(pm.response.json().EC).to.eql(5);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Không có header Authorization\nKết quả mong đợi: HTTP 401, EC 5\nLƯU Ý: Chỉ so sánh status và EC (EM của lỗi 401 trong đặc tả khác nhau giữa các endpoint).",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Base\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"https://res.cloudinary.com/tastebook/image/upload/v1/tb-auto.jpg\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02_Upload_Image_API",
+      "item": [
+        {
+          "name": "TC-08-30 [Upload ảnh] Tải lên ảnh .jpg hợp lệ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-30 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-08-30 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Tải ảnh lên thành công!\");",
+                  "});",
+                  "pm.test('TC-08-30 DT có imageUrl (https://res.cloudinary.com/...) và publicId (tastebook_uploads/...)', function () {",
+                  "    var dt = pm.response.json().DT;",
+                  "    pm.expect(dt.imageUrl).to.be.a('string').and.to.match(/^https:\\/\\/res\\.cloudinary\\.com\\//);",
+                  "    pm.expect(dt.publicId).to.be.a('string').and.to.match(/^tastebook_uploads\\//);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.publicId) {",
+                  "    var _li = [];",
+                  "    try { _li = JSON.parse(pm.collectionVariables.get('cleanupImages') || '[]'); } catch (e) { _li = []; }",
+                  "    _li.push({ id: _res.DT.publicId });",
+                  "    pm.collectionVariables.set('cleanupImages', JSON.stringify(_li));",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["images"]
+            },
+            "description": "Spec 8.1 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: anh-mau.jpg\nKết quả mong đợi: HTTP 201, EC 0, EM 'Tải ảnh lên thành công!', DT.imageUrl bắt đầu bằng https://res.cloudinary.com/, DT.publicId dạng tastebook_uploads/...",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "anh-mau.jpg"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-08-31 [Upload ảnh] Tải lên ảnh .png hợp lệ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-31 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-08-31 DT có imageUrl (https://res.cloudinary.com/...) và publicId (tastebook_uploads/...)', function () {",
+                  "    var dt = pm.response.json().DT;",
+                  "    pm.expect(dt.imageUrl).to.be.a('string').and.to.match(/^https:\\/\\/res\\.cloudinary\\.com\\//);",
+                  "    pm.expect(dt.publicId).to.be.a('string').and.to.match(/^tastebook_uploads\\//);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.publicId) {",
+                  "    var _li = [];",
+                  "    try { _li = JSON.parse(pm.collectionVariables.get('cleanupImages') || '[]'); } catch (e) { _li = []; }",
+                  "    _li.push({ id: _res.DT.publicId });",
+                  "    pm.collectionVariables.set('cleanupImages', JSON.stringify(_li));",
+                  "}",
+                  "if (_res && _res.DT && _res.DT.publicId) { pm.collectionVariables.set('publicIdPng', _res.DT.publicId); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["images"]
+            },
+            "description": "Spec 8.1 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: anh-mau.png\nKết quả mong đợi: HTTP 201, EC 0, có imageUrl và publicId",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "anh-mau.png"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-08-32 [Upload ảnh] Tải lên ảnh .webp hợp lệ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-32 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-08-32 DT có imageUrl (https://res.cloudinary.com/...) và publicId (tastebook_uploads/...)', function () {",
+                  "    var dt = pm.response.json().DT;",
+                  "    pm.expect(dt.imageUrl).to.be.a('string').and.to.match(/^https:\\/\\/res\\.cloudinary\\.com\\//);",
+                  "    pm.expect(dt.publicId).to.be.a('string').and.to.match(/^tastebook_uploads\\//);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.publicId) {",
+                  "    var _li = [];",
+                  "    try { _li = JSON.parse(pm.collectionVariables.get('cleanupImages') || '[]'); } catch (e) { _li = []; }",
+                  "    _li.push({ id: _res.DT.publicId });",
+                  "    pm.collectionVariables.set('cleanupImages', JSON.stringify(_li));",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["images"]
+            },
+            "description": "Spec 8.1 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: anh-mau.webp\nKết quả mong đợi: HTTP 201, EC 0, có imageUrl và publicId",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "anh-mau.webp"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-08-33 [Upload ảnh] Tải lên file không phải ảnh (.pdf)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-33 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-33 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"File không hợp lệ hoặc vượt quá dung lượng tối đa 5MB!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.publicId) {",
+                  "    var _li = [];",
+                  "    try { _li = JSON.parse(pm.collectionVariables.get('cleanupImages') || '[]'); } catch (e) { _li = []; }",
+                  "    _li.push({ id: _res.DT.publicId });",
+                  "    pm.collectionVariables.set('cleanupImages', JSON.stringify(_li));",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["images"]
+            },
+            "description": "Spec 8.1 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: tai-lieu.pdf\nKết quả mong đợi: HTTP 400, EC 1, EM 'File không hợp lệ hoặc vượt quá dung lượng tối đa 5MB!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "tai-lieu.pdf"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-08-34 [Upload ảnh] File văn bản đổi đuôi thành .jpg",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-34 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.publicId) {",
+                  "    var _li = [];",
+                  "    try { _li = JSON.parse(pm.collectionVariables.get('cleanupImages') || '[]'); } catch (e) { _li = []; }",
+                  "    _li.push({ id: _res.DT.publicId });",
+                  "    pm.collectionVariables.set('cleanupImages', JSON.stringify(_li));",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["images"]
+            },
+            "description": "Spec 8.1 | Loại: Abnormal | Kỹ thuật: Error Guessing\nDữ liệu vào: giả-ảnh.jpg\nKết quả mong đợi: HTTP 400, EC 1 (file không hợp lệ)\nLƯU Ý: Đặc tả không nêu; code chỉ kiểm tra loại MIME nên Cloudinary có thể báo lỗi (500). Xác nhận hành vi mong muốn với BE.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "gia-anh.jpg"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-08-35 [Upload ảnh] Không đính kèm file",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-35 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-35 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"File không hợp lệ hoặc vượt quá dung lượng tối đa 5MB!\");",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.publicId) {",
+                  "    var _li = [];",
+                  "    try { _li = JSON.parse(pm.collectionVariables.get('cleanupImages') || '[]'); } catch (e) { _li = []; }",
+                  "    _li.push({ id: _res.DT.publicId });",
+                  "    pm.collectionVariables.set('cleanupImages', JSON.stringify(_li));",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["images"]
+            },
+            "description": "Spec 8.1 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Không có file\nKết quả mong đợi: HTTP 400, EC 1, EM 'File không hợp lệ hoặc vượt quá dung lượng tối đa 5MB!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            }
+          }
+        },
+        {
+          "name": "TC-08-36 [Upload ảnh] Ảnh đúng 5MB (5.242.880 byte)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-36 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.publicId) {",
+                  "    var _li = [];",
+                  "    try { _li = JSON.parse(pm.collectionVariables.get('cleanupImages') || '[]'); } catch (e) { _li = []; }",
+                  "    _li.push({ id: _res.DT.publicId });",
+                  "    pm.collectionVariables.set('cleanupImages', JSON.stringify(_li));",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["images"]
+            },
+            "description": "Spec 8.1 | Loại: Boundary | Kỹ thuật: BVA\nDữ liệu vào: 5.242.880 byte\nKết quả mong đợi: HTTP 201, EC 0 (tối đa 5MB, bằng biên vẫn hợp lệ)",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "anh-5mb.jpg"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-08-37 [Upload ảnh] Ảnh vượt 5MB một byte (5.242.881 byte)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-37 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-08-37 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"File không hợp lệ hoặc vượt quá dung lượng tối đa 5MB!\");",
+                  "});",
+                  "pm.test('TC-08-37 Trả 400 chứ không phải 413', function () {",
+                  "    pm.expect(pm.response.code).to.not.eql(413);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.publicId) {",
+                  "    var _li = [];",
+                  "    try { _li = JSON.parse(pm.collectionVariables.get('cleanupImages') || '[]'); } catch (e) { _li = []; }",
+                  "    _li.push({ id: _res.DT.publicId });",
+                  "    pm.collectionVariables.set('cleanupImages', JSON.stringify(_li));",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["images"]
+            },
+            "description": "Spec 8.1 | Loại: Boundary | Kỹ thuật: BVA\nDữ liệu vào: 5.242.881 byte\nKết quả mong đợi: HTTP 400, EC 1, EM 'File không hợp lệ hoặc vượt quá dung lượng tối đa 5MB!' (không phải 413)",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "anh-5mb-vuot.jpg"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-08-38 [Upload ảnh] Tải ảnh khi không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-38 HTTP 401 + EC = 5', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "    pm.expect(pm.response.json().EC).to.eql(5);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.publicId) {",
+                  "    var _li = [];",
+                  "    try { _li = JSON.parse(pm.collectionVariables.get('cleanupImages') || '[]'); } catch (e) { _li = []; }",
+                  "    _li.push({ id: _res.DT.publicId });",
+                  "    pm.collectionVariables.set('cleanupImages', JSON.stringify(_li));",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["images"]
+            },
+            "description": "Spec 8.1 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Không có header Authorization\nKết quả mong đợi: HTTP 401, EC 5",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "anh-mau.jpg"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-08-39 [Upload ảnh] Dùng imageUrl vừa tải lên làm thumbnailUrl của công thức - bước 1: tải ảnh lên",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-39 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-08-39 DT có imageUrl (https://res.cloudinary.com/...) và publicId (tastebook_uploads/...)', function () {",
+                  "    var dt = pm.response.json().DT;",
+                  "    pm.expect(dt.imageUrl).to.be.a('string').and.to.match(/^https:\\/\\/res\\.cloudinary\\.com\\//);",
+                  "    pm.expect(dt.publicId).to.be.a('string').and.to.match(/^tastebook_uploads\\//);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.publicId) {",
+                  "    var _li = [];",
+                  "    try { _li = JSON.parse(pm.collectionVariables.get('cleanupImages') || '[]'); } catch (e) { _li = []; }",
+                  "    _li.push({ id: _res.DT.publicId });",
+                  "    pm.collectionVariables.set('cleanupImages', JSON.stringify(_li));",
+                  "}",
+                  "if (_res && _res.DT && _res.DT.imageUrl) { pm.collectionVariables.set('uploadedImageUrl', _res.DT.imageUrl); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["images"]
+            },
+            "description": "Spec 8.1 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: imageUrl từ bước 1\nKết quả mong đợi: Tạo: 201, EC 0. Chi tiết: DT.thumbnailUrl bằng imageUrl; ảnh hiển thị được",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "anh-mau.jpg"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-08-39 [Upload ảnh] Dùng imageUrl vừa tải lên làm thumbnailUrl của công thức - bước 2: tạo công thức dùng imageUrl làm thumbnailUrl",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-39 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeId) { pm.collectionVariables.set('rIdThumb', String(_res.DT.recipeId)); }",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.recipeId && _res.DT.approvalStatus === 'Approved') {",
+                  "    var _l = [];",
+                  "    try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "    _l.push({ id: String(_res.DT.recipeId), owner: 'A' });",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_l));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes"]
+            },
+            "description": "Spec 4.4 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: imageUrl từ bước 1\nKết quả mong đợi: Tạo: 201, EC 0. Chi tiết: DT.thumbnailUrl bằng imageUrl; ảnh hiển thị được",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-Thumb\",\n  \"description\": \"Công thức kiểm thử tự động UC-08\",\n  \"thumbnailUrl\": \"{{uploadedImageUrl}}\",\n  \"cookTimeMinutes\": 30,\n  \"difficulty\": \"Medium\",\n  \"defaultServings\": 4,\n  \"isPublic\": false,\n  \"categoryIds\": [\n    {{stdCategoryId}}\n  ],\n  \"ingredients\": [\n    {\n      \"ingredientId\": {{ingredientIdA}},\n      \"quantity\": 500,\n      \"unitId\": {{unitIdG}}\n    }\n  ],\n  \"steps\": [\n    {\n      \"stepNumber\": 1,\n      \"instruction\": \"Sơ chế và nấu chín nguyên liệu.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-08-39 [Upload ảnh] Dùng imageUrl vừa tải lên làm thumbnailUrl của công thức - bước 3: xem chi tiết và mở imageUrl",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-39 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-08-39 DT.thumbnailUrl bằng imageUrl đã tải lên', function () {",
+                  "    pm.expect(pm.response.json().DT.thumbnailUrl).to.eql(pm.collectionVariables.get('uploadedImageUrl'));",
+                  "});",
+                  "pm.test('TC-08-39 Ảnh hiển thị được (mở imageUrl trả 200)', function (done) {",
+                  "    pm.sendRequest(pm.collectionVariables.get('uploadedImageUrl'), function (err, res) {",
+                  "        pm.expect(err, 'Không mở được imageUrl').to.eql(null);",
+                  "        pm.expect(res.code).to.eql(200);",
+                  "        done();",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{rIdThumb}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{rIdThumb}}"]
+            },
+            "description": "Spec 4.2 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: imageUrl từ bước 1\nKết quả mong đợi: Tạo: 201, EC 0. Chi tiết: DT.thumbnailUrl bằng imageUrl; ảnh hiển thị được",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-08-40 [Upload ảnh] Xóa ảnh theo publicId có dấu '/' (đã URL-encode)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// publicId có dấu '/' phải được URL-encode (tastebook_uploads%2Fxxx). Nếu TC-08-31 lỗi thì dùng id không tồn tại.",
+                  "var p = pm.collectionVariables.get('publicIdPng') || 'tastebook_uploads/khong-ton-tai';",
+                  "pm.collectionVariables.set('publicIdPngEnc', encodeURIComponent(p));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-40 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-08-40 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Đã xóa ảnh thành công!\");",
+                  "});",
+                  "pm.test('TC-08-40 DT = null', function () {",
+                  "    pm.expect(pm.response.json().DT).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/images/{{publicIdPngEnc}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["images", "{{publicIdPngEnc}}"]
+            },
+            "description": "Spec 8.2 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: publicId = tastebook_uploads%2Fxxx\nKết quả mong đợi: HTTP 200, EC 0, EM 'Đã xóa ảnh thành công!', DT = null",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-08-41 [Upload ảnh] Xóa ảnh có publicId không tồn tại",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-41 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});",
+                  "pm.test('TC-08-41 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Không tìm thấy file ảnh cần xóa!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/images/tastebook_uploads%2Fkhong-ton-tai",
+              "host": ["{{baseUrl}}"],
+              "path": ["images", "tastebook_uploads%2Fkhong-ton-tai"]
+            },
+            "description": "Spec 8.2 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: publicId không tồn tại\nKết quả mong đợi: HTTP 404, EC 3, EM 'Không tìm thấy file ảnh cần xóa!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-08-42 [Upload ảnh] Xóa ảnh khi không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-08-42 HTTP 401 + EC = 5', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "    pm.expect(pm.response.json().EC).to.eql(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/images/tastebook_uploads%2Fkhong-ton-tai",
+              "host": ["{{baseUrl}}"],
+              "path": ["images", "tastebook_uploads%2Fkhong-ton-tai"]
+            },
+            "description": "Spec 8.2 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Không có header Authorization\nKết quả mong đợi: HTTP 401, EC 5",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "99_Teardown",
+      "item": [
+        {
+          "name": "TD-08-01 Dọn các công thức riêng tư đã tạo (lặp theo cleanupList)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Lấy 1 phần tử ra khỏi cleanupList. Nếu rỗng thì dùng id không tồn tại, request vẫn trả 404 hợp lệ.",
+                  "var l = [];",
+                  "try { l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { l = []; }",
+                  "var cur = l.pop() || { id: '999999999', owner: 'A' };",
+                  "pm.collectionVariables.set('cleanupList', JSON.stringify(l));",
+                  "pm.collectionVariables.set('cleanupId', cur.id);",
+                  "pm.collectionVariables.set('cleanupToken', pm.collectionVariables.get(cur.owner === 'Admin' ? 'tokenAdmin' : 'tokenA'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TD-08-01 Dọn dữ liệu - 200 (đã xóa) hoặc 404 (đã được xóa từ trước)', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "var _l = [];",
+                  "try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "if (_l.length > 0) {",
+                  "    postman.setNextRequest('TD-08-01 Dọn các công thức riêng tư đã tạo (lặp theo cleanupList)');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipes/{{cleanupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["recipes", "{{cleanupId}}"]
+            },
+            "description": "Spec 4.7 (UC-11) - xóa mềm từng công thức riêng tư trong cleanupList, lặp lại chính request này cho tới khi danh sách rỗng.\nCông thức công khai (Pending) không xóa được qua API nên không nằm trong danh sách.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cleanupToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TD-08-02 Dọn ảnh đã tải lên Cloudinary (lặp theo cleanupImages)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var l = [];",
+                  "try { l = JSON.parse(pm.collectionVariables.get('cleanupImages') || '[]'); } catch (e) { l = []; }",
+                  "var cur = l.pop() || { id: 'tastebook_uploads/khong-ton-tai' };",
+                  "pm.collectionVariables.set('cleanupImages', JSON.stringify(l));",
+                  "pm.collectionVariables.set('cleanupImageId', encodeURIComponent(cur.id));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TD-08-02 Dọn dữ liệu - 200 (đã xóa) hoặc 404 (đã được xóa từ trước)', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "var _l = [];",
+                  "try { _l = JSON.parse(pm.collectionVariables.get('cleanupImages') || '[]'); } catch (e) { _l = []; }",
+                  "if (_l.length > 0) {",
+                  "    postman.setNextRequest('TD-08-02 Dọn ảnh đã tải lên Cloudinary (lặp theo cleanupImages)');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/images/{{cleanupImageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["images", "{{cleanupImageId}}"]
+            },
+            "description": "Spec 8.2 - xóa từng ảnh trong cleanupImages, lặp lại chính request này cho tới khi danh sách rỗng.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TD-08-03 Dọn danh mục cá nhân của User A (catIdA)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('catIdA')) { pm.collectionVariables.set('catIdA', '999999999'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TD-08-03 Dọn dữ liệu - 200 (đã xóa) hoặc 404 (đã được xóa từ trước)', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdA}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdA}}"]
+            },
+            "description": "Dọn dữ liệu test UC-08 (của User A).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TD-08-04 Dọn danh mục cá nhân của User B (catIdB)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('catIdB')) { pm.collectionVariables.set('catIdB', '999999999'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TD-08-04 Dọn dữ liệu - 200 (đã xóa) hoặc 404 (đã được xóa từ trước)', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{catIdB}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{catIdB}}"]
+            },
+            "description": "Dọn dữ liệu test UC-08 (của User B).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// ===== CONTRACT CHUNG: JSON Envelope {EC, EM, DT} + HTTP status + hiệu năng =====",
+          "// Bảng quy chuẩn theo Đặc tả API: EC 5 và EC 6 đều trả HTTP 401 (EC 6 = sai tài khoản/mật khẩu).",
+          "var STATUS_TO_EC = { 200: [0], 201: [0], 400: [1], 401: [5, 6], 403: [4], 404: [3], 409: [2], 500: [-1] };",
+          "var contentType = pm.response.headers.get('Content-Type') || '';",
+          "var jsonData = null;",
+          "try { jsonData = pm.response.json(); } catch (e) { jsonData = null; }",
+          "",
+          "pm.test('Envelope: Content-Type là application/json', function () {",
+          "    pm.expect(contentType, 'HTTP ' + pm.response.code).to.include('application/json');",
+          "});",
+          "",
+          "pm.test('Envelope: body là JSON object', function () {",
+          "    pm.expect(jsonData, 'Body không phải JSON (route chưa mount / Render đang ngủ / trang lỗi HTML) - HTTP ' + pm.response.code).to.be.an('object');",
+          "});",
+          "",
+          "if (jsonData && typeof jsonData === 'object') {",
+          "    pm.test('Envelope: có đủ EC (number), EM (string không rỗng), DT', function () {",
+          "        pm.expect(jsonData).to.have.property('EC');",
+          "        pm.expect(jsonData).to.have.property('EM');",
+          "        pm.expect(jsonData).to.have.property('DT');",
+          "        pm.expect(jsonData.EC).to.be.a('number');",
+          "        pm.expect(jsonData.EM).to.be.a('string');",
+          "        pm.expect(jsonData.EM.trim()).to.not.eql('');",
+          "        pm.expect(jsonData.DT === null || typeof jsonData.DT === 'object', 'DT phải là null / object / array').to.eql(true);",
+          "    });",
+          "",
+          "    pm.test('Envelope: HTTP status khớp EC theo bảng quy chuẩn', function () {",
+          "        var allowed = STATUS_TO_EC[pm.response.code];",
+          "        pm.expect(allowed, 'HTTP ' + pm.response.code + ' không thuộc bảng quy chuẩn (200/201/400/401/403/404/409/500)').to.be.an('array');",
+          "        pm.expect(allowed, 'EC=' + jsonData.EC + ' không khớp HTTP ' + pm.response.code).to.include(jsonData.EC);",
+          "    });",
+          "",
+          "    if (pm.response.code >= 400) {",
+          "        pm.test('Envelope: response lỗi có DT = null', function () {",
+          "            pm.expect(jsonData.DT).to.eql(null);",
+          "        });",
+          "    }",
+          "}",
+          "",
+          "// Ngưỡng lấy từ environment (local 3000ms, staging 10000ms). Request đặc biệt có thể ghi đè bằng pm.variables.set('maxResponseMs', ...) ở pre-request.",
+          "var maxMs = Number(pm.variables.get('maxResponseMs')) || 5000;",
+          "pm.test('Hiệu năng: phản hồi < ' + maxMs + ' ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(maxMs);",
+          "});"
+        ]
+      }
+    }
+  ]
+}

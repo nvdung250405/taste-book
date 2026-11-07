@@ -22,8 +22,8 @@ const authApi = {
   },
 
   // Lấy thông tin cá nhân
-  getProfile() {
-    return axiosClient.get('/users/me')
+  getProfile(options = {}) {
+    return axiosClient.get('/users/me', options)
   },
 
   // Cập nhật hồ sơ

@@ -1,5 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import recipesApi from '../../api/recipes.api';
+import axiosClient from '../../api/axiosClient';
+
+export const useHomeRecipes = () => useQuery({
+  queryKey: ['home-recipes'],
+  queryFn: () => axiosClient.get('/home', { params: { limit: 6 } }),
+  staleTime: 2 * 60 * 1000,
+});
 
 // --- PUBLIC & USER RECIPE QUERIES ---
 
@@ -29,10 +36,12 @@ export const useScaledRecipe = (recipeId, servings, options = {}) => {
   });
 };
 
-export const useMyRecipes = () => {
+export const useMyRecipes = (params = {}, options = {}) => {
+  const queryParams = { page: 1, limit: 12, ...params };
   return useQuery({
-    queryKey: ['my-recipes'],
-    queryFn: () => recipesApi.getMyRecipes(),
+    queryKey: ['my-recipes', queryParams],
+    queryFn: ({ signal }) => recipesApi.getMyRecipes(queryParams, { signal }),
+    ...options,
   });
 };
 
@@ -67,6 +76,7 @@ export const useDeleteRecipe = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
     },
   });
 };
@@ -74,17 +84,19 @@ export const useDeleteRecipe = () => {
 
 // --- ADMIN RECIPE QUERIES ---
 
-export const useAdminRecipes = () => {
+export const useAdminRecipes = (params = {}, options = {}) => {
   return useQuery({
-    queryKey: ['admin-recipes'],
-    queryFn: () => recipesApi.getAdminRecipes(),
+    queryKey: ['admin-recipes', params],
+    queryFn: ({ signal }) => recipesApi.getAdminRecipes(params, { signal }),
+    ...options,
   });
 };
 
-export const usePendingRecipes = () => {
+export const usePendingRecipes = (status = 'pending') => {
   return useQuery({
-    queryKey: ['pending-recipes'],
-    queryFn: () => recipesApi.getPendingRecipes(),
+    queryKey: status === 'pending' ? ['pending-recipes'] : ['pending-recipes', status],
+    queryFn: ({ signal }) => recipesApi.getPendingRecipes({ status }, { signal }),
+    refetchInterval: 30000,
   });
 };
 
@@ -97,6 +109,8 @@ export const useCreateAdminRecipe = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
     },
   });
 };
@@ -108,7 +122,12 @@ export const useUpdateAdminRecipe = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipe', variables.recipeId] });
+      queryClient.invalidateQueries({ queryKey: ['recipe', String(variables.recipeId)] });
+      queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe-list'] });
     },
   });
 };
@@ -117,9 +136,16 @@ export const useDeleteAdminRecipe = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (recipeId) => recipesApi.deleteAdminRecipe(recipeId),
-    onSuccess: () => {
+    onSuccess: (_, recipeId) => {
       queryClient.invalidateQueries({ queryKey: ['admin-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe', String(recipeId)] });
+      queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+      queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe-list'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe-lists'] });
     },
   });
 };
@@ -128,10 +154,17 @@ export const useModerateRecipe = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ recipeId, data }) => recipesApi.moderateRecipe(recipeId, data),
-    onSuccess: () => {
+    onSuccess: (_, { recipeId }) => {
+      queryClient.setQueryData(['pending-recipes'], current => current ? {
+        ...current, DT: current.DT.filter(recipe => String(recipe.recipeId) !== String(recipeId)),
+      } : current);
       queryClient.invalidateQueries({ queryKey: ['pending-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['admin-recipes'] });
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['home-recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe', String(recipeId)] });
+      queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+      queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
     },
   });
 };

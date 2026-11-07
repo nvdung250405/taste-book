@@ -13,26 +13,26 @@ export default function PasswordChangeForm({ passwordForm, setPasswordForm, hand
       <CardContent>
         <form onSubmit={handlePasswordSubmit} className="space-y-5 max-w-md">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Mật khẩu hiện tại</label>
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="profile-oldPassword">Mật khẩu hiện tại</label>
             <Input 
               type="password"
-              value={passwordForm.oldPassword}
+              id="profile-oldPassword" aria-label="Mật khẩu hiện tại" value={passwordForm.oldPassword}
               onChange={(e) => setPasswordForm(p => ({ ...p, oldPassword: e.target.value }))}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Mật khẩu mới</label>
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="profile-newPassword">Mật khẩu mới</label>
             <Input 
               type="password"
-              value={passwordForm.newPassword}
+              id="profile-newPassword" aria-label="Mật khẩu mới" value={passwordForm.newPassword}
               onChange={(e) => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Xác nhận mật khẩu mới</label>
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="profile-confirmPassword">Xác nhận mật khẩu mới</label>
             <Input 
               type="password"
-              value={passwordForm.confirmPassword}
+              id="profile-confirmPassword" aria-label="Xác nhận mật khẩu mới" value={passwordForm.confirmPassword}
               onChange={(e) => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
             />
           </div>

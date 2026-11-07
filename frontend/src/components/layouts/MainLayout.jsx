@@ -9,19 +9,18 @@ export default function MainLayout() {
   const navigate = useNavigate()
 
   const { data: profileRes, isLoading: profileLoading } = useProfile()
-  const { mutate: logoutMutate } = useLogout()
+  const { mutate: logoutMutate, isPending: loggingOut } = useLogout()
 
   const user = profileRes?.DT || null
   const isAuthenticated = !!user
 
   const handleLogout = () => {
+    if (loggingOut) return
     logoutMutate(undefined, {
       onSuccess: () => {
-        toast.success('Đã đăng xuất thành công')
         navigate('/login')
       },
       onError: () => {
-        // vẫn xóa token dù lỗi server (handled in onSettled in hook)
         navigate('/login')
       },
     })
@@ -52,7 +51,7 @@ export default function MainLayout() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className={location.pathname === '/' ? 'flex-1 py-8' : 'flex-1 container mx-auto px-4 py-8'}>
         <Outlet />
       </main>
 

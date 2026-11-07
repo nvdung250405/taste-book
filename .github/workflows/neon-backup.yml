@@ -1,0 +1,61 @@
+
+name: Neon PostgreSQL 18 Daily Backup
+
+on:
+  schedule:
+    # 07:00 sáng Việt Nam (00:00 UTC)
+    - cron: "0 0 * * *"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: Backup Neon Staging
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 20
+
+    steps:
+      - name: Create backup directory
+        run: mkdir -p backups
+
+      - name: Backup PostgreSQL 18
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+
+          BACKUP_FILE="staging-backup-$(date -u +'%Y-%m-%d-%H%M%S').dump"
+
+          docker run --rm \
+            -e DATABASE_URL \
+            -v "$PWD/backups:/backups" \
+            postgres:18 \
+            sh -c '
+              pg_dump \
+                --dbname="$DATABASE_URL" \
+                --format=custom \
+                --no-owner \
+                --no-acl \
+                --file="/backups/$1"
+
+              pg_restore \
+                --list "/backups/$1" > /dev/null
+            ' sh "$BACKUP_FILE"
+
+          test -s "backups/$BACKUP_FILE"
+
+          echo "BACKUP_FILE=backups/$BACKUP_FILE" >> "$GITHUB_ENV"
+
+          echo "Backup created and validated successfully."
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: neon-staging-backup-${{ github.run_id }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 7
+          if-no-files-found: error

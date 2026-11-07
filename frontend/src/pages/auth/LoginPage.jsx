@@ -1,16 +1,19 @@
+import { normalizePhone } from '../../lib/phone'
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { toast } from 'sonner'
 import { UtensilsCrossed, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { useLogin } from '../../hooks/queries/useAuthQueries'
+import { safeReturnLocation } from '../../lib/navigation'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
   const { mutate: login, isPending: isLoading } = useLogin()
 
   const handleLogin = (e) => {
@@ -21,11 +24,12 @@ export default function LoginPage() {
     }
 
     login(
-      { valueLogin: email, email, password },
+      { valueLogin: normalizePhone(email), email: email.trim(), password },
       {
         onSuccess: () => {
           toast.success('Đăng nhập thành công!')
-          navigate('/')
+          const from = safeReturnLocation(location.state?.from)
+          navigate(from || '/', { replace: true })
         },
         onError: (error) => {
           toast.error(error.EM || error.response?.data?.EM || 'Đăng nhập thất bại')

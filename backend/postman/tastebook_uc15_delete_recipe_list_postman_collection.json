@@ -1,0 +1,2640 @@
+{
+  "info": {
+    "_postman_id": "f1f76a3f-5f5a-49c2-a7a9-d8c3f7152b3d",
+    "name": "TasteBook UC-15 Xóa thực đơn API v1.0 (theo TC_Sprint5)",
+    "description": "UC-15 (Sprint 5): DELETE /recipe-lists/{listId} (đặc tả 6.4).\n\n- Mã TC-15-01 -> TC-15-14 khớp 1:1 với tab TC_Sprint5. TC nhiều bước được tách thành nhiều request cùng mã, đánh dấu 'bước n'.\n- Kiểm thử hộp đen theo đặc tả API (mục 6.4; các mục 4.2, 6.1, 6.2, 6.3, 6.5, 6.6, 7.2, 7.3 dùng làm bước chuẩn bị/hậu kiểm), không dựa vào mã nguồn.\n- File độc lập: tự đăng nhập (00_Setup), tự dọn dữ liệu (99_Teardown). Cần biến environment: userAEmail, userBEmail, userPassword, maxResponseMs.\n- Seed: thực đơn id 2 (User A, 1 món) và thực đơn id 1 (User B, 2 món) (biến seedListIdA / seedListIdB). Chạy npm run db:reset trước lần đầu.\n- Thực đơn fixture đặt tên TB-AUTO-{{runId}}-15-<số TC>-<tag>; được dọn ở 99_Teardown. Tài khoản C đăng ký ở 00_Setup không có API xóa nên được giữ lại.\n- Contract chung kiểm tra ở collection-level test, dùng lại của Sprint 4.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "runId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenA",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenB",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenC",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userAId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newSuffix",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newPhone",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "stdCategoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idsJson",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "m_F1",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "shopId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "itemIdFirst",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "itemsCount",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cleanupList",
+      "value": "[]",
+      "type": "string"
+    },
+    {
+      "key": "cleanupShop",
+      "value": "[]",
+      "type": "string"
+    },
+    {
+      "key": "cleanupShopB",
+      "value": "[]",
+      "type": "string"
+    },
+    {
+      "key": "cleanupRecipes",
+      "value": "[]",
+      "type": "string"
+    },
+    {
+      "key": "cleanupId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "seedListIdA",
+      "value": "2",
+      "type": "string"
+    },
+    {
+      "key": "seedListIdB",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "m_C1",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// ===== CONTRACT CHUNG: JSON Envelope {EC, EM, DT} + HTTP status + hiệu năng =====",
+          "// Bảng quy chuẩn theo Đặc tả API: EC 5 và EC 6 đều trả HTTP 401 (EC 6 = sai tài khoản/mật khẩu).",
+          "var STATUS_TO_EC = { 200: [0], 201: [0], 400: [1], 401: [5, 6], 403: [4], 404: [3], 409: [2], 500: [-1] };",
+          "var contentType = pm.response.headers.get('Content-Type') || '';",
+          "var jsonData = null;",
+          "try { jsonData = pm.response.json(); } catch (e) { jsonData = null; }",
+          "",
+          "pm.test('Envelope: Content-Type là application/json', function () {",
+          "    pm.expect(contentType, 'HTTP ' + pm.response.code).to.include('application/json');",
+          "});",
+          "",
+          "pm.test('Envelope: body là JSON object', function () {",
+          "    pm.expect(jsonData, 'Body không phải JSON (route chưa mount / Render đang ngủ / trang lỗi HTML) - HTTP ' + pm.response.code).to.be.an('object');",
+          "});",
+          "",
+          "if (jsonData && typeof jsonData === 'object') {",
+          "    pm.test('Envelope: có đủ EC (number), EM (string không rỗng), DT', function () {",
+          "        pm.expect(jsonData).to.have.property('EC');",
+          "        pm.expect(jsonData).to.have.property('EM');",
+          "        pm.expect(jsonData).to.have.property('DT');",
+          "        pm.expect(jsonData.EC).to.be.a('number');",
+          "        pm.expect(jsonData.EM).to.be.a('string');",
+          "        pm.expect(jsonData.EM.trim()).to.not.eql('');",
+          "        pm.expect(jsonData.DT === null || typeof jsonData.DT === 'object', 'DT phải là null / object / array').to.eql(true);",
+          "    });",
+          "",
+          "    pm.test('Envelope: HTTP status khớp EC theo bảng quy chuẩn', function () {",
+          "        var allowed = STATUS_TO_EC[pm.response.code];",
+          "        pm.expect(allowed, 'HTTP ' + pm.response.code + ' không thuộc bảng quy chuẩn (200/201/400/401/403/404/409/500)').to.be.an('array');",
+          "        pm.expect(allowed, 'EC=' + jsonData.EC + ' không khớp HTTP ' + pm.response.code).to.include(jsonData.EC);",
+          "    });",
+          "",
+          "    if (pm.response.code >= 400) {",
+          "        pm.test('Envelope: response lỗi có DT = null', function () {",
+          "            pm.expect(jsonData.DT).to.eql(null);",
+          "        });",
+          "    }",
+          "}",
+          "",
+          "// Ngưỡng lấy từ environment (local 3000ms, staging 10000ms). Request đặc biệt có thể ghi đè bằng pm.variables.set('maxResponseMs', ...) ở pre-request.",
+          "var maxMs = Number(pm.variables.get('maxResponseMs')) || 5000;",
+          "pm.test('Hiệu năng: phản hồi < ' + maxMs + ' ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(maxMs);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00_Setup",
+      "description": "Warm-up backend, đăng nhập User A/B, tạo và đăng nhập tài khoản mới C (dùng cho TC-15-05). Nếu một bước thất bại, lượt chạy dừng.",
+      "item": [
+        {
+          "name": "TC-SETUP-01 Warm-up backend và khởi tạo runId",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('runId', String(Date.now()));",
+                  "pm.collectionVariables.set('cleanupList', '[]');",
+                  "pm.collectionVariables.set('cleanupShop', '[]');",
+                  "pm.collectionVariables.set('cleanupShopB', '[]');",
+                  "pm.collectionVariables.set('cleanupRecipes', '[]');",
+                  "// Request đầu tiên có thể gặp cold-start Render nên nới ngưỡng thời gian riêng cho request này.",
+                  "pm.variables.set('maxResponseMs', 60000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-SETUP-01 Backend sẵn sàng (GET /home) - 200 OK, EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-SETUP-01 runId đã được tạo', function () {",
+                  "    pm.expect(pm.collectionVariables.get('runId')).to.match(/^\\d{10,}$/);",
+                  "});",
+                  "if (pm.response.code !== 200) {",
+                  "    postman.setNextRequest(null); // Backend không sống thì dừng cả lượt chạy",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/home",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "home"
+              ]
+            },
+            "description": "Đánh thức backend (Render free ngủ sau 15 phút) và tạo biến runId cho cả lượt chạy.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SETUP-02 Đăng nhập User A (chef.hoang, userId=2) lấy token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "pm.test('TC-SETUP-02 - 200 OK, EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(_res.EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-SETUP-02 DT.accessToken là JWT, user.role = User', function () {",
+                  "    pm.expect(_res.DT.accessToken).to.match(/^[\\w-]+\\.[\\w-]+\\.[\\w-]+$/);",
+                  "    pm.expect(_res.DT.user.role).to.eql('User');",
+                  "});",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.accessToken) {",
+                  "    pm.collectionVariables.set('tokenA', _res.DT.accessToken);",
+                  "    pm.collectionVariables.set('userAId', String(_res.DT.user.userId));",
+                  "} else {",
+                  "    postman.setNextRequest(null); // Không có token thì mọi test phía sau đều vô nghĩa",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Spec 1.2 - POST /auth/login. Lưu tokenA và userAId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{userAEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SETUP-03 Đăng nhập User B (lananh.kitchen, userId=3) lấy token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "pm.test('TC-SETUP-03 - 200 OK, EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(_res.EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-SETUP-03 DT.accessToken là JWT, user.role = User', function () {",
+                  "    pm.expect(_res.DT.accessToken).to.match(/^[\\w-]+\\.[\\w-]+\\.[\\w-]+$/);",
+                  "    pm.expect(_res.DT.user.role).to.eql('User');",
+                  "});",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.accessToken) {",
+                  "    pm.collectionVariables.set('tokenB', _res.DT.accessToken);",
+                  "    pm.collectionVariables.set('userBId', String(_res.DT.user.userId));",
+                  "} else {",
+                  "    postman.setNextRequest(null); // Không có token thì mọi test phía sau đều vô nghĩa",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Spec 1.2 - POST /auth/login. Lưu tokenB và userBId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"{{userBEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SETUP-05 Đăng ký tài khoản mới C (chưa có thực đơn)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var suffix = String(Date.now());",
+                  "pm.collectionVariables.set('newSuffix', suffix);",
+                  "var rnd = String(Math.floor(Math.random() * 1e8)).padStart(8, '0');",
+                  "pm.collectionVariables.set('newPhone', '09' + rnd);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-SETUP-05 Đăng ký tài khoản mới - 201, EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Spec 1.1 - POST /auth/register. Tạo tài khoản mới mỗi lượt chạy.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"uc15tester{{newSuffix}}\",\n  \"email\": \"uc15.{{newSuffix}}@tastebook.test\",\n  \"password\": \"Password123@\",\n  \"confirmPassword\": \"Password123@\",\n  \"phone\": \"{{newPhone}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SETUP-06 Đăng nhập tài khoản mới C lấy token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "pm.test('TC-SETUP-06 Đăng nhập tài khoản mới - 200 OK, EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(_res.EC).to.eql(0);",
+                  "});",
+                  "if (_res && _res.EC === 0 && _res.DT && _res.DT.accessToken) {",
+                  "    pm.collectionVariables.set('tokenC', _res.DT.accessToken);",
+                  "} else {",
+                  "    postman.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Spec 1.2 - POST /auth/login. Lưu tokenC.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueLogin\": \"uc15.{{newSuffix}}@tastebook.test\",\n  \"password\": \"Password123@\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01_DeleteRecipeList",
+      "description": "Đặc tả 6.4 (UC-15): TC-15-01 đến TC-15-14. Thứ tự là thứ tự chạy.",
+      "item": [
+        {
+          "name": "TC-15-01 bước 1 [Chuẩn bị] Tạo thực đơn F1 (POST /recipe-lists)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-01 bước 1 [Chuẩn bị] HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) { pm.collectionVariables.set('m_F1', String(_res.DT.recipeListId)); }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) {",
+                  "    var _t = [];",
+                  "    try { _t = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _t = []; }",
+                  "    _t.push(String(_res.DT.recipeListId));",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_t));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists"
+              ]
+            },
+            "description": "Spec 6.2 - bước chuẩn bị của TC-15-01: tạo thực đơn F1.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listName\": \"TB-AUTO-{{runId}}-15-01-F1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-01 bước 2 Gửi DELETE /recipe-lists/{listId} (User A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-01 bước 2 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-15-01 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Đã xóa thực đơn thành công!\");",
+                  "});",
+                  "pm.test('TC-15-01 bước 2 DT = null', function () { pm.expect(pm.response.json().DT).to.eql(null); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: listId = thực đơn fixture\nKết quả mong đợi: Bước 2: HTTP 200, EC 0, EM 'Đã xóa thực đơn thành công!', DT = null. Bước 4: không còn thực đơn đã xóa. Bước 5: HTTP 404, EC 3",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-01 bước 4 Gửi GET /recipe-lists (User A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-01 bước 4 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "pm.test('TC-15-01 bước 4: không còn thực đơn đã xóa' , function () {",
+                  "    var ids = _res.DT.map(function (x) { return String(x.recipeListId); });",
+                  "    pm.expect(ids).to.not.include(pm.collectionVariables.get('m_F1'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists"
+              ]
+            },
+            "description": "Spec 6.1 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: listId = thực đơn fixture\nKết quả mong đợi: Bước 2: HTTP 200, EC 0, EM 'Đã xóa thực đơn thành công!', DT = null. Bước 4: không còn thực đơn đã xóa. Bước 5: HTTP 404, EC 3",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-01 bước 5 Gửi GET /recipe-lists/{listId} (User A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-01 bước 5 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}"
+              ]
+            },
+            "description": "Spec 6.5 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: listId = thực đơn fixture\nKết quả mong đợi: Bước 2: HTTP 200, EC 0, EM 'Đã xóa thực đơn thành công!', DT = null. Bước 4: không còn thực đơn đã xóa. Bước 5: HTTP 404, EC 3",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-02 bước 1 [Chuẩn bị] Tạo thực đơn F1 (POST /recipe-lists)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-02 bước 1 [Chuẩn bị] HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) { pm.collectionVariables.set('m_F1', String(_res.DT.recipeListId)); }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) {",
+                  "    var _t = [];",
+                  "    try { _t = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _t = []; }",
+                  "    _t.push(String(_res.DT.recipeListId));",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_t));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists"
+              ]
+            },
+            "description": "Spec 6.2 - bước chuẩn bị của TC-15-02: tạo thực đơn F1.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listName\": \"TB-AUTO-{{runId}}-15-02-F1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-02 bước 2 [Chuẩn bị] Thêm công thức 1 vào F1 (targetServings 4)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-02 bước 2 [Chuẩn bị] HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeListItemId) { pm.collectionVariables.set('it_F1', String(_res.DT.recipeListItemId)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}",
+                "items"
+              ]
+            },
+            "description": "Spec 6.6 - bước chuẩn bị của TC-15-02.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipeId\": 1,\n  \"targetServings\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-02 bước 2 [Chuẩn bị] Thêm công thức 2 vào F1 (targetServings 4)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-02 bước 2 [Chuẩn bị] HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeListItemId) { pm.collectionVariables.set('it_F1', String(_res.DT.recipeListItemId)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}",
+                "items"
+              ]
+            },
+            "description": "Spec 6.6 - bước chuẩn bị của TC-15-02.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipeId\": 2,\n  \"targetServings\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-02 bước 3 Gửi DELETE /recipe-lists/{listId} (User A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-02 bước 3 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: Thực đơn có 2 món\nKết quả mong đợi: Bước 3: HTTP 200, EC 0. Bước 4: HTTP 404, EC 3. Bước 5: HTTP 200, 2 công thức vẫn đầy đủ nguyên liệu và bước làm\nLƯU Ý: Migration 10 thiết lập ON DELETE CASCADE cho RecipeListItems.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-02 bước 4 Gửi GET /recipe-lists/{listId} (User A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-02 bước 4 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}"
+              ]
+            },
+            "description": "Spec 6.5 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: Thực đơn có 2 món\nKết quả mong đợi: Bước 3: HTTP 200, EC 0. Bước 4: HTTP 404, EC 3. Bước 5: HTTP 200, 2 công thức vẫn đầy đủ nguyên liệu và bước làm\nLƯU Ý: Migration 10 thiết lập ON DELETE CASCADE cho RecipeListItems.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-02 bước 5 Gửi GET /recipes/1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-02 bước 5 (công thức 1) HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "pm.test('TC-15-02 bước 5: công thức 1 vẫn đầy đủ nguyên liệu và bước làm', function () {",
+                  "    pm.expect(_res.DT.ingredients).to.be.an('array').that.is.not.empty;",
+                  "    pm.expect(_res.DT.steps).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipes/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "1"
+              ]
+            },
+            "description": "Spec 4.2 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: Thực đơn có 2 món\nKết quả mong đợi: Bước 3: HTTP 200, EC 0. Bước 4: HTTP 404, EC 3. Bước 5: HTTP 200, 2 công thức vẫn đầy đủ nguyên liệu và bước làm\nLƯU Ý: Migration 10 thiết lập ON DELETE CASCADE cho RecipeListItems.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-02 bước 5 Gửi GET /recipes/2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-02 bước 5 (công thức 2) HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "pm.test('TC-15-02 bước 5: công thức 2 vẫn đầy đủ nguyên liệu và bước làm', function () {",
+                  "    pm.expect(_res.DT.ingredients).to.be.an('array').that.is.not.empty;",
+                  "    pm.expect(_res.DT.steps).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipes/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipes",
+                "2"
+              ]
+            },
+            "description": "Spec 4.2 | Loại: Normal | Kỹ thuật: EP\nDữ liệu vào: Thực đơn có 2 món\nKết quả mong đợi: Bước 3: HTTP 200, EC 0. Bước 4: HTTP 404, EC 3. Bước 5: HTTP 200, 2 công thức vẫn đầy đủ nguyên liệu và bước làm\nLƯU Ý: Migration 10 thiết lập ON DELETE CASCADE cho RecipeListItems.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-03 bước 1 [Chuẩn bị] Tạo thực đơn F1 (POST /recipe-lists)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-03 bước 1 [Chuẩn bị] HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) { pm.collectionVariables.set('m_F1', String(_res.DT.recipeListId)); }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) {",
+                  "    var _t = [];",
+                  "    try { _t = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _t = []; }",
+                  "    _t.push(String(_res.DT.recipeListId));",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_t));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists"
+              ]
+            },
+            "description": "Spec 6.2 - bước chuẩn bị của TC-15-03: tạo thực đơn F1.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listName\": \"TB-AUTO-{{runId}}-15-03-F1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-03 bước 2 [Chuẩn bị] Thêm công thức 1 vào F1 (targetServings 4)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-03 bước 2 [Chuẩn bị] HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeListItemId) { pm.collectionVariables.set('it_F1', String(_res.DT.recipeListItemId)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}",
+                "items"
+              ]
+            },
+            "description": "Spec 6.6 - bước chuẩn bị của TC-15-03.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipeId\": 1,\n  \"targetServings\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-03 bước 3 Tổng hợp đi chợ từ thực đơn (POST /shopping-lists, recipeListIds [listId])",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idsJson', JSON.stringify([Number(pm.collectionVariables.get('m_F1'))]));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-03 bước 3 HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.shoppingListId) { pm.collectionVariables.set('shopId', String(_res.DT.shoppingListId)); }",
+                  "if (_res && _res.DT && _res.DT.shoppingListId) {",
+                  "    var _t = [];",
+                  "    try { _t = JSON.parse(pm.collectionVariables.get('cleanupShop') || '[]'); } catch (e) { _t = []; }",
+                  "    _t.push(String(_res.DT.shoppingListId));",
+                  "    pm.collectionVariables.set('cleanupShop', JSON.stringify(_t));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shopping-lists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shopping-lists"
+              ]
+            },
+            "description": "Spec 7.2 - bước của TC-15-03.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TB-AUTO-{{runId}}-15-03-S1\",\n  \"recipeListIds\": {{idsJson}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-03 bước 4 Gửi DELETE /recipe-lists/{listId} (User A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-03 bước 4 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Normal | Kỹ thuật: Decision Table\nDữ liệu vào: Thực đơn nguồn đã được dùng tạo phiên đi chợ\nKết quả mong đợi: Bước 4: HTTP 200, EC 0. Bước 5: HTTP 200, phiên đi chợ còn nguyên các mặt hàng đã tổng hợp\nLƯU Ý: Đặc tả chưa nêu; theo migration 12 (CASCADE chỉ xóa bản ghi liên kết ShoppingListRecipeLists) và mặt hàng được lưu độc lập ở ShoppingListItems. Cần BE xác nhận.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-03 bước 5 Gửi GET /shopping-lists/{shoppingListId}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-03 bước 5 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.items && _res.DT.items.length) {",
+                  "    pm.collectionVariables.set('itemIdFirst', String(_res.DT.items[0].itemId));",
+                  "    pm.collectionVariables.set('itemsCount', String(_res.DT.items.length));",
+                  "}",
+                  "pm.test('TC-15-03 bước 5: phiên đi chợ còn nguyên các mặt hàng đã tổng hợp', function () {",
+                  "    pm.expect(_res.DT.items).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shopping-lists/{{shopId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shopping-lists",
+                "{{shopId}}"
+              ]
+            },
+            "description": "Spec 7.3 | Loại: Normal | Kỹ thuật: Decision Table\nDữ liệu vào: Thực đơn nguồn đã được dùng tạo phiên đi chợ\nKết quả mong đợi: Bước 4: HTTP 200, EC 0. Bước 5: HTTP 200, phiên đi chợ còn nguyên các mặt hàng đã tổng hợp\nLƯU Ý: Đặc tả chưa nêu; theo migration 12 (CASCADE chỉ xóa bản ghi liên kết ShoppingListRecipeLists) và mặt hàng được lưu độc lập ở ShoppingListItems. Cần BE xác nhận.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-04 bước 1 [Chuẩn bị] Tạo thực đơn F1 (POST /recipe-lists)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-04 bước 1 [Chuẩn bị] HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) { pm.collectionVariables.set('m_F1', String(_res.DT.recipeListId)); }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) {",
+                  "    var _t = [];",
+                  "    try { _t = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _t = []; }",
+                  "    _t.push(String(_res.DT.recipeListId));",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_t));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists"
+              ]
+            },
+            "description": "Spec 6.2 - bước chuẩn bị của TC-15-04: tạo thực đơn F1.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listName\": \"TB-AUTO-{{runId}}-15-04-F1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-04 bước 2 Gửi DELETE /recipe-lists/{listId} (User A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-04 bước 2 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Normal | Kỹ thuật: Decision Table\nDữ liệu vào: User A có thực đơn id 2 và thực đơn fixture\nKết quả mong đợi: Bước 2: HTTP 200. Bước 3: vẫn còn thực đơn id 2 (totalItems 1). Bước 4: User B vẫn thấy thực đơn id 1 (totalItems 2)",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-04 bước 3 Gửi GET /recipe-lists (User A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-04 bước 3 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "var f = _res.DT.filter(function (x) { return String(x.recipeListId) === pm.collectionVariables.get('seedListIdA'); })[0];",
+                  "pm.test('TC-15-04 bước 3: vẫn còn thực đơn id 2 (totalItems 1)' , function () {",
+                  "    pm.expect(f, 'Không thấy thực đơn id 2').to.be.an('object');",
+                  "    pm.expect(f.totalItems).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists"
+              ]
+            },
+            "description": "Spec 6.1 | Loại: Normal | Kỹ thuật: Decision Table\nDữ liệu vào: User A có thực đơn id 2 và thực đơn fixture\nKết quả mong đợi: Bước 2: HTTP 200. Bước 3: vẫn còn thực đơn id 2 (totalItems 1). Bước 4: User B vẫn thấy thực đơn id 1 (totalItems 2)",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-04 bước 4 Gửi GET /recipe-lists (User B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-04 bước 4 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "var f = _res.DT.filter(function (x) { return String(x.recipeListId) === pm.collectionVariables.get('seedListIdB'); })[0];",
+                  "pm.test('TC-15-04 bước 4: User B vẫn thấy thực đơn id 1 (totalItems 2)' , function () {",
+                  "    pm.expect(f, 'Không thấy thực đơn id 1').to.be.an('object');",
+                  "    pm.expect(f.totalItems).to.eql(2);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists"
+              ]
+            },
+            "description": "Spec 6.1 | Loại: Normal | Kỹ thuật: Decision Table\nDữ liệu vào: User A có thực đơn id 2 và thực đơn fixture\nKết quả mong đợi: Bước 2: HTTP 200. Bước 3: vẫn còn thực đơn id 2 (totalItems 1). Bước 4: User B vẫn thấy thực đơn id 1 (totalItems 2)",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-05 bước 1 [Chuẩn bị] Tài khoản mới tạo 1 thực đơn (POST /recipe-lists)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-05 bước 1 [Chuẩn bị] HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) { pm.collectionVariables.set('m_C1', String(_res.DT.recipeListId)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists"
+              ]
+            },
+            "description": "Spec 6.2 - bước chuẩn bị của TC-15-05: tạo thực đơn C1.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listName\": \"TB-AUTO-{{runId}}-15-05-C1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenC}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-05 bước 2 Gửi DELETE /recipe-lists/{listId} (tài khoản mới)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-05 bước 2 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_C1}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_C1}}"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Boundary | Kỹ thuật: BVA\nDữ liệu vào: Tài khoản có đúng 1 thực đơn\nKết quả mong đợi: Bước 2: HTTP 200, EC 0. Bước 3: HTTP 200, EC 0, DT = []",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenC}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-05 bước 3 Gửi GET /recipe-lists (tài khoản mới)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-05 bước 3 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "pm.test('TC-15-05 bước 3: DT = []', function () { pm.expect(pm.response.json().DT).to.eql([]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists"
+              ]
+            },
+            "description": "Spec 6.1 | Loại: Boundary | Kỹ thuật: BVA\nDữ liệu vào: Tài khoản có đúng 1 thực đơn\nKết quả mong đợi: Bước 2: HTTP 200, EC 0. Bước 3: HTTP 200, EC 0, DT = []",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenC}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-06 bước 1 [Chuẩn bị] Tạo thực đơn F1 (POST /recipe-lists)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-06 bước 1 [Chuẩn bị] HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) { pm.collectionVariables.set('m_F1', String(_res.DT.recipeListId)); }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) {",
+                  "    var _t = [];",
+                  "    try { _t = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _t = []; }",
+                  "    _t.push(String(_res.DT.recipeListId));",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_t));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists"
+              ]
+            },
+            "description": "Spec 6.2 - bước chuẩn bị của TC-15-06: tạo thực đơn F1.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listName\": \"TB-AUTO-{{runId}}-15-06-F1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-06 bước 2 Gửi DELETE /recipe-lists/{listId} (User A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-06 bước 2 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Xóa 2 lần cùng listId\nKết quả mong đợi: Bước 2: HTTP 200. Bước 3: HTTP 404, EC 3, EM 'Không tìm thấy thực đơn!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-06 bước 3 Gửi DELETE /recipe-lists/{listId} lần 2 (User A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-06 bước 3 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});",
+                  "pm.test('TC-15-06 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Không tìm thấy thực đơn!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Xóa 2 lần cùng listId\nKết quả mong đợi: Bước 2: HTTP 200. Bước 3: HTTP 404, EC 3, EM 'Không tìm thấy thực đơn!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-07 bước 1 [Chuẩn bị] Tạo thực đơn F1 (POST /recipe-lists)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-07 bước 1 [Chuẩn bị] HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) { pm.collectionVariables.set('m_F1', String(_res.DT.recipeListId)); }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) {",
+                  "    var _t = [];",
+                  "    try { _t = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _t = []; }",
+                  "    _t.push(String(_res.DT.recipeListId));",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_t));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists"
+              ]
+            },
+            "description": "Spec 6.2 - bước chuẩn bị của TC-15-07: tạo thực đơn F1.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listName\": \"TB-AUTO-{{runId}}-15-07-F1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-07 bước 2 Gửi DELETE /recipe-lists/{listId} (User A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-07 bước 2 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Sửa sau khi xóa\nKết quả mong đợi: Bước 3: HTTP 404, EC 3, EM 'Không tìm thấy thực đơn!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-07 bước 3 Gửi PUT /recipe-lists/{listId} (User A) với listName = TB-AUTO-<runId>-X",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-07 bước 3 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});",
+                  "pm.test('TC-15-07 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Không tìm thấy thực đơn!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}"
+              ]
+            },
+            "description": "Spec 6.3 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Sửa sau khi xóa\nKết quả mong đợi: Bước 3: HTTP 404, EC 3, EM 'Không tìm thấy thực đơn!'",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listName\": \"TB-AUTO-{{runId}}-X\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-08 bước 1 [Chuẩn bị] Tạo thực đơn F1 (POST /recipe-lists)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-08 bước 1 [Chuẩn bị] HTTP 201 + EC = 0', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) { pm.collectionVariables.set('m_F1', String(_res.DT.recipeListId)); }",
+                  "if (_res && _res.DT && _res.DT.recipeListId) {",
+                  "    var _t = [];",
+                  "    try { _t = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _t = []; }",
+                  "    _t.push(String(_res.DT.recipeListId));",
+                  "    pm.collectionVariables.set('cleanupList', JSON.stringify(_t));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists"
+              ]
+            },
+            "description": "Spec 6.2 - bước chuẩn bị của TC-15-08: tạo thực đơn F1.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listName\": \"TB-AUTO-{{runId}}-15-08-F1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-08 bước 2 Gửi DELETE /recipe-lists/{listId} (User A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-08 bước 2 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Thêm món sau khi xóa\nKết quả mong đợi: Bước 3: HTTP 404, EC 3, EM 'Không tìm thấy thực đơn!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-08 bước 3 Gửi POST /recipe-lists/{listId}/items (User A) với recipeId 1, targetServings 4",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-08 bước 3 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});",
+                  "pm.test('TC-15-08 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Không tìm thấy thực đơn!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{m_F1}}/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{m_F1}}",
+                "items"
+              ]
+            },
+            "description": "Spec 6.6 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Thêm món sau khi xóa\nKết quả mong đợi: Bước 3: HTTP 404, EC 3, EM 'Không tìm thấy thực đơn!'",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipeId\": 1,\n  \"targetServings\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-09 bước 1 Gửi DELETE /recipe-lists/1 (User A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-09 bước 1 HTTP 403 + EC = 4', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    pm.expect(pm.response.json().EC).to.eql(4);",
+                  "});",
+                  "pm.test('TC-15-09 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Bạn không có quyền xóa thực đơn này!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{seedListIdB}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{seedListIdB}}"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Abnormal | Kỹ thuật: Decision Table\nDữ liệu vào: User A xóa thực đơn id 1 của User B\nKết quả mong đợi: Bước 1: HTTP 403, EC 4, EM 'Bạn không có quyền xóa thực đơn này!'. Bước 3: HTTP 200, thực đơn id 1 vẫn còn 2 món",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-09 bước 3 Gửi GET /recipe-lists/1 (User B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-09 bước 3 HTTP 200 + EC = 0', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().EC).to.eql(0);",
+                  "});",
+                  "var _res = null;",
+                  "try { _res = pm.response.json(); } catch (e) { _res = null; }",
+                  "pm.test('TC-15-09 bước 3: thực đơn id 1 vẫn còn 2 món' , function () { pm.expect(_res.DT.items.length).to.eql(2); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{seedListIdB}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{seedListIdB}}"
+              ]
+            },
+            "description": "Spec 6.5 | Loại: Abnormal | Kỹ thuật: Decision Table\nDữ liệu vào: User A xóa thực đơn id 1 của User B\nKết quả mong đợi: Bước 1: HTTP 403, EC 4, EM 'Bạn không có quyền xóa thực đơn này!'. Bước 3: HTTP 200, thực đơn id 1 vẫn còn 2 món",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-10 Xóa thực đơn không tồn tại (999999999)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-10 HTTP 404 + EC = 3', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().EC).to.eql(3);",
+                  "});",
+                  "pm.test('TC-15-10 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Không tìm thấy thực đơn!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/999999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "999999999"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: listId = 999999999\nKết quả mong đợi: HTTP 404, EC 3, EM 'Không tìm thấy thực đơn!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-11 listId = 0 (dưới biên ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-11 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-15-11 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Mã thực đơn không hợp lệ!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "0"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Boundary | Kỹ thuật: BVA\nDữ liệu vào: listId = 0\nKết quả mong đợi: HTTP 400, EC 1, EM 'Mã thực đơn không hợp lệ!'\nLƯU Ý: Theo quy ước ID của UC-11 (TC-11-10). Cần BE xác nhận.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-12 listId âm (-1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-12 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-15-12 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Mã thực đơn không hợp lệ!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/-1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "-1"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Boundary | Kỹ thuật: BVA\nDữ liệu vào: listId = -1\nKết quả mong đợi: HTTP 400, EC 1, EM 'Mã thực đơn không hợp lệ!'\nLƯU Ý: Theo quy ước ID của UC-11 (TC-11-11). Cần BE xác nhận.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-13 listId không phải số (abc)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-13 HTTP 400 + EC = 1', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().EC).to.eql(1);",
+                  "});",
+                  "pm.test('TC-15-13 EM đúng đặc tả', function () {",
+                  "    pm.expect(pm.response.json().EM).to.eql(\"Mã thực đơn không hợp lệ!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "abc"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Abnormal | Kỹ thuật: Error Guessing\nDữ liệu vào: listId = abc\nKết quả mong đợi: HTTP 400, EC 1, EM 'Mã thực đơn không hợp lệ!'",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-15-14 Xóa thực đơn khi không gửi token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-15-14 HTTP 401 + EC = 5', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "    pm.expect(pm.response.json().EC).to.eql(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{seedListIdA}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{seedListIdA}}"
+              ]
+            },
+            "description": "Spec 6.4 | Loại: Abnormal | Kỹ thuật: EP\nDữ liệu vào: Không có token\nKết quả mong đợi: HTTP 401, EC 5",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "99_Teardown",
+      "description": "Dọn phiên đi chợ và thực đơn còn sót lại (chấp nhận 404).",
+      "item": [
+        {
+          "name": "TD-15-01 Dọn phiên đi chợ đã tạo của User A (lặp theo cleanupShop)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var l = [];",
+                  "try { l = JSON.parse(pm.collectionVariables.get('cleanupShop') || '[]'); } catch (e) { l = []; }",
+                  "var cur = l.pop() || '999999999';",
+                  "pm.collectionVariables.set('cleanupShop', JSON.stringify(l));",
+                  "pm.collectionVariables.set('cleanupId', cur);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TD-15-01 - 200 (đã xóa) hoặc 404 (đã được xóa từ trước)', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "var _l = [];",
+                  "try { _l = JSON.parse(pm.collectionVariables.get('cleanupShop') || '[]'); } catch (e) { _l = []; }",
+                  "if (_l.length > 0) {",
+                  "    postman.setNextRequest(\"TD-15-01 Dọn phiên đi chợ đã tạo của User A (lặp theo cleanupShop)\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shopping-lists/{{cleanupId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shopping-lists",
+                "{{cleanupId}}"
+              ]
+            },
+            "description": "Dọn dữ liệu: lặp lại chính request này cho tới khi cleanupShop rỗng. Chấp nhận 404 nếu đã được xóa.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TD-15-02 Dọn thực đơn còn sót của User A (lặp theo cleanupList)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var l = [];",
+                  "try { l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { l = []; }",
+                  "var cur = l.pop() || '999999999';",
+                  "pm.collectionVariables.set('cleanupList', JSON.stringify(l));",
+                  "pm.collectionVariables.set('cleanupId', cur);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TD-15-02 - 200 (đã xóa) hoặc 404 (đã được xóa từ trước)', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "var _l = [];",
+                  "try { _l = JSON.parse(pm.collectionVariables.get('cleanupList') || '[]'); } catch (e) { _l = []; }",
+                  "if (_l.length > 0) {",
+                  "    postman.setNextRequest(\"TD-15-02 Dọn thực đơn còn sót của User A (lặp theo cleanupList)\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recipe-lists/{{cleanupId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recipe-lists",
+                "{{cleanupId}}"
+              ]
+            },
+            "description": "Dọn dữ liệu: lặp lại chính request này cho tới khi cleanupList rỗng. Chấp nhận 404 nếu đã được xóa.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenA}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
