@@ -395,7 +395,6 @@ function RecipeForm({ id, recipe, admin }) {
         <fieldset disabled={creating || updating} className="min-w-0 space-y-8">
           <RecipeBasicInfoForm
             admin={admin}
-            confirmPublic={isEdit && !admin && recipe?.isPublic === false}
             isUploading={isUploading}
             setIsUploading={setIsUploading}
             formData={formData}
