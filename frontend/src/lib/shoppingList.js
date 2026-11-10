@@ -18,6 +18,7 @@ export function customItemPayload(name, quantity, unit) {
   const qualitative = isQualitativeUnit(unit)
   if (qualitative && input === '') return { itemName: name.trim(), unit: unit.trim() }
   if (!/^\d+(?:\.\d+)?$/.test(input)) throw new Error('Nhập số lượng hợp lệ, ví dụ 1 hoặc 1,5.')
+  if (/^0+(?:\.0+)?$/.test(input)) return { itemName: name.trim(), totalQuantity: 0, unit: unit.trim() }
   const [whole, fraction = ''] = input.split('.')
   const cents = BigInt(whole) * 100n + BigInt((fraction + '00').slice(0, 2)) + (Number(fraction[2] || 0) >= 5 ? 1n : 0n)
   if (!qualitative && (cents < 1n || cents > 9999999999n)) throw new Error('Số lượng sau làm tròn phải từ 0,01 đến 99.999.999,99.')
