@@ -18,6 +18,7 @@ import {
 } from '../hooks/queries/useRecipeListQueries'
 import RecipePicker from '../components/menu/RecipePicker'
 import CustomMenus from '../components/menu/CustomMenus'
+import MenuConnectionNotice from '../components/menu/MenuConnectionNotice'
 import MenuItemDeleteDialog from '../components/menu/MenuItemDeleteDialog'
 import { useSearchParams } from 'react-router-dom'
 import api from '../api/recipeLists.api'
@@ -197,6 +198,7 @@ export default function MenuPage() {
   const count = weekLists.reduce((sum, list) => sum + list.totalItems, 0)
   return (
     <div className="container mx-auto space-y-6 px-4 py-8">
+      <MenuConnectionNotice query={query} />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="mb-2 text-sm font-medium text-orange-500">
