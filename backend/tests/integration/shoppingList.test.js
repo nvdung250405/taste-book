@@ -71,6 +71,33 @@ const send = (method, path, body, auth = token) => {
 };
 
 describe("Shopping Lists HTTP (mock DB)", () => {
+  test("TC-18-80: thêm, đọc và check/uncheck món phát sinh số lượng 0", async () => {
+    const body = { itemName: "Túi nilon", totalQuantity: 0, unit: "cái" };
+    db.ShoppingListItem.create.mockImplementation(async data => {
+      const saved = { id: 51, ...data };
+      saved.update = jest.fn(async changes => Object.assign(saved, changes));
+      list.shoppingListItems.push(saved);
+      db.ShoppingListItem.findOne.mockResolvedValue(saved);
+      return saved;
+    });
+
+    const created = await send("post", "/5/items", body);
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({ EC: 0, DT: { ...body, itemId: 51, isPurchased: false } });
+
+    const detail = await send("get", "/5");
+    expect(detail.status).toBe(200);
+    expect(detail.body.DT.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ ...body, itemId: 51, isPurchased: false }),
+    ]));
+
+    for (const isPurchased of [true, false]) {
+      const updated = await send("patch", "/5/items/51", { isPurchased });
+      expect(updated.status).toBe(200);
+      expect(updated.body).toMatchObject({ EC: 0, DT: { itemId: 51, isPurchased } });
+    }
+  });
+
   describe("#138: kiểm tra món bị loại và xác nhận", () => {
     let source;
     const body = { title: "Đi chợ", recipeListIds: [1] };
