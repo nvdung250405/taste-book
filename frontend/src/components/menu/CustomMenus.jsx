@@ -1,4 +1,6 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { isMissingMenu } from '../../lib/menuErrors'
 import { toast } from 'sonner'
 import { Plus, Pencil, Trash2, BookOpen } from 'lucide-react'
 import {
@@ -20,8 +22,19 @@ import {
 import MenuNameDialog from './MenuNameDialog'
 import CustomMenuDetail from './CustomMenuDetail'
 
+function MissingMenuNotice({ onMissing }) {
+  const notified = useRef(false)
+  useEffect(() => {
+    if (notified.current) return
+    notified.current = true
+    onMissing()
+  }, [onMissing])
+  return null
+}
+
 export default function CustomMenus() {
   const query = useRecipeLists()
+  const client = useQueryClient()
   const remove = useDeleteRecipeList()
   const deletingRef = useRef(false)
   const [editor, setEditor] = useState(null)
@@ -32,6 +45,13 @@ export default function CustomMenus() {
   const lists = Array.isArray(query.data?.DT) ? query.data.DT : []
   const custom = lists.filter((list) => !isWeeklyList(list))
   const active = custom.find((list) => list.recipeListId === selected)
+  const handleMissing = () => {
+    toast.error('Không tìm thấy thực đơn hoặc thực đơn đã bị xóa trước đó!')
+    setDeleting(null)
+    setSelected(null)
+    setError('')
+    client.invalidateQueries({ queryKey: ['recipe-lists'] })
+  }
   const deleteList = () => {
     if (deletingRef.current || remove.isPending || !deleteInfo.isSuccess || deleteInfo.isFetching) return
     deletingRef.current = true
@@ -43,12 +63,15 @@ export default function CustomMenus() {
         if (selected === deleting.recipeListId) setSelected(null)
         setDeleting(null)
       },
-      onError: (failure) =>
-        setError(failure?.EM || 'Không thể xóa thực đơn. Vui lòng thử lại.'),
+      onError: (failure) => {
+        if (isMissingMenu(failure)) handleMissing()
+        else setError(failure?.EM || 'Không thể xóa thực đơn. Vui lòng thử lại.')
+      },
     })
   }
   return (
     <div className="space-y-5">
+      {deleting && deleteInfo.isError && isMissingMenu(deleteInfo.error) && <MissingMenuNotice onMissing={handleMissing} />}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold">Thực đơn của tôi</h2>
@@ -69,7 +92,7 @@ export default function CustomMenus() {
         <p role="status" className="py-8 text-slate-500">
           Đang tải thực đơn…
         </p>
-      ) : query.isError ? (
+      ) : query.isError && !query.data ? (
         <QueryError title="Không thể tải thực đơn" onRetry={query.refetch} />
       ) : !custom.length ? (
         <div className="rounded-2xl border border-dashed p-10 text-center text-slate-500">
@@ -162,7 +185,7 @@ export default function CustomMenus() {
             </DialogDescription>
           </DialogHeader>
           {deleteInfo.isPending && <p role="status">Đang kiểm tra liên kết chuyến đi chợ…</p>}
-          {deleteInfo.isError && <QueryError title="Không thể kiểm tra liên kết chuyến đi chợ" onRetry={deleteInfo.refetch} />}
+          {deleteInfo.isError && !isMissingMenu(deleteInfo.error) && <QueryError title="Không thể kiểm tra liên kết chuyến đi chợ" onRetry={deleteInfo.refetch} />}
           {deleteInfo.data?.DT?.activeShoppingTripCount > 0 && <p role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">Thực đơn này đang được liên kết với chuyến đi chợ chưa hoàn thành. Xóa thực đơn sẽ gỡ liên kết nguồn, nhưng danh sách đi chợ, số lượng mặt hàng và tiến độ mua sắm của bạn vẫn được giữ nguyên.</p>}
           {error && (
             <p role="alert" className="text-sm text-red-600">

@@ -73,7 +73,7 @@ export default function CustomMenuDetail({ list, onClose }) {
                     key={item.targetServings}
                     type="number"
                     min="1"
-                    max="2147483647"
+                    max="100"
                     defaultValue={item.targetServings}
                     aria-label={`Khẩu phần ${item.title}`}
                     disabled={busy || item.isRecipeDeleted}
@@ -86,7 +86,7 @@ export default function CustomMenuDetail({ list, onClose }) {
                       const servings = Number(event.target.value)
                       if (!validServings(servings)) {
                         event.target.value = item.targetServings
-                        toast.error('Khẩu phần phải là số nguyên dương.')
+                        toast.error('Khẩu phần phải là số nguyên từ 1 đến 100.')
                         return
                       }
                       if (servings !== item.targetServings)

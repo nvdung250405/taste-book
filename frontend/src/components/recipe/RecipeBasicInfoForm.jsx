@@ -7,14 +7,6 @@ import { toast } from 'sonner'
 import { Button } from '../ui/button'
 import CategoryFormDialog from '../category/CategoryFormDialog'
 import QueryError from '../ui/QueryError'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '../ui/dialog'
 
 const DIFFICULTIES = ['Dễ', 'Trung bình', 'Khó']
 
@@ -32,7 +24,6 @@ export default function RecipeBasicInfoForm({
   admin = false,
 }) {
   const [creatingCategory, setCreatingCategory] = useState(false)
-  const [publicConfirmation, setPublicConfirmation] = useState(false)
 
   const handleFileChange = async (e) => {
     if (isUploading) return
@@ -350,10 +341,6 @@ export default function RecipeBasicInfoForm({
                       checked={formData.isPublic !== false} // default to true if undefined
                       onChange={(e) => {
                         const checked = e.target.checked
-                        if (checked) {
-                          setPublicConfirmation(true)
-                          return
-                        }
                         setFormData((p) => ({ ...p, isPublic: checked }))
                       }}
                       className="sr-only peer"
@@ -375,34 +362,6 @@ export default function RecipeBasicInfoForm({
           </div>
         </div>
       </CardContent>
-      <Dialog open={publicConfirmation} onOpenChange={setPublicConfirmation}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Chuyển công thức sang công khai?</DialogTitle>
-            <DialogDescription>
-              Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa, xóa hoặc chuyển công thức về riêng tư trong thời gian chờ kết quả.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPublicConfirmation(false)}
-            >
-              Giữ riêng tư
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                setFormData((p) => ({ ...p, isPublic: true }))
-                setPublicConfirmation(false)
-              }}
-            >
-              Xác nhận công khai
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   )
 }

@@ -18,6 +18,7 @@ import {
 } from '../hooks/queries/useRecipeListQueries'
 import RecipePicker from '../components/menu/RecipePicker'
 import CustomMenus from '../components/menu/CustomMenus'
+import MenuConnectionNotice from '../components/menu/MenuConnectionNotice'
 import MenuItemDeleteDialog from '../components/menu/MenuItemDeleteDialog'
 import { useSearchParams } from 'react-router-dom'
 import api from '../api/recipeLists.api'
@@ -30,6 +31,7 @@ import {
   mealListName,
 } from '../lib/weeklyMenu'
 import { recipeThumbnail, handleRecipeImageError } from '../lib/recipeImages'
+import { validServings } from '../lib/menuLists'
 
 const format = (date) =>
   date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
@@ -124,7 +126,7 @@ function MealCell({ list, date, meal, onAdd }) {
                     key={item.targetServings}
                     type="number"
                     min="1"
-                    max="2147483647"
+                    max="100"
                     defaultValue={item.targetServings}
                     disabled={busy || item.isRecipeDeleted}
                     aria-label={`Khẩu phần ${item.title}`}
@@ -132,13 +134,9 @@ function MealCell({ list, date, meal, onAdd }) {
                     onBlur={(e) => {
                       if (item.isRecipeDeleted) return
                       const value = Number(e.target.value)
-                      if (
-                        !Number.isInteger(value) ||
-                        value < 1 ||
-                        value > 2147483647
-                      ) {
+                      if (!validServings(value)) {
                         e.target.value = item.targetServings
-                        toast.error('Khẩu phần phải là số nguyên dương')
+                        toast.error('Khẩu phần phải là số nguyên từ 1 đến 100.')
                         return
                       }
                       if (value !== item.targetServings) update(item, value)
@@ -197,6 +195,7 @@ export default function MenuPage() {
   const count = weekLists.reduce((sum, list) => sum + list.totalItems, 0)
   return (
     <div className="container mx-auto space-y-6 px-4 py-8">
+      <MenuConnectionNotice query={query} />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="mb-2 text-sm font-medium text-orange-500">

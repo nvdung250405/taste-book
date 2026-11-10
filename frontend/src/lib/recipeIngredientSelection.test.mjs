@@ -25,8 +25,8 @@ test('qualitative units clear old quantities and serialize zero for custom and s
   assert.equal(recipeIngredientPayload(qualitative).quantity, 0)
   const selected = changeRecipeIngredient(
     { name: '', quantity: '8', unit: '' },
-    'name',
-    'Muối',
+    'ingredientId',
+    3,
     [
       {
         ingredientId: 3,
@@ -48,8 +48,8 @@ test('qualitative units clear old quantities and serialize zero for custom and s
 test('choosing a standard ingredient preserves quantity and submits its identity and default unit', () => {
   const row = changeRecipeIngredient(
     { name: '', quantity: '250', unit: 'chén' },
-    'name',
-    'Thịt bò',
+    'ingredientId',
+    7,
     ingredients,
     units,
   )
@@ -63,8 +63,8 @@ test('choosing a standard ingredient preserves quantity and submits its identity
 test('editing a selected name clears its identity and supports standard or custom units', () => {
   const selected = changeRecipeIngredient(
     { quantity: '2', unit: '' },
-    'name',
-    'Thịt bò',
+    'ingredientId',
+    7,
     ingredients,
     units,
   )
@@ -103,4 +103,16 @@ test('ambiguous duplicate names never silently select an ingredient id', () => {
     units,
   )
   assert.equal(row.ingredientId, null)
+})
+
+test('typing a matching master name stays custom and can later be explicitly selected or detached', () => {
+  const custom = changeRecipeIngredient({ quantity: '2', unit: 'chén' }, 'name', 'Thịt bò', ingredients, units)
+  assert.equal(custom.ingredientId, null)
+  assert.deepEqual(recipeIngredientPayload(custom), { customIngredientName: 'Thịt bò', quantity: 2, customUnit: 'chén' })
+  const standard = changeRecipeIngredient(custom, 'ingredientId', 7, ingredients, units)
+  assert.deepEqual(recipeIngredientPayload(standard), { ingredientId: 7, quantity: 2 })
+  const detached = changeRecipeIngredient(standard, 'ingredientId', null, ingredients, units)
+  assert.equal(detached.name, standard.name)
+  assert.equal(detached.ingredientId, null)
+  assert.deepEqual(recipeIngredientPayload(detached), { customIngredientName: 'Thịt bò', quantity: 2, unitId: 2 })
 })

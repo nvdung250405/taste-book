@@ -24,8 +24,8 @@ export default function RecipeIngredientsForm({
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm text-slate-500">
-          Chọn gợi ý để dùng nguyên liệu chuẩn và tự điền đơn vị. Bạn vẫn có thể
-          nhập nguyên liệu riêng.
+          Nhập tên nguyên liệu riêng hoặc bấm “Dùng nguyên liệu chuẩn” bên dưới
+          ô tên để chọn nguyên liệu có sẵn và tự điền đơn vị.
         </p>
         {loading && (
           <p role="status" className="text-sm text-slate-500">
@@ -67,11 +67,17 @@ export default function RecipeIngredientsForm({
                   value={ing.name}
                   onChange={(e) => handleIngChange(idx, 'name', e.target.value)}
                 />
-                {ing.ingredientId && (
+                {ing.ingredientId ? (
                   <span className="text-xs text-emerald-700">
                     Nguyên liệu chuẩn
+                    <button type="button" onClick={() => handleIngChange(idx, 'ingredientId', null)} className="ml-2 underline">Dùng tự do</button>
                   </span>
-                )}
+                ) : <span className="text-xs text-slate-500">Tự nhập</span>}
+                {!ing.ingredientId && ingredients.filter(item => item.ingredientName.trim().toLocaleLowerCase('vi') === ing.name.trim().toLocaleLowerCase('vi')).map(item => (
+                  <button key={item.ingredientId} type="button" className="mt-1 block text-left text-xs text-emerald-700 underline" onClick={() => handleIngChange(idx, 'ingredientId', item.ingredientId)}>
+                    Dùng nguyên liệu chuẩn: {item.ingredientName} ({item.defaultUnit?.unitName || 'Chưa có đơn vị'})
+                  </button>
+                ))}
               </div>
               <div className="col-span-6 sm:col-span-3">
                 <Input

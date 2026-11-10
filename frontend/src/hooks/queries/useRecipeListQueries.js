@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import recipeListsApi from '../../api/recipeLists.api';
+import { isMissingMenu as isMissing } from '../../lib/menuErrors';
 
-const isMissing = error => error?.EC === 3 || error?.httpStatus === 404 || error?.response?.status === 404;
 const refreshMissing = (client, error, listId) => {
   if (!isMissing(error)) return;
   client.invalidateQueries({ queryKey: ['recipe-lists'] });
