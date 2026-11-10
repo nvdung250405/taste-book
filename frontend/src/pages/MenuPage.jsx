@@ -31,6 +31,7 @@ import {
   mealListName,
 } from '../lib/weeklyMenu'
 import { recipeThumbnail, handleRecipeImageError } from '../lib/recipeImages'
+import { validServings } from '../lib/menuLists'
 
 const format = (date) =>
   date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
@@ -125,7 +126,7 @@ function MealCell({ list, date, meal, onAdd }) {
                     key={item.targetServings}
                     type="number"
                     min="1"
-                    max="2147483647"
+                    max="100"
                     defaultValue={item.targetServings}
                     disabled={busy || item.isRecipeDeleted}
                     aria-label={`Khẩu phần ${item.title}`}
@@ -133,13 +134,9 @@ function MealCell({ list, date, meal, onAdd }) {
                     onBlur={(e) => {
                       if (item.isRecipeDeleted) return
                       const value = Number(e.target.value)
-                      if (
-                        !Number.isInteger(value) ||
-                        value < 1 ||
-                        value > 2147483647
-                      ) {
+                      if (!validServings(value)) {
                         e.target.value = item.targetServings
-                        toast.error('Khẩu phần phải là số nguyên dương')
+                        toast.error('Khẩu phần phải là số nguyên từ 1 đến 100.')
                         return
                       }
                       if (value !== item.targetServings) update(item, value)

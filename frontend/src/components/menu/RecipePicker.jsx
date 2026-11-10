@@ -16,6 +16,7 @@ import QueryError from '../ui/QueryError'
 import { useRecipes } from '../../hooks/queries/useRecipeQueries'
 import api from '../../api/recipeLists.api'
 import { MEALS, mealListName } from '../../lib/weeklyMenu'
+import { validServings } from '../../lib/menuLists'
 import { recipeThumbnail, handleRecipeImageError } from '../../lib/recipeImages'
 const format = (date) =>
   date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
@@ -44,8 +45,8 @@ export default function RecipePicker({ slot, onClose }) {
     (Array.isArray(query.data?.DT) ? query.data.DT : [])
   const add = async (recipe) => {
     if (busy) return
-    if (!Number.isInteger(servings) || servings < 1 || servings > 2147483647)
-      return toast.error('Khẩu phần phải là số nguyên dương')
+    if (!validServings(servings))
+      return toast.error('Khẩu phần phải là số nguyên từ 1 đến 100.')
     setBusy(true)
     let targetListId
     try {
@@ -119,6 +120,7 @@ export default function RecipePicker({ slot, onClose }) {
           <Input
             type="number"
             min="1"
+            max="100"
             value={servings}
             onChange={(e) => setServings(Number(e.target.value))}
             className="w-24"

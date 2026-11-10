@@ -41,7 +41,7 @@ export default function AddToMenuDialog({ recipeId, servings, onClose }) {
     if (sending.current) return
     setError('')
     if (!validServings(portion)) {
-      setError('Khẩu phần phải là số nguyên từ 1 đến 2147483647.')
+      setError('Khẩu phần phải là số nguyên từ 1 đến 100.')
       return
     }
     if (!query.isSuccess) {
@@ -193,7 +193,7 @@ export default function AddToMenuDialog({ recipeId, servings, onClose }) {
               <Input
                 type="number"
                 min="1"
-                max="2147483647"
+                max="100"
                 value={portion}
                 onChange={(event) => setPortion(event.target.value)}
               />
