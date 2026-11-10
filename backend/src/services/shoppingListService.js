@@ -648,16 +648,19 @@ const addShoppingListItem = async (userId, shoppingListId, rawData = {}) => {
       if (!Number.isFinite(cleanQuantity)) {
         return { EC: 1, EM: "Số lượng phải là số hữu hạn!", DT: null };
       }
-      if (cleanQuantity < 0 || (!isQualitative && cleanQuantity === 0)) {
+      if (cleanQuantity < 0) {
         return {
           EC: 1,
-          EM: "Số lượng phải lớn hơn 0; chỉ đơn vị định tính mới được dùng 0!",
+          EM: "Số lượng không được nhỏ hơn 0!",
           DT: null,
         };
       }
     }
 
-    cleanQuantity = roundQuantity(parseQuantity(cleanQuantity), isQualitative);
+    // Món phát sinh có thể dùng 0 để nhắc mua; số dương vẫn phải qua kiểm tra làm tròn.
+    if (cleanQuantity !== 0) {
+      cleanQuantity = roundQuantity(parseQuantity(cleanQuantity), isQualitative);
+    }
 
     const shoppingList = await db.ShoppingList.findByPk(sId);
     if (!shoppingList) {

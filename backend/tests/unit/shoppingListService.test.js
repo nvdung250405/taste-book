@@ -313,12 +313,22 @@ describe("Thêm mặt hàng tự do", () => {
     expect(result.DT).toMatchObject({ itemId: 50, itemName: "Xà phòng", unit: "chai", totalQuantity: 1.01, isPurchased: false });
     expect(db.ShoppingListItem.create.mock.calls[0][0].ingredientId).toBeNull();
   });
-  test.each([true, "1", [], {}, null, "", NaN, Infinity, -1, 0, 0.001, 100000000].map(value => [value]))("từ chối số lượng %p", async (totalQuantity) => {
+  test.each([true, "0", "1", [], {}, null, "", NaN, Infinity, -1, -0.001, 0.001, 100000000].map(value => [value]))("từ chối số lượng %p", async (totalQuantity) => {
     expect((await add({ totalQuantity })).EC).toBe(1);
     expect(db.ShoppingListItem.create).not.toHaveBeenCalled();
   });
   test("số lượng định lượng bắt buộc", async () => {
     expect((await add({ totalQuantity: undefined })).EC).toBe(1);
+  });
+  test("TC-18-80: lưu món phát sinh số lượng 0 với đơn vị định lượng", async () => {
+    const result = await add({ itemName: "Túi nilon", totalQuantity: 0, unit: "cái" });
+    expect(result).toMatchObject({ EC: 0, DT: {
+      itemId: 50, itemName: "Túi nilon", totalQuantity: 0, unit: "cái", isPurchased: false,
+    } });
+    expect(db.ShoppingListItem.create).toHaveBeenCalledWith({
+      shoppingListId: 5, ingredientId: null, itemName: "Túi nilon",
+      totalQuantity: 0, unit: "cái", isPurchased: false,
+    });
   });
   test.each(["itemName", "unit"])("%s phải là chuỗi không rỗng và tối đa 255 ký tự", async (field) => {
     for (const value of [undefined, null, true, 1, [], {}, "", " ", "a".repeat(256)]) {

@@ -155,11 +155,12 @@ const scaleRecipeIngredients = async (
       String(rawServings).trim() === "" ||
       isNaN(numServings) ||
       !Number.isInteger(numServings) ||
-      numServings <= 0
+      numServings <= 0 ||
+      numServings > 100
     ) {
       return {
         EC: 1,
-        EM: "Số khẩu phần ăn phải lớn hơn 0!",
+        EM: "Số khẩu phần ăn phải là số nguyên từ 1 đến 100!",
         DT: null,
       };
     }
