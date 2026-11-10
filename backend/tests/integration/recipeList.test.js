@@ -227,17 +227,28 @@ describe("Recipe Lists HTTP integration (mock DB only)", () => {
     ["post", "/1/items"],
     ["put", "/1/items/10"],
   ])("%s %s servings error response", (method, path) => {
-    test.each([undefined, null, true, "4", [4], {}, 0, -1, 1.5, 2147483648])("rejects %p with exact message", async (targetServings) => {
+    test.each([undefined, null, true, "4", [4], {}, 0, -1, 1.5, 100.5, 101, 999999999, 2147483648])("TC-07-10: rejects %p with exact message", async (targetServings) => {
       const body = method === "post" ? { recipeId: 2, targetServings } : { targetServings };
       const res = await send(method, path, body);
       expect(res.status).toBe(400);
       expect(res.body).toEqual({
         EC: 1,
-        EM: "Số khẩu phần ăn targetServings phải lớn hơn 0!",
+        EM: "Số khẩu phần ăn targetServings phải là số nguyên từ 1 đến 100!",
         DT: null,
       });
       expect(db.RecipeListItem.create).not.toHaveBeenCalled();
       expect(item.update).not.toHaveBeenCalled();
+    });
+    test.each([1, 50, 100])("TC-07-10: accepts servings %p", async (targetServings) => {
+      const body = method === "post" ? { recipeId: 2, targetServings } : { targetServings };
+      const res = await send(method, path, body);
+      expect(res.status).toBe(method === "post" ? 201 : 200);
+      expect(res.body.EC).toBe(0);
+      if (method === "post") {
+        expect(db.RecipeListItem.create).toHaveBeenCalledWith(expect.objectContaining({ targetServings }));
+      } else {
+        expect(item.update).toHaveBeenCalledWith({ targetServings });
+      }
     });
   });
   test.each([

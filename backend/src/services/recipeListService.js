@@ -513,10 +513,10 @@ const addRecipeToRecipeList = async (userId, listId, rawData = {}) => {
     }
 
     const servings = rawData?.targetServings;
-    if (!isPositiveInteger(servings)) {
+    if (!isPositiveInteger(servings) || servings > 100) {
       return {
         EC: 1,
-        EM: "Số khẩu phần ăn targetServings phải lớn hơn 0!",
+        EM: "Số khẩu phần ăn targetServings phải là số nguyên từ 1 đến 100!",
         DT: null,
       };
     }
@@ -650,10 +650,10 @@ const updateRecipeListItemServings = async (userId, listId, itemId, rawData = {}
     }
 
     const servings = rawData?.targetServings;
-    if (!isPositiveInteger(servings)) {
+    if (!isPositiveInteger(servings) || servings > 100) {
       return {
         EC: 1,
-        EM: "Số khẩu phần ăn targetServings phải lớn hơn 0!",
+        EM: "Số khẩu phần ăn targetServings phải là số nguyên từ 1 đến 100!",
         DT: null,
       };
     }

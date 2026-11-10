@@ -322,12 +322,37 @@ describe("Recipe API Integration Tests (Supertest)", () => {
   });
 
   describe("Recipe Scale Endpoint Validation (UC-07)", () => {
+    test.each(["servings", "targetServings"])("TC-07-10: API từ chối %s vượt 100", async field => {
+      const find = jest.spyOn(db.Recipe, "findOne");
+      for (const value of [101, 999999999]) {
+        const res = await request(app).get("/api/v1/recipes/101/scale").query({ [field]: value });
+        expect(res.status).toBe(400);
+        expect(res.body).toEqual({
+          EC: 1, EM: "Số khẩu phần ăn phải là số nguyên từ 1 đến 100!", DT: null,
+        });
+      }
+      expect(find).not.toHaveBeenCalled();
+    });
+
+    test.each([1, 50, 100])("TC-07-10: API tính nguyên liệu cho %i người", async servings => {
+      jest.spyOn(db.Recipe, "findOne").mockResolvedValue({
+        id: 101, defaultServings: 2, isPublic: true, approvalStatus: "Approved",
+        ingredients: [{ quantity: 300, customIngredientName: "Thịt bò", customUnit: "gam" }],
+      });
+      const res = await request(app).get("/api/v1/recipes/101/scale").query({ servings });
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ EC: 0, DT: {
+        targetServings: servings,
+        ingredients: [{ ingredientName: "Thịt bò", scaledQuantity: 300 * servings / 2, unit: "gam" }],
+      } });
+    });
+
     test("GET /api/v1/recipes/:id/scale - trả về 400 khi thiếu servings", async () => {
       const res = await request(app).get("/api/v1/recipes/101/scale");
 
       expect(res.status).toBe(400);
       expect(res.body.EC).toBe(1);
-      expect(res.body.EM).toBe("Số khẩu phần ăn phải lớn hơn 0!");
+      expect(res.body.EM).toBe("Số khẩu phần ăn phải là số nguyên từ 1 đến 100!");
     });
 
     test("GET /api/v1/recipes/:id/scale - trả về 400 khi servings âm hoặc bằng 0", async () => {
@@ -335,7 +360,7 @@ describe("Recipe API Integration Tests (Supertest)", () => {
 
       expect(res.status).toBe(400);
       expect(res.body.EC).toBe(1);
-      expect(res.body.EM).toBe("Số khẩu phần ăn phải lớn hơn 0!");
+      expect(res.body.EM).toBe("Số khẩu phần ăn phải là số nguyên từ 1 đến 100!");
     });
 
     test("GET /api/v1/recipes/:id/scale - trả về 400 khi servings là số thập phân", async () => {
@@ -343,7 +368,7 @@ describe("Recipe API Integration Tests (Supertest)", () => {
 
       expect(res.status).toBe(400);
       expect(res.body.EC).toBe(1);
-      expect(res.body.EM).toBe("Số khẩu phần ăn phải lớn hơn 0!");
+      expect(res.body.EM).toBe("Số khẩu phần ăn phải là số nguyên từ 1 đến 100!");
     });
   });
 

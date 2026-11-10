@@ -150,15 +150,15 @@ describe("RecipeListService (mock DB only)", () => {
     const invoke = (targetServings) => name === "addRecipeToRecipeList"
       ? service[name](1, "1", { recipeId: 2, targetServings })
       : service[name](1, "1", "10", { targetServings });
-    test.each([true, "4", [4], {}, null, undefined, 0, -1, 1.5, Infinity, NaN, 2147483648])("rejects %p", async (value) => {
+    test.each([true, "4", [4], {}, null, undefined, 0, -1, 1.5, 100.5, 101, 999999999, Infinity, NaN, 2147483647, 2147483648])("TC-07-10: rejects %p", async (value) => {
       expect(await invoke(value)).toEqual({
         EC: 1,
-        EM: "Số khẩu phần ăn targetServings phải lớn hơn 0!",
+        EM: "Số khẩu phần ăn targetServings phải là số nguyên từ 1 đến 100!",
         DT: null,
       });
       expect(db.RecipeList.findByPk).not.toHaveBeenCalled();
     });
-    test.each([1, 2147483647])("accepts boundary %p", async (value) => {
+    test.each([1, 50, 100])("TC-07-10: accepts servings %p", async (value) => {
       expect((await invoke(value)).EC).toBe(0);
     });
   });

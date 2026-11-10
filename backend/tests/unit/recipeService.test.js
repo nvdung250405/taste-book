@@ -128,6 +128,29 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
       ],
     };
 
+    test.each(["servings", "targetServings"])("TC-07-10: %s phải nằm trong khoảng 1 đến 100", async field => {
+      const find = jest.spyOn(db.Recipe, "findOne").mockResolvedValue(mockRecipe);
+      for (const value of [0, -1, 1.5, 100.5, 101, "101", 999999999, Infinity, "abc"]) {
+        expect(await recipeService.scaleRecipeIngredients(101, { [field]: value })).toEqual({
+          EC: 1, EM: "Số khẩu phần ăn phải là số nguyên từ 1 đến 100!", DT: null,
+        });
+      }
+      expect(find).not.toHaveBeenCalled();
+    });
+
+    test.each([1, 50, 100])("TC-07-10: tính đúng định lượng cho %i người", async servings => {
+      jest.spyOn(db.Recipe, "findOne").mockResolvedValue(mockRecipe);
+      const result = await recipeService.scaleRecipeIngredients(101, { servings });
+      expect(result).toMatchObject({ EC: 0, DT: {
+        targetServings: servings, scaleFactor: servings / 2,
+        ingredients: [
+          { ingredientName: "Thịt bò", scaledQuantity: 300 * servings / 2, unit: "gam" },
+          { ingredientName: "Muối", scaledQuantity: 0, unit: "vừa đủ" },
+          { ingredientName: "Tiêu", scaledQuantity: 0, unit: "tùy khẩu vị" },
+        ],
+      } });
+    });
+
     test("thành công: tính toán định lượng tỷ lệ thuận theo 4 người ăn (EC: 0, scaleFactor: 2)", async () => {
       jest.spyOn(db.Recipe, "findOne").mockResolvedValue(mockRecipe);
 
@@ -165,23 +188,23 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
     test("thất bại: số người ăn âm hoặc bằng 0 (EC: 1)", async () => {
       const res1 = await recipeService.scaleRecipeIngredients(101, { servings: 0 });
       expect(res1.EC).toBe(1);
-      expect(res1.EM).toContain("phải lớn hơn 0");
+      expect(res1.EM).toContain("phải là số nguyên từ 1 đến 100");
 
       const res2 = await recipeService.scaleRecipeIngredients(101, { servings: -3 });
       expect(res2.EC).toBe(1);
-      expect(res2.EM).toContain("phải lớn hơn 0");
+      expect(res2.EM).toContain("phải là số nguyên từ 1 đến 100");
     });
 
     test("thất bại: số người ăn là số thập phân không phải số nguyên (EC: 1)", async () => {
       const res = await recipeService.scaleRecipeIngredients(101, { servings: 2.5 });
       expect(res.EC).toBe(1);
-      expect(res.EM).toContain("phải lớn hơn 0");
+      expect(res.EM).toContain("phải là số nguyên từ 1 đến 100");
     });
 
     test("thất bại: số người ăn không phải là số (EC: 1)", async () => {
       const res = await recipeService.scaleRecipeIngredients(101, { servings: "abc" });
       expect(res.EC).toBe(1);
-      expect(res.EM).toContain("phải lớn hơn 0");
+      expect(res.EM).toContain("phải là số nguyên từ 1 đến 100");
     });
 
     test("thất bại: không tìm thấy công thức nấu ăn (EC: 3)", async () => {
