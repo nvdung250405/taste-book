@@ -21,7 +21,7 @@ import RecipeSearchFilters from '../components/recipe/RecipeSearchFilters'
 import { Card, CardContent } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { useRecipes } from '../hooks/queries/useRecipeQueries'
-import { useCategories } from '../hooks/queries/useCategoryQueries'
+import { usePublicCategories } from '../hooks/queries/useCategoryQueries'
 import {
   useFavoriteIds,
   useAddFavorite,
@@ -133,7 +133,7 @@ export default function RecipeSearchPage() {
     isError: categoriesError,
     isFetching: categoriesFetching,
     refetch: retryCategories,
-  } = useCategories()
+  } = usePublicCategories()
 
   // Favorites
   const hasToken = !!localStorage.getItem('token')

@@ -17,6 +17,11 @@ export const useCategories = (options = {}) => {
   });
 };
 
+// Discovery screens use system categories; personal forms keep useCategories.
+export const usePublicCategories = () => useCategories({
+  select: response => ({ ...response, DT: (response.DT || []).filter(category => category.createdBy === null) }),
+});
+
 export const useAdminCategories = (options = {}) => {
   return useQuery({
     queryKey: ['admin-categories'],

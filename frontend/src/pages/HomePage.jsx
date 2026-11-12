@@ -1,4 +1,4 @@
-import { useCategories } from '../hooks/queries/useCategoryQueries'
+import { usePublicCategories } from '../hooks/queries/useCategoryQueries'
 import { useHomeRecipes } from '../hooks/queries/useRecipeQueries'
 import HeroSection from '../components/home/HeroSection'
 import CategorySection from '../components/home/CategorySection'
@@ -6,7 +6,7 @@ import { LatestRecipesSection, TrendingRecipesSection } from '../components/home
 import QueryError from '../components/ui/QueryError'
 
 export default function HomePage() {
-  const categories = useCategories()
+  const categories = usePublicCategories()
   const home = useHomeRecipes()
   return <div className="flex flex-col gap-12 pb-16 -mt-8">
     <HeroSection />
