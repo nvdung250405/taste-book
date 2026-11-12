@@ -26,3 +26,34 @@ test('quick add resets fields and rapid submits create a single item', async () 
     await act(async () => finish({ DT: { itemId: 1, itemName: 'Milk', totalQuantity: 2, unit: 'box' } }))
   } finally { shoppingApi.addCustomItem = original; await app.close() }
 })
+
+test('quick add selects a master unit and merges its response without duplicating a custom row', async () => {
+  const originals = { ...shoppingApi }
+  let request
+  const items = [
+    { itemId: 2, ingredientId: 4, itemName: 'Milk', unit: 'lít', totalQuantity: 1, isPurchased: true },
+    { itemId: 3, ingredientId: null, itemName: 'Milk', unit: 'lít', totalQuantity: 3, isPurchased: false },
+  ]
+  const merged = { ...items[0], totalQuantity: 1.5, isPurchased: false, merged: true }
+  shoppingApi.addCustomItem = async (id, data) => { request = { id, data }; return { DT: merged } }
+  shoppingApi.getShoppingListDetail = async () => ({ DT: { items: [merged, items[1]] } })
+  const app = await mount(ShoppingListDetail, { list: { shoppingListId: 9 } }, [
+    [['ingredients', {}], { DT: [{ ingredientId: 4, ingredientName: 'Milk', defaultUnit: { unitName: 'lít' } }] }],
+    [['shopping-list', 9], { DT: { items } }],
+  ])
+  try {
+    const fields = () => app.view.root.findAllByType('input').filter(input => input.props.type !== 'checkbox')
+    await act(async () => fields()[0].props.onChange({ target: { value: 'Milk' } }))
+    await act(async () => app.view.root.findAllByType('button').find(button => text(button).startsWith('Dùng nguyên liệu chuẩn:')).props.onClick())
+    assert.equal(fields()[2].props.value, 'lít')
+    assert.equal(fields()[2].props.readOnly, true)
+    await act(async () => fields()[1].props.onChange({ target: { value: '0,5' } }))
+    await act(async () => app.view.root.findByType('form').props.onSubmit(event))
+    assert.deepEqual(request, { id: 9, data: { ingredientId: 4, totalQuantity: 0.5 } })
+    const cached = app.client.getQueryData(['shopping-list', 9]).DT.items
+    assert.equal(cached.length, 2)
+    assert.equal(cached.find(item => item.itemId === 2).totalQuantity, 1.5)
+    assert.equal(cached.find(item => item.itemId === 2).isPurchased, false)
+    assert.equal(cached.find(item => item.itemId === 3).totalQuantity, 3)
+  } finally { Object.assign(shoppingApi, originals); await app.close() }
+})
