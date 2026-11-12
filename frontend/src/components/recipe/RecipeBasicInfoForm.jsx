@@ -124,19 +124,6 @@ export default function RecipeBasicInfoForm({
               )}
             </div>
 
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <ImageIcon className="w-4 h-4 text-slate-500" />
-              </div>
-              <Input
-                aria-label="Đường dẫn ảnh món ăn"
-                name="thumbnail"
-                value={formData.thumbnail}
-                onChange={handleChange}
-                placeholder="Hoặc dán URL ảnh trực tiếp..."
-                className="pl-9 bg-transparent"
-              />
-            </div>
           </div>
 
           {/* Cột phải: Thông tin chi tiết */}
@@ -215,6 +202,12 @@ export default function RecipeBasicInfoForm({
                   value={formData.servings}
                   onChange={handleChange}
                   min="1"
+                  max="100"
+                  step="1"
+                  onInvalid={(event) => {
+                    event.preventDefault()
+                    toast.error('Khẩu phần phải là số nguyên từ 1 đến 100 người.')
+                  }}
                 />
               </div>
               <div className="sm:min-w-[200px]">
