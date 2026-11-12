@@ -7,6 +7,7 @@ import {
   RefreshCw,
   Search,
   XCircle,
+  X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '../../components/ui/button'
@@ -20,6 +21,8 @@ import {
   DialogTitle,
 } from '../../components/ui/dialog'
 import QueryError from '../../components/ui/QueryError'
+import ListPagination from '../../components/ui/ListPagination'
+import useListPagination from '../../hooks/useListPagination'
 import {
   usePendingRecipes,
   useModerateRecipe,
@@ -80,7 +83,7 @@ function ReviewDialog({ recipe, status, rejectInitially = false, onClose }) {
       }}
     >
       <DialogContent
-        className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl"
+        className="max-h-[85dvh] overflow-y-auto rounded-2xl sm:max-w-3xl"
         showCloseButton={!busy}
         onEscapeKeyDown={(e) => {
           if (busy) e.preventDefault()
@@ -265,22 +268,44 @@ export default function AdminApprovalsPage() {
       .toLocaleLowerCase('vi')
       .includes(keyword),
   )
+  const { page, totalPages, visibleItems, setPage } = useListPagination(
+    filtered,
+    `${status}:${keyword}`,
+    10,
+  )
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold">
-            <BookOpenCheck className="size-6 text-orange-500" />
+          <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-orange-700 dark:text-orange-400">
+            <BookOpenCheck className="h-4 w-4" />
+            Kiểm duyệt nội dung
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Kiểm duyệt công thức
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-500">
             Xem nội dung, duyệt và tuyển chọn công thức từ cộng đồng.
           </p>
         </div>
-        <Badge variant="secondary" className="px-3 py-2">
-          {recipes.length} · {statusLabels[status]}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="rounded-full px-3 py-1">
+            {recipes.length} · {statusLabels[status]}
+          </Badge>
+          <Button
+            variant="outline"
+            className="h-10 rounded-xl"
+            disabled={query.isFetching}
+            onClick={() => query.refetch()}
+            aria-label="Làm mới công thức kiểm duyệt"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${query.isFetching ? 'animate-spin' : ''}`}
+            />
+            Làm mới
+          </Button>
+        </div>
       </div>
       <div
         role="group"
@@ -303,25 +328,25 @@ export default function AdminApprovalsPage() {
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-0 flex-1">
-          <Search className="absolute top-3 left-3 size-4 text-slate-400" />
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
           <Input
             aria-label="Tìm công thức hoặc tác giả"
             placeholder="Tìm theo tên món hoặc tác giả…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="h-11 rounded-xl bg-white pl-9 pr-10 dark:bg-slate-950"
           />
+          {search && (
+            <button
+              type="button"
+              aria-label="Xóa tìm kiếm"
+              onClick={() => setSearch('')}
+              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
-        <Button
-          variant="outline"
-          disabled={query.isFetching}
-          onClick={() => query.refetch()}
-        >
-          <RefreshCw
-            className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`}
-          />
-          Làm mới
-        </Button>
       </div>
       <p role="status" className="text-sm text-slate-500">
         {query.isFetching
@@ -340,7 +365,7 @@ export default function AdminApprovalsPage() {
           Đang tải công thức…
         </div>
       ) : !filtered.length ? (
-        <div className="rounded-xl border border-dashed p-12 text-center">
+        <div className="rounded-2xl border border-dashed p-12 text-center">
           <CheckCircle className="mx-auto mb-3 size-10 text-green-500" />
           <h2 className="font-semibold">
             {recipes.length
@@ -355,107 +380,130 @@ export default function AdminApprovalsPage() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border bg-white dark:bg-slate-950">
-          <table className="w-full min-w-[650px] text-left text-sm">
-            <caption className="sr-only">
-              Danh sách công thức đang chờ kiểm duyệt
-            </caption>
-            <thead className="bg-slate-50 text-slate-500 dark:bg-slate-900">
-              <tr>
-                {[
-                  'Công thức',
-                  'Tác giả',
-                  'Ngày gửi',
-                  'Trạng thái',
-                  'Thao tác',
-                ].map((label) => (
-                  <th key={label} scope="col" className="p-4 font-medium">
-                    {label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((recipe) => (
-                <tr key={recipe.recipeId} className="border-t">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <img
-                        {...recipeImageProps(recipe.thumbnailUrl)}
-                        loading="lazy"
-                        onError={handleRecipeImageError}
-                        alt=""
-                        className="size-14 shrink-0 rounded-lg object-cover"
-                      />
-                      <div>
-                        <p className="max-w-72 break-words font-semibold">
-                          {recipe.title}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {recipe.cookTimeMinutes} phút ·{' '}
-                          {difficulty[recipe.difficulty] || recipe.difficulty}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4 break-words">
-                    {recipe.authorName || 'Ẩn danh'}
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    {recipe.createdAt
-                      ? new Date(recipe.createdAt).toLocaleDateString('vi-VN', {
-                          timeZone: 'Asia/Ho_Chi_Minh',
-                        })
-                      : '—'}
-                  </td>
-                  <td className="p-4">
-                    <Badge variant="secondary">{statusLabels[status]}</Badge>
-                    {status === 'rejected' && (
-                      <div className="mt-2 max-w-72 text-xs text-red-700">
-                        Lý do từ chối:{' '}
-                        {recipe.rejectionReason || 'Chưa có lý do'}
-                        <p>
-                          Ngày từ chối:{' '}
-                          {recipe.rejectedAt
-                            ? new Date(recipe.rejectedAt).toLocaleDateString(
-                                'vi-VN',
-                              )
-                            : 'Chưa có dữ liệu'}
-                        </p>
-                      </div>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setSelected(recipe)}
-                      title={`Xem và kiểm duyệt ${recipe.title}`}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[650px] text-left text-sm">
+              <caption className="sr-only">
+                Danh sách công thức · {statusLabels[status]}
+              </caption>
+              <thead className="border-b bg-slate-50 text-slate-500 dark:bg-slate-900">
+                <tr>
+                  {[
+                    'Công thức',
+                    'Tác giả',
+                    'Ngày gửi',
+                    'Trạng thái',
+                    'Thao tác',
+                  ].map((label) => (
+                    <th
+                      key={label}
+                      scope="col"
+                      className="px-4 py-3 font-medium"
                     >
-                      <Eye className="size-4" />
-                      {status === 'pending'
-                        ? 'Xem trước & Phê duyệt'
-                        : status === 'rejected'
-                          ? 'Duyệt lại'
-                          : 'Xem chi tiết'}
-                    </Button>
-                    {status !== 'rejected' && (
-                      <Button
-                        variant="destructive"
-                        className="ml-2"
-                        onClick={() =>
-                          setSelected({ ...recipe, rejectInitially: true })
-                        }
-                      >
-                        {status === 'approved'
-                          ? 'Hủy duyệt / Gỡ bài'
-                          : 'Từ chối'}
-                      </Button>
-                    )}
-                  </td>
+                      {label}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {visibleItems.map((recipe) => (
+                  <tr
+                    key={recipe.recipeId}
+                    className="hover:bg-orange-50/50 dark:hover:bg-orange-950/20"
+                  >
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <img
+                          {...recipeImageProps(recipe.thumbnailUrl)}
+                          loading="lazy"
+                          onError={handleRecipeImageError}
+                          alt=""
+                          className="size-14 shrink-0 rounded-lg object-cover"
+                        />
+                        <div>
+                          <p className="max-w-72 break-words font-semibold">
+                            {recipe.title}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {recipe.cookTimeMinutes} phút ·{' '}
+                            {difficulty[recipe.difficulty] || recipe.difficulty}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4 break-words">
+                      {recipe.authorName || 'Ẩn danh'}
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      {recipe.createdAt
+                        ? new Date(recipe.createdAt).toLocaleDateString(
+                            'vi-VN',
+                            {
+                              timeZone: 'Asia/Ho_Chi_Minh',
+                            },
+                          )
+                        : '—'}
+                    </td>
+                    <td className="p-4">
+                      <Badge variant="secondary">{statusLabels[status]}</Badge>
+                      {status === 'rejected' && (
+                        <div className="mt-2 max-w-72 text-xs text-red-700">
+                          Lý do từ chối:{' '}
+                          {recipe.rejectionReason || 'Chưa có lý do'}
+                          <p>
+                            Ngày từ chối:{' '}
+                            {recipe.rejectedAt
+                              ? new Date(recipe.rejectedAt).toLocaleDateString(
+                                  'vi-VN',
+                                )
+                              : 'Chưa có dữ liệu'}
+                          </p>
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => setSelected(recipe)}
+                        title={`Xem và kiểm duyệt ${recipe.title}`}
+                      >
+                        <Eye className="size-4" />
+                        {status === 'pending'
+                          ? 'Xem trước & Phê duyệt'
+                          : status === 'rejected'
+                            ? 'Duyệt lại'
+                            : 'Xem chi tiết'}
+                      </Button>
+                      {status !== 'rejected' && (
+                        <Button
+                          variant="destructive"
+                          className="ml-2"
+                          onClick={() =>
+                            setSelected({ ...recipe, rejectInitially: true })
+                          }
+                        >
+                          {status === 'approved'
+                            ? 'Hủy duyệt / Gỡ bài'
+                            : 'Từ chối'}
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t p-4 [&_nav]:mt-0">
+            <p aria-live="polite" className="text-sm text-slate-500">
+              {(page - 1) * 10 + 1}–{Math.min(page * 10, filtered.length)} /{' '}
+              {filtered.length} công thức
+            </p>
+            <ListPagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
         </div>
       )}
       {selected && (
