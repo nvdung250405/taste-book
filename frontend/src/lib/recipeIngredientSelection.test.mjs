@@ -13,6 +13,11 @@ const ingredients = [
   },
 ]
 const units = [{ unitId: 2, unitName: 'gram' }]
+
+test('Vietnamese decimal quantities serialize to numeric API values', () => {
+  assert.equal(recipeIngredientPayload({ name: 'Sữa', quantity: '1,5', unit: 'lít' }).quantity, 1.5)
+  assert.equal(recipeIngredientPayload({ ingredientId: 7, quantity: '2.25', unit: 'gram' }).quantity, 2.25)
+})
 test('qualitative units clear old quantities and serialize zero for custom and standard ingredients', () => {
   const qualitative = changeRecipeIngredient(
     { name: 'Muối', quantity: '12', unit: 'gram' },

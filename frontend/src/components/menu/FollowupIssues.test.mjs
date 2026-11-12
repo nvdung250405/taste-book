@@ -81,7 +81,7 @@ test('public checkbox updates visibility without an extra confirmation popup', a
   } finally { await app.close() }
 })
 
-test('master ingredient selection is explicit and detaching unlocks the unit without changing its name', async () => {
+for (const method of ['click', 'keyboard']) test(`master ingredient selection via ${method} fills its unit and detaching unlocks it`, async () => {
   const Form = (await server.ssrLoadModule('/src/components/recipe/RecipeIngredientsForm.jsx')).default
   const { changeRecipeIngredient } = await server.ssrLoadModule('/src/lib/recipeIngredientSelection.js')
   const ingredients = [{ ingredientId: 1, ingredientName: 'Milk', defaultUnit: { unitId: 2, unitName: 'ml' } }]
@@ -99,7 +99,23 @@ test('master ingredient selection is explicit and detaching unlocks the unit wit
     await act(async () => input('Tên nguyên liệu 1').props.onChange({ target: { value: 'Milk' } }))
     assert.equal(input('Đơn vị nguyên liệu 1').props.disabled, false)
     assert.equal(input('Đơn vị nguyên liệu 1').props.value, 'box')
-    await act(async () => app.view.root.findAllByType('button').find(b => text(b).startsWith('Dùng nguyên liệu chuẩn:')).props.onClick())
+    const quantity = () => input('Số lượng nguyên liệu 1')
+    assert.equal(quantity().props.inputMode, 'decimal')
+    for (const value of ['abc', '-2', '1e3', '1.2.3', '12kg']) {
+      await act(async () => quantity().props.onChange({ target: { value } }))
+      assert.equal(quantity().props.value, '2')
+    }
+    for (const value of ['1,5', '2.25', '']) {
+      await act(async () => quantity().props.onChange({ target: { value } }))
+      assert.equal(quantity().props.value, value)
+    }
+    if (method === 'click') {
+      await act(async () => app.view.root.findAllByType('button').find(b => text(b).startsWith('Dùng nguyên liệu chuẩn:')).props.onClick())
+    } else {
+      await act(async () => input('Tên nguyên liệu 1').props.onKeyDown({ key: 'ArrowDown', preventDefault() {} }))
+      await act(async () => input('Tên nguyên liệu 1').props.onKeyDown({ key: 'Enter', preventDefault() {} }))
+    }
+    assert.equal(input('Tên nguyên liệu 1').props['aria-expanded'], false)
     assert.equal(input('Đơn vị nguyên liệu 1').props.disabled, true)
     assert.equal(input('Đơn vị nguyên liệu 1').props.value, 'ml')
     await act(async () => app.view.root.findAllByType('button').find(b => text(b) === 'Dùng tự do').props.onClick())
