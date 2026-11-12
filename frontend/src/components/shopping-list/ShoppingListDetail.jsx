@@ -149,7 +149,9 @@ export default function ShoppingListDetail({ list }) {
           : 'Đã thêm nguyên liệu',
       )
     } catch (error) {
-      errorToast(error)
+      if (ingredientId && error?.EC === 1 && /Tên món phát sinh/.test(error?.EM || '')) {
+        toast.error('Chức năng thêm nguyên liệu chuẩn chưa sẵn sàng. Vui lòng thử lại sau.')
+      } else errorToast(error)
     } finally {
       addingRef.current = false
       setAdding(false)

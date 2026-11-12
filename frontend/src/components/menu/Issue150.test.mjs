@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { act, event, mount, shoppingApi, ShoppingListDetail, text } from './menuTestHarness.mjs'
+import { act, event, mount, shoppingApi, ShoppingListDetail, text, toast } from './menuTestHarness.mjs'
 
 test('quick add resets fields and rapid submits create a single item', async () => {
   const original = shoppingApi.addCustomItem
@@ -56,4 +56,31 @@ test('quick add selects a master unit and merges its response without duplicatin
     assert.equal(cached.find(item => item.itemId === 2).isPurchased, false)
     assert.equal(cached.find(item => item.itemId === 3).totalQuantity, 3)
   } finally { Object.assign(shoppingApi, originals); await app.close() }
+})
+
+test('an older API leaves the master selection intact and never reports a successful addition', async () => {
+  const original = { ...shoppingApi }
+  const originalError = toast.error, originalSuccess = toast.success
+  let error, success = false
+  toast.error = value => { error = value }
+  toast.success = () => { success = true }
+  shoppingApi.addCustomItem = async () => { throw { EC: 1, EM: 'Tên món phát sinh phải là chuỗi!' } }
+  shoppingApi.getShoppingListDetail = async () => ({ DT: { items: [] } })
+  const app = await mount(ShoppingListDetail, { list: { shoppingListId: 9 } }, [
+    [['ingredients', {}], { DT: [{ ingredientId: 4, ingredientName: 'Milk', defaultUnit: { unitName: 'lít' } }] }],
+    [['shopping-list', 9], { DT: { items: [] } }],
+  ])
+  try {
+    await act(async () => app.view.root.findAllByType('input')[0].props.onChange({ target: { value: 'Milk' } }))
+    await act(async () => app.view.root.findAllByType('button').find(button => text(button).startsWith('Dùng nguyên liệu chuẩn:')).props.onClick())
+    await act(async () => app.view.root.findByType('form').props.onSubmit(event))
+    assert.equal(success, false)
+    assert.equal(error, 'Chức năng thêm nguyên liệu chuẩn chưa sẵn sàng. Vui lòng thử lại sau.')
+    assert.equal(app.view.root.findAllByType('input')[0].props.value, 'Milk')
+    assert.equal(app.client.getQueryData(['shopping-list', 9]).DT.items.length, 0)
+  } finally {
+    Object.assign(shoppingApi, original)
+    toast.error = originalError; toast.success = originalSuccess
+    await app.close()
+  }
 })

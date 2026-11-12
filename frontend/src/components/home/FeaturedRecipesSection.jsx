@@ -1,4 +1,6 @@
 import { recipeImageProps, handleRecipeImageError } from '../../lib/recipeImages'
+import { publicRecipeCategories } from '../../lib/categoryVisibility'
+import { usePublicCategories } from '../../hooks/queries/useCategoryQueries'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
@@ -58,6 +60,7 @@ const DIFFICULTY_MAP = {
 }
 
 function RecipeCard({ recipe, rank }) {
+  const categories = usePublicCategories()
   const hasToken = !!localStorage.getItem('token')
   const recipeId = recipe.recipeId || recipe.id || recipe._id
   const { data: favoriteIds, isPending: favoritesPending, isError: favoritesError } = useFavoriteIds([recipeId])
@@ -110,7 +113,7 @@ function RecipeCard({ recipe, rank }) {
           />
           {/* Tags (Categories) */}
           <div className="absolute top-4 left-4 flex gap-2">
-            {(recipe.categories || recipe.tags || []).slice(0, 2).map((cat, idx) => (
+            {publicRecipeCategories(recipe, categories.data?.DT).slice(0, 2).map((cat, idx) => (
               <Badge
                 key={cat.categoryId || cat.id || cat._id || idx}
                 className="bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm border-none text-xs"
