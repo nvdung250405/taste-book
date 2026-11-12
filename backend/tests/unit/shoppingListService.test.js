@@ -2,7 +2,9 @@ import service from "../../src/services/shoppingListService";
 import db from "../../src/models/index";
 
 jest.mock("../../src/models/index", () => ({
-  sequelize: { transaction: jest.fn() },
+  sequelize: { transaction: jest.fn(), query: jest.fn() },
+  Ingredient: { findByPk: jest.fn() },
+  Unit: {},
   RecipeList: { findAll: jest.fn() },
   ShoppingList: { create: jest.fn(), findAll: jest.fn(), findOne: jest.fn(), findByPk: jest.fn() },
   ShoppingListRecipeList: { bulkCreate: jest.fn() },
@@ -28,6 +30,8 @@ beforeEach(() => {
   jest.spyOn(console, "error").mockImplementation(() => {});
   transaction = { commit: jest.fn().mockResolvedValue(), rollback: jest.fn().mockResolvedValue() };
   db.sequelize.transaction.mockResolvedValue(transaction);
+  db.sequelize.query.mockResolvedValue([[], {}]);
+  db.Ingredient.findByPk.mockResolvedValue({ id: 4, ingredientName: "Sữa", defaultUnit: { id: 2, unitName: "lít" } });
   db.RecipeList.findAll.mockResolvedValue([menu()]);
   db.ShoppingList.create.mockImplementation(async (data) => ({ id: 5, ...data }));
   db.ShoppingListRecipeList.bulkCreate.mockResolvedValue([]);
@@ -291,7 +295,7 @@ describe("Thêm mặt hàng tự do", () => {
     });
     expect(db.ShoppingListItem.create).not.toHaveBeenCalled();
     expect(db.ShoppingListItem.findAll).toHaveBeenCalledWith({
-      where: { shoppingListId: 5 }, attributes: ["itemName", "unit"],
+      where: { shoppingListId: 5, ingredientId: null }, attributes: ["itemName", "unit"], transaction,
     });
   });
   test.each([
@@ -328,7 +332,7 @@ describe("Thêm mặt hàng tự do", () => {
     expect(db.ShoppingListItem.create).toHaveBeenCalledWith({
       shoppingListId: 5, ingredientId: null, itemName: "Túi nilon",
       totalQuantity: 0, unit: "cái", isPurchased: false,
-    });
+    }, { transaction });
   });
   test.each(["itemName", "unit"])("%s phải là chuỗi không rỗng và tối đa 255 ký tự", async (field) => {
     for (const value of [undefined, null, true, 1, [], {}, "", " ", "a".repeat(256)]) {
@@ -352,6 +356,141 @@ describe("Thêm mặt hàng tự do", () => {
   test("danh sách không tồn tại", async () => {
     db.ShoppingList.findByPk.mockResolvedValue(null);
     expect((await add()).EC).toBe(3);
+  });
+});
+
+describe("Thêm nguyên liệu chuẩn", () => {
+  const addMaster = (data = {}) => service.addShoppingListItem(10, 5, { ingredientId: 4, totalQuantity: 1.5, ...data });
+
+  test("lấy tên/đơn vị từ server, trả đủ DTO frontend và khóa trước khi đọc mục", async () => {
+    expect(await addMaster({ itemName: "Giả", unit: "kg" })).toMatchObject({ EC: 0, DT: {
+      itemId: 50, ingredientId: 4, itemName: "Sữa", unit: "lít", totalQuantity: 1.5, isPurchased: false, merged: false,
+    } });
+    expect(db.sequelize.transaction).toHaveBeenCalledWith({ isolationLevel: "READ COMMITTED" });
+    expect(db.sequelize.query).toHaveBeenCalledWith("SELECT pg_advisory_xact_lock(2102223)", { transaction });
+    expect(db.ShoppingList.findByPk).toHaveBeenCalledWith(5, { transaction, lock: "UPDATE" });
+    expect(db.ShoppingListItem.findOne).toHaveBeenCalledWith({
+      where: { shoppingListId: 5, ingredientId: 4, unit: "lít" }, transaction, lock: "UPDATE",
+    });
+    expect(db.ShoppingList.findByPk.mock.invocationCallOrder[0]).toBeLessThan(db.ShoppingListItem.findOne.mock.invocationCallOrder[0]);
+    expect(transaction.commit).toHaveBeenCalledTimes(1);
+    expect(transaction.rollback).not.toHaveBeenCalled();
+  });
+
+  test("cộng vào đúng itemId, trả tổng mới và chuyển mục đã mua về chưa mua", async () => {
+    const item = { id: 12, ingredientId: 4, itemName: "Sữa", unit: "lít", totalQuantity: "1.50", isPurchased: true };
+    item.update = jest.fn(async data => Object.assign(item, data));
+    db.ShoppingListItem.findOne.mockResolvedValue(item);
+    expect(await addMaster()).toMatchObject({ EC: 0, DT: {
+      itemId: 12, ingredientId: 4, totalQuantity: 3, isPurchased: false, merged: true,
+    } });
+    expect(item.update).toHaveBeenCalledWith({ totalQuantity: 3, isPurchased: false }, { transaction });
+    expect(db.ShoppingListItem.create).not.toHaveBeenCalled();
+  });
+
+  test("không gộp với nguyên liệu tự nhập hoặc đơn vị khác", async () => {
+    db.ShoppingListItem.findOne.mockImplementation(async ({ where }) =>
+      where.ingredientId === null || where.unit === "kg" ? { id: 99 } : null);
+    expect((await addMaster()).DT).toMatchObject({ itemId: 50, merged: false });
+  });
+
+  test("nhiều lần thêm đồng thời được tuần tự hóa qua khóa danh sách, không tạo trùng/mất lượng", async () => {
+    // Simulate the parent row lock, including the initially empty list.
+    let tail = Promise.resolve();
+    const rows = [];
+    db.sequelize.transaction.mockImplementation(async () => {
+      const tx = {
+        commit: jest.fn(async () => tx.release?.()),
+        rollback: jest.fn(async () => tx.release?.()),
+      };
+      return tx;
+    });
+    db.ShoppingList.findByPk.mockImplementation(async (_, { transaction: tx, lock }) => {
+      if (lock === "UPDATE") {
+        const previous = tail;
+        tail = new Promise(resolve => { tx.release = resolve; });
+        await previous;
+      }
+      return { id: 5, userId: 10 };
+    });
+    db.ShoppingListItem.findOne.mockImplementation(async () => rows[0] || null);
+    db.ShoppingListItem.create.mockImplementation(async data => {
+      const row = { id: 50 + rows.length, ...data };
+      row.update = jest.fn(async changes => Object.assign(row, changes));
+      rows.push(row);
+      return row;
+    });
+    const responses = await Promise.all([1, 1.5, 0.1].map(totalQuantity => addMaster({ totalQuantity })));
+    expect(responses.every(response => response.EC === 0)).toBe(true);
+    expect(responses.filter(response => response.DT.merged)).toHaveLength(2);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].totalQuantity).toBe(2.6);
+  });
+
+  test("cộng nguyên liệu định tính vẫn lưu 0", async () => {
+    const row = { id: 12, ingredientId: 4, itemName: "Muối", unit: "vừa đủ", totalQuantity: "0.00", isPurchased: true };
+    row.update = jest.fn(async changes => Object.assign(row, changes));
+    db.Ingredient.findByPk.mockResolvedValue({ ingredientName: "Muối", defaultUnit: { unitName: "vừa đủ" } });
+    db.ShoppingListItem.findOne.mockResolvedValue(row);
+    expect((await addMaster({ totalQuantity: undefined })).DT).toMatchObject({ totalQuantity: 0, merged: true, isPurchased: false });
+  });
+
+  test("lỗi ghi khi cộng dồn phải rollback", async () => {
+    db.ShoppingListItem.findOne.mockResolvedValue({ totalQuantity: "1.50", update: jest.fn().mockRejectedValue(new Error("write failed")) });
+    expect((await addMaster()).EC).toBe(-1);
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).not.toHaveBeenCalled();
+  });
+
+  test.each([undefined, 0, 2])("đơn vị định tính bỏ số lượng hoặc gửi %p luôn lưu 0", async totalQuantity => {
+    db.Ingredient.findByPk.mockResolvedValue({ ingredientName: "Muối", defaultUnit: { unitName: "vừa đủ" } });
+    expect((await addMaster({ totalQuantity })).DT).toMatchObject({ totalQuantity: 0 });
+  });
+
+  test.each([undefined, null, true, "1", -1, Infinity, 0.001, 100000000])("số lượng định lượng không hợp lệ %p", async totalQuantity => {
+    expect((await addMaster({ totalQuantity })).EC).toBe(1);
+    expect(db.ShoppingListItem.create).not.toHaveBeenCalled();
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([true, false, [], {}, 0, -1, 1.5, "1e2", "4.0", 2147483648])("ingredientId không hợp lệ %p", async ingredientId => {
+    expect((await addMaster({ ingredientId })).EC).toBe(1);
+    expect(db.sequelize.transaction).not.toHaveBeenCalled();
+  });
+
+  test.each([[null, 3], [{ ingredientName: "Sữa", defaultUnit: null }, 1]])("thiếu nguyên liệu hoặc đơn vị: %p", async (ingredient, EC) => {
+    db.Ingredient.findByPk.mockResolvedValue(ingredient);
+    expect((await addMaster()).EC).toBe(EC);
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+    expect(db.ShoppingListItem.create).not.toHaveBeenCalled();
+  });
+
+  test("cộng vượt sức chứa database bị từ chối và rollback", async () => {
+    const update = jest.fn();
+    db.ShoppingListItem.findOne.mockResolvedValue({ totalQuantity: "99999999.99", update });
+    expect((await addMaster()).EC).toBe(1);
+    expect(update).not.toHaveBeenCalled();
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+  });
+
+  test.each(["read", "create", "commit"])("rollback khi %s thất bại", async step => {
+    const operation = step === "read" ? db.Ingredient.findByPk : step === "create" ? db.ShoppingListItem.create : transaction.commit;
+    operation.mockRejectedValue(new Error("database failure"));
+    expect((await addMaster()).EC).toBe(-1);
+    expect(transaction.rollback).toHaveBeenCalledTimes(1);
+  });
+
+  test("lỗi rollback vẫn trả envelope lỗi", async () => {
+    db.ShoppingListItem.create.mockRejectedValue(new Error("write failed"));
+    transaction.rollback.mockRejectedValue(new Error("rollback failed"));
+    expect((await addMaster()).EC).toBe(-1);
+  });
+
+  test("không cho thêm khi thiếu xác thực hoặc danh sách thuộc người khác", async () => {
+    expect((await service.addShoppingListItem(null, 5, { ingredientId: 4 })).EC).toBe(5);
+    db.ShoppingList.findByPk.mockResolvedValue({ userId: 20 });
+    expect((await addMaster()).EC).toBe(4);
+    expect(db.Ingredient.findByPk).not.toHaveBeenCalled();
   });
 });
 

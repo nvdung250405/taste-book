@@ -33,6 +33,8 @@ const getHomeData = async (query = {}) => {
         as: "categories",
         attributes: ["id", "categoryName"],
         through: { attributes: [] },
+        where: { createdBy: null },
+        required: false,
       },
     ];
 

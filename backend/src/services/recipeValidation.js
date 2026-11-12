@@ -1,6 +1,17 @@
 import db from "../models/index";
 import { Op } from "sequelize";
 import { isQualitativeUnit, normalizeIngredientQuantity, lockMasterData } from "./unitService";
+import { COMMUNITY_CATEGORY_NAME } from "./recipeCategoryService";
+
+// This system category is assigned by moderation, never by a recipe form.
+const recipeCategoriesError = (categories) => categories.some(category =>
+  category.createdBy === null &&
+  category.categoryName?.normalize("NFC").trim().toLowerCase() === COMMUNITY_CATEGORY_NAME.toLowerCase()
+) ? {
+  EC: 1,
+  EM: 'Không được tự chọn danh mục "Đóng góp của cộng đồng". Hệ thống sẽ tự gắn khi công thức được admin phê duyệt!',
+  DT: null,
+} : null;
 
 // Kiểm tra trước giao dịch chỉ giúp báo lỗi sớm. Kiểm tra lại sau khi lấy khóa
 // dùng chung để tránh ghi tham chiếu vừa bị xóa hoặc đổi đơn vị mặc định đồng thời.
@@ -12,6 +23,8 @@ const validateLockedReferences = async (transaction, categoryIds, ingredients) =
   if (categories.length !== categoryIds.length) {
     return { EC: 1, EM: "Danh mục đã thay đổi hoặc không còn tồn tại!", DT: null };
   }
+  const categoryError = recipeCategoriesError(categories);
+  if (categoryError) return categoryError;
   for (const [index, item] of ingredients.entries()) {
     if (item.ingredientId) {
       const ingredient = await db.Ingredient.findByPk(item.ingredientId, { transaction });
@@ -118,4 +131,4 @@ const hasVietnameseAccents = (str) => {
   );
 };
 
-export { validateLockedReferences, isPositiveInteger, systemIngredientUnitError, cookingStepsError, ingredientQuantityError, hasVietnameseAccents };
+export { validateLockedReferences, recipeCategoriesError, isPositiveInteger, systemIngredientUnitError, cookingStepsError, ingredientQuantityError, hasVietnameseAccents };

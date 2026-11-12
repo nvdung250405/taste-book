@@ -16,6 +16,7 @@ beforeEach(async () => {
 
 describe("UC-06: tìm kiếm công thức tại database (#72)", () => {
   test.each(["keyword", "search"])("GET nhận %s và bộ lọc kết hợp, giữ response phân trang", async (name) => {
+    jest.spyOn(db.Category, "findOne").mockResolvedValue({ id: 2, createdBy: null });
     const ingredientLookup = jest.spyOn(db.RecipeIngredient, "findAll").mockResolvedValue([]);
     const categoryLookup = jest.spyOn(db.RecipeCategory, "findAll").mockResolvedValue([]);
     const find = jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({
@@ -43,6 +44,44 @@ describe("UC-06: tìm kiếm công thức tại database (#72)", () => {
     expect(response.status).toBe(400);
     expect(response.body.EC).toBe(1);
     expect(find).not.toHaveBeenCalled();
+  });
+
+  test("không cho lọc theo ID danh mục cá nhân hoặc không tồn tại", async () => {
+    const lookup = jest.spyOn(db.Category, "findOne").mockResolvedValue(null);
+    const find = jest.spyOn(db.Recipe, "findAndCountAll");
+    const response = await request(app).get("/api/v1/recipes?categoryId=123");
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ EC: 1, EM: "Chỉ được lọc theo danh mục hệ thống!" });
+    expect(lookup).toHaveBeenCalledWith({ where: { id: 123, createdBy: null } });
+    expect(find).not.toHaveBeenCalled();
+  });
+
+  test("tìm kiếm chỉ join danh mục hệ thống, giữ món không có danh mục công khai và phân trang", async () => {
+    const find = jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({
+      count: 1, rows: [{ id: 101, title: "Canh nấm", categories: [] }],
+    });
+    const response = await request(app).get("/api/v1/recipes");
+    expect(response.status).toBe(200);
+    expect(response.body.DT).toMatchObject({ total: 1, totalPages: 1, recipes: [{ recipeId: 101, categories: [] }] });
+    expect(find.mock.calls[0][0].include).toEqual(expect.arrayContaining([
+      expect.objectContaining({ as: "categories", where: { createdBy: null }, required: false }),
+    ]));
+  });
+
+  test("trang chủ chỉ join danh mục hệ thống cho cả món mới và thịnh hành", async () => {
+    const recipe = { id: 101, title: "Canh nấm", categories: [], get: () => "3" };
+    const find = jest.spyOn(db.Recipe, "findAll").mockResolvedValue([recipe]);
+    const response = await request(app).get("/api/v1/home");
+    expect(response.status).toBe(200);
+    for (const name of ["latestRecipes", "trendingRecipes"]) {
+      expect(response.body.DT[name]).toEqual([expect.objectContaining({ recipeId: 101, categories: [] })]);
+    }
+    expect(find).toHaveBeenCalledTimes(2);
+    for (const [options] of find.mock.calls) {
+      expect(options.include).toEqual(expect.arrayContaining([
+        expect.objectContaining({ as: "categories", where: { createdBy: null }, required: false }),
+      ]));
+    }
   });
 });
 
@@ -254,6 +293,9 @@ describe("UC-19/20: quyền Admin và kiểm duyệt công thức", () => {
     expect((await request(app).get("/api/v1/recipes")).body.DT.recipes).toHaveLength(1);
     expect(categoryLinks.size).toBe(1);
     expect(db.RecipeCategory.findOrCreate).toHaveBeenCalledTimes(2);
+    expect(db.Category.findOne).toHaveBeenCalledWith({
+      where: { categoryName: "Đóng góp của cộng đồng", createdBy: null }, transaction,
+    });
     expect(recipe.update).toHaveBeenCalledTimes(3);
     expect(transaction.commit).toHaveBeenCalledTimes(3);
   });
@@ -388,6 +430,19 @@ describe("Recipe API Integration Tests (Supertest)", () => {
         { stepNumber: 1, instruction: "Làm sạch cá" },
       ],
     };
+
+    test.each([false, true])("không cho tự gắn danh mục cộng đồng dù isPublic=%p", async isPublic => {
+      jest.spyOn(db.Category, "findAll").mockResolvedValue([
+        { id: 1, categoryName: "Đóng góp của cộng đồng", createdBy: null },
+      ]);
+      const create = jest.spyOn(db.Recipe, "create");
+      const response = await request(app).post("/api/v1/recipes")
+        .set("Authorization", `Bearer ${userToken}`).send({ ...validRecipe, isPublic });
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({ EC: 1, DT: null, EM: expect.stringContaining("Không được tự chọn") });
+      expect(create).not.toHaveBeenCalled();
+      expect(db.sequelize.transaction).not.toHaveBeenCalled();
+    });
 
     test.each([{ unitId: 2 }, { customUnit: "kg" }, { unitId: 1, customUnit: "g" }])(
       "TC-08-25: trả HTTP 400 khi nguyên liệu hệ thống đổi đơn vị %j", async (unit) => {

@@ -92,6 +92,45 @@ describe.each(["createRecipe", "updateRecipe", "adminCreateRecipe", "adminUpdate
       expect(db.sequelize.query.mock.invocationCallOrder[0]).toBeLessThan(db.RecipeIngredient.bulkCreate.mock.invocationCallOrder[0]);
       expect(transaction.commit).toHaveBeenCalledTimes(1);
     });
+
+    test.each([0, 101, 1000, 1.5, null, true])("từ chối khẩu phần mặc định %p trước khi ghi", async defaultServings => {
+      data.defaultServings = defaultServings;
+      expect(await invoke()).toMatchObject({ EC: 1, EM: "Khẩu phần mặc định phải là số nguyên từ 1 đến 100!", DT: null });
+      expect(db.Recipe.create).not.toHaveBeenCalled();
+      expect(db.RecipeIngredient.bulkCreate).not.toHaveBeenCalled();
+    });
+
+    test.each([1, 100])("nhận khẩu phần mặc định tại biên %i", async defaultServings => {
+      data.defaultServings = defaultServings;
+      expect((await invoke()).EC).toBe(0);
+      expect(transaction.commit).toHaveBeenCalledTimes(1);
+    });
+
+    test.each(["categories", "categoryIds"])("chặn chọn thủ công danh mục cộng đồng qua %s", async field => {
+      delete data.categories;
+      data[field] = [1];
+      jest.spyOn(db.Category, "findAll").mockResolvedValue([
+        { id: 1, categoryName: "Đóng góp của cộng đồng", createdBy: null },
+      ]);
+      expect(await invoke()).toMatchObject({ EC: 1, DT: null, EM: expect.stringContaining("Không được tự chọn") });
+      expect(db.sequelize.transaction).not.toHaveBeenCalled();
+      expect(db.Recipe.create).not.toHaveBeenCalled();
+      expect(db.RecipeCategory.bulkCreate).not.toHaveBeenCalled();
+    });
+
+    test("kiểm tra lại danh mục sau khi lấy khóa, không lách bằng đổi tên đồng thời", async () => {
+      db.Category.findAll.mockResolvedValueOnce([{ id: 1, categoryName: "Món canh", createdBy: null }])
+        .mockResolvedValue([{ id: 1, categoryName: "Đóng góp của cộng đồng", createdBy: null }]);
+      expect((await invoke()).EC).toBe(1);
+      expect(transaction.rollback).toHaveBeenCalledTimes(1);
+      expect(db.RecipeCategory.bulkCreate).not.toHaveBeenCalled();
+      expect(db.RecipeCategory.destroy).not.toHaveBeenCalled();
+    });
+
+    test("vẫn cho chọn danh mục thông thường", async () => {
+      db.Category.findAll.mockResolvedValue([{ id: 1, categoryName: "Món canh", createdBy: null }]);
+      expect((await invoke()).EC).toBe(0);
+    });
   },
 );
 
@@ -319,6 +358,7 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
       "lọc tại database, không tải danh sách ID trung gian: %s (#72)", async (keyword) => {
         const ingredientLookup = jest.spyOn(db.RecipeIngredient, "findAll").mockResolvedValue([]);
         const categoryLookup = jest.spyOn(db.RecipeCategory, "findAll").mockResolvedValue([]);
+        jest.spyOn(db.Category, "findOne").mockResolvedValue({ id: 2, createdBy: null });
         const query = jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({ count: 25, rows: [] });
 
         const result = await recipeService.getRecipes({ keyword, categoryId: "2", ingredientId: "3", page: "2", limit: "10" });

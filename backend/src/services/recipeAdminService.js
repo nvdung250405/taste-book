@@ -1,7 +1,7 @@
 import db from "../models/index";
 import { Op, Sequelize } from "sequelize";
 import { lockMasterData, normalizeIngredientQuantity } from "./unitService";
-import { validateLockedReferences, isPositiveInteger, systemIngredientUnitError, cookingStepsError, ingredientQuantityError, hasVietnameseAccents } from "./recipeValidation";
+import { validateLockedReferences, recipeCategoriesError, isPositiveInteger, systemIngredientUnitError, cookingStepsError, ingredientQuantityError, hasVietnameseAccents } from "./recipeValidation";
 import { ensureCommunityCategory } from "./recipeCategoryService";
 
 const isAdminRecipeId = (value) =>
@@ -262,11 +262,11 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
     if (
       defaultServings === undefined ||
       defaultServings === null ||
-      !isPositiveInteger(defaultServings)
+      !isPositiveInteger(defaultServings) || Number(defaultServings) > 100
     ) {
       return {
         EC: 1,
-        EM: "Khẩu phần mặc định phải là số nguyên dương!",
+        EM: "Khẩu phần mặc định phải là số nguyên từ 1 đến 100!",
         DT: null,
       };
     }
@@ -285,7 +285,7 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
       where: {
         id: { [Op.in]: catList },
       },
-      attributes: ["id", "categoryName"],
+      attributes: ["id", "categoryName", "createdBy"],
     });
 
     if (validCategories.length !== catList.length) {
@@ -295,6 +295,9 @@ const adminUpdateRecipe = async (recipeId, user, data) => {
         DT: null,
       };
     }
+
+    const categoryError = recipeCategoriesError(validCategories);
+    if (categoryError) return categoryError;
 
     // 5. Kiểm tra và chuẩn hóa từng nguyên liệu
     const processedIngredients = [];
