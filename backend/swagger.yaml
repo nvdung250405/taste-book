@@ -124,7 +124,7 @@ paths:
       tags:
         - Home
       summary: "UC-01: Lấy dữ liệu công thức Trang chủ (mới nhất và thịnh hành)"
-      description: Lấy danh sách các công thức nấu ăn mới nhất và các công thức thịnh hành (được yêu thích nhiều nhất) hiển thị công khai trên trang chủ.
+      description: Lấy danh sách các công thức nấu ăn mới nhất và các công thức thịnh hành (được yêu thích nhiều nhất) hiển thị công khai trên trang chủ. Chỉ trả danh mục hệ thống (createdBy=null); công thức chỉ gắn danh mục cá nhân vẫn được trả với categories rỗng.
       parameters:
         - name: limit
           in: query
@@ -808,6 +808,10 @@ paths:
         - Categories
       summary: "UC-06/08: Lấy danh mục hiển thị (Danh mục hệ thống + danh mục do user
         tạo)"
+      description: >-
+        Danh sách dùng chung cho khám phá và form. Vẫn trả danh mục hệ thống
+        "Đóng góp của cộng đồng" để lọc công thức đã duyệt. FE phải loại danh mục hệ thống
+        này khỏi bộ chọn tạo/sửa công thức; backend từ chối gắn thủ công bằng HTTP 400, EC=1.
       security:
         - bearerAuth: []
       responses:
@@ -2207,6 +2211,8 @@ paths:
         'Approved' và isDeleted = false (tối ưu qua chỉ mục IX_Recipes_Public_Approved).
         Hỗ trợ tìm kiếm theo tên món, nguyên liệu, danh mục, độ khó, thời gian nấu tối đa,
         kèm sắp xếp và phân trang chuẩn.
+        Chỉ trả danh mục hệ thống (createdBy=null), không loại công thức khi categories rỗng.
+        categoryId phải thuộc danh mục hệ thống; ID danh mục cá nhân hoặc không tồn tại trả HTTP 400, EC=1.
       parameters:
         - name: keyword
           in: query
@@ -2385,12 +2391,14 @@ paths:
                 defaultServings:
                   type: integer
                   minimum: 1
+                  maximum: 100
                   example: 3
                 isPublic:
                   type: boolean
                   example: true
                 categories:
                   type: array
+                  description: 'Chỉ chọn danh mục thông thường. Danh mục hệ thống "Đóng góp của cộng đồng" chỉ được tự gắn khi admin duyệt; chọn thủ công trả HTTP 400, EC=1. Áp dụng cho cả tạo/sửa công thức user và admin.'
                   items:
                     type: integer
                   example:
@@ -2718,6 +2726,7 @@ paths:
                 defaultServings:
                   type: integer
                   minimum: 1
+                  maximum: 100
                   example: 4
                 isPublic:
                   type: boolean
@@ -3175,6 +3184,7 @@ paths:
                 defaultServings:
                   type: integer
                   minimum: 1
+                  maximum: 100
                   example: 4
                 categories:
                   type: array
@@ -3336,6 +3346,7 @@ paths:
                 defaultServings:
                   type: integer
                   minimum: 1
+                  maximum: 100
                   example: 4
                 categories:
                   type: array
@@ -5544,8 +5555,20 @@ paths:
     post:
       tags:
         - Shopping Lists
-      summary: "UC-18: Thêm món mua ngoài tự do"
-      description: "Thêm mặt hàng phát sinh. itemName và unit phải là chuỗi không rỗng sau trim, tối đa 255 ký tự. Trong cùng danh sách đi chợ, nếu đã có mặt hàng cùng tên và cùng đơn vị thì trả HTTP 409, EC 2; không tạo thêm và không cộng dồn số lượng. So trùng sau chuẩn hóa Unicode NFC, bỏ khoảng trắng hai đầu và không phân biệt hoa/thường; vẫn phân biệt dấu tiếng Việt. Cùng tên nhưng khác đơn vị hoặc thuộc danh sách khác vẫn được thêm. totalQuantity nếu có phải là số JSON hữu hạn (không nhận chuỗi, boolean hoặc null). Đơn vị định lượng bắt buộc có totalQuantity > 0; làm tròn half-up đến 2 chữ số thập phân, kết quả phải từ 0.01 đến 99999999.99, nếu không trả 400. Đơn vị định tính (vừa đủ, tùy khẩu vị, vừa vừa, nêm nếm) có thể bỏ totalQuantity hoặc gửi số không âm, luôn lưu totalQuantity = 0."
+      summary: "UC-18: Thêm nhanh nguyên liệu chuẩn hoặc món mua ngoài tự do"
+      description: >-
+        Có ingredientId: server tra tên và đơn vị mặc định, bỏ qua itemName/unit từ client.
+        Cùng ingredientId và đơn vị trong cùng danh sách thì cộng số lượng, giữ itemId,
+        chuyển isPurchased về false và trả merged=true; khác đơn vị giữ riêng.
+        Chưa có thì tạo mới, merged=false. Không gộp với nguyên liệu tự nhập.
+        Không có ingredientId (hoặc null): itemName và unit phải là chuỗi không rỗng sau trim,
+        tối đa 255 ký tự. Chỉ so trùng với mục tự nhập cùng danh sách, chuẩn hóa NFC,
+        trim và không phân biệt hoa/thường; trùng tên và đơn vị trả HTTP 409, EC=2.
+        totalQuantity nếu có phải là số JSON hữu hạn không âm, không nhận chuỗi/boolean/null.
+        Đơn vị định lượng bắt buộc có số lượng; cho phép 0 để nhắc mua, số dương làm tròn
+        half-up đến 2 chữ số, kết quả phải từ 0.01 đến 99999999.99, kể cả tổng sau cộng.
+        Đơn vị định tính (vừa đủ, tùy khẩu vị, vừa vừa, nêm nếm) có thể bỏ số lượng,
+        luôn lưu 0. Thao tác dùng transaction và khóa để tránh cộng mất số lượng hoặc tạo trùng.
       security:
         - bearerAuth: []
       parameters:
@@ -5561,10 +5584,21 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - itemName
-                - unit
+              anyOf:
+                - required: [ingredientId]
+                  properties:
+                    ingredientId:
+                      type: integer
+                      nullable: false
+                - required: [itemName, unit]
               properties:
+                ingredientId:
+                  type: integer
+                  nullable: true
+                  minimum: 1
+                  maximum: 2147483647
+                  description: "ID nguyên liệu chuẩn. Nếu có, server lấy tên/đơn vị từ database; không có hoặc null thì dùng payload tự nhập."
+                  example: 4
                 itemName:
                   type: string
                   minLength: 1
@@ -5573,18 +5607,25 @@ paths:
                 totalQuantity:
                   type: number
                   minimum: 0
-                  description: "Bắt buộc với đơn vị định lượng, kết quả sau làm tròn half-up phải từ 0.01 đến 99999999.99. Đơn vị định tính có thể bỏ trường này, nếu gửi phải là số không âm; luôn lưu 0. Không nhận null, chuỗi hoặc boolean."
+                  description: "Bắt buộc với đơn vị định lượng, cho phép 0 để nhắc mua; số dương sau làm tròn half-up phải từ 0.01 đến 99999999.99. Đơn vị định tính có thể bỏ trường này, luôn lưu 0. Không nhận null, chuỗi hoặc boolean."
                   example: 1
                 unit:
                   type: string
                   minLength: 1
                   maxLength: 255
                   example: chai
+            examples:
+              master:
+                summary: Thêm nguyên liệu chuẩn bằng ID
+                value: { ingredientId: 4, totalQuantity: 1.5 }
+              custom:
+                summary: Thêm món tự nhập
+                value: { itemName: "Nước rửa chén", unit: "chai", totalQuantity: 1 }
       responses:
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "201":
-          description: Thêm món phát sinh thành công!
+          description: "Thêm hoặc cộng nguyên liệu thành công. DT gồm itemId, ingredientId (null với tự nhập), itemName, totalQuantity (tổng sau cộng), unit, isPurchased và merged."
           content:
             application/json:
               schema:
@@ -5594,12 +5635,14 @@ paths:
                 EM: "Thêm món phát sinh thành công!"
                 DT:
                   itemId: 55
+                  ingredientId: null
                   itemName: "Nước rửa chén"
                   totalQuantity: 1
                   unit: "chai"
                   isPurchased: false
+                  merged: false
         "409":
-          description: Đã có nguyên liệu cùng tên và cùng đơn vị trong danh sách đi chợ (TC-18-49)
+          description: Đã có món tự nhập cùng tên và cùng đơn vị trong danh sách đi chợ (TC-18-49)
           content:
             application/json:
               schema:
@@ -5637,7 +5680,7 @@ paths:
                   summary: Số lượng không hợp lệ
                   value:
                     EC: 1
-                    EM: "Số lượng phải lớn hơn 0; chỉ đơn vị định tính mới được dùng 0!"
+                    EM: "Số lượng không được nhỏ hơn 0!"
                     DT: null
                 invalidQuantityType:
                   value:

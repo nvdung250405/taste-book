@@ -90,6 +90,14 @@ describe("CategoryService Unit Tests", () => {
   });
 
   describe("getCategories (UC-06 / UC-08)", () => {
+    test.each([null, 5])("vẫn trả danh mục cộng đồng cho luồng khám phá, user=%p", async userId => {
+      jest.spyOn(db.Category, "findAll").mockResolvedValue([
+        { id: 8, categoryName: "Đóng góp của cộng đồng", createdBy: null },
+      ]);
+      expect((await categoryService.getCategories(userId)).DT).toContainEqual({
+        categoryId: 8, categoryName: "Đóng góp của cộng đồng", createdBy: null,
+      });
+    });
     test("thành công: lấy danh mục hệ thống và danh mục cá nhân của người dùng (EC: 0)", async () => {
       const mockCategories = [
         { id: 1, categoryName: "Món xào", createdBy: null },

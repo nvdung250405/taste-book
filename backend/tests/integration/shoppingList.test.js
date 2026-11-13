@@ -6,7 +6,9 @@ import db from "../../src/models/index";
 
 jest.mock("../../src/models/index", () => ({
   RevokedToken: { findByPk: jest.fn() },
-  sequelize: { transaction: jest.fn() },
+  sequelize: { transaction: jest.fn(), query: jest.fn() },
+  Ingredient: { findByPk: jest.fn() },
+  Unit: {},
   User: { findOne: jest.fn() },
   RecipeList: { findAll: jest.fn() },
   ShoppingList: { create: jest.fn(), findAll: jest.fn(), findOne: jest.fn(), findByPk: jest.fn() },
@@ -42,6 +44,8 @@ beforeEach(() => {
   token = jwt.sign({ userId: 10 }, process.env.JWT_SECRET, { expiresIn: "1h" });
   db.User.findOne.mockResolvedValue({ id: 10, role: "User" });
   db.sequelize.transaction.mockResolvedValue({ commit: jest.fn(), rollback: jest.fn() });
+  db.sequelize.query.mockResolvedValue([[], {}]);
+  db.Ingredient.findByPk.mockResolvedValue({ id: 1, ingredientName: "Thịt bò", defaultUnit: { unitName: "kg" } });
   item = { id: 50, ingredientId: 1, itemName: "Thịt bò", totalQuantity: "1.01", unit: "kg", isPurchased: false };
   item.update = jest.fn(async (data) => Object.assign(item, data));
   list = { id: 5, userId: 10, title: "Đi chợ", status: "In_Progress", createdAt: "2026-10-16T08:00:00.000Z", shoppingListItems: [item], destroy: jest.fn() };
@@ -71,6 +75,46 @@ const send = (method, path, body, auth = token) => {
 };
 
 describe("Shopping Lists HTTP (mock DB)", () => {
+  test("thêm nhanh nguyên liệu chuẩn cộng vào mục có sẵn, phản hồi khớp frontend", async () => {
+    item.isPurchased = true;
+    const response = await send("post", "/5/items", { ingredientId: 1, totalQuantity: 1.5 });
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({ EC: 0, DT: {
+      itemId: 50, ingredientId: 1, itemName: "Thịt bò", totalQuantity: 2.51,
+      unit: "kg", isPurchased: false, merged: true,
+    } });
+    expect(db.ShoppingListItem.create).not.toHaveBeenCalled();
+  });
+
+  test("tạo mục chuẩn mới và giữ món tự nhập cùng tên/đơn vị riêng", async () => {
+    db.ShoppingListItem.findOne.mockResolvedValue(null);
+    const response = await send("post", "/5/items", { ingredientId: 1, totalQuantity: 1 });
+    expect(response.status).toBe(201);
+    expect(response.body.DT).toMatchObject({ ingredientId: 1, merged: false, totalQuantity: 1 });
+    expect(db.ShoppingListItem.findAll).not.toHaveBeenCalled();
+
+    const custom = await send("post", "/5/items", { itemName: "Thịt bò", unit: "kg", totalQuantity: 1 });
+    expect(custom.status).toBe(201);
+    expect(custom.body.DT).toMatchObject({ ingredientId: null, merged: false });
+    expect(db.ShoppingListItem.findAll).toHaveBeenCalledWith(expect.objectContaining({
+      where: { shoppingListId: 5, ingredientId: null },
+    }));
+  });
+
+  test("nguyên liệu chuẩn định tính cho phép bỏ số lượng", async () => {
+    db.ShoppingListItem.findOne.mockResolvedValue(null);
+    db.Ingredient.findByPk.mockResolvedValue({ ingredientName: "Muối", defaultUnit: { unitName: "vừa đủ" } });
+    const response = await send("post", "/5/items", { ingredientId: 2 });
+    expect(response.status).toBe(201);
+    expect(response.body.DT).toMatchObject({ ingredientId: 2, itemName: "Muối", totalQuantity: 0, unit: "vừa đủ" });
+  });
+
+  test("nguyên liệu không tồn tại trả 404, thiếu số lượng định lượng trả 400", async () => {
+    expect((await send("post", "/5/items", { ingredientId: 1 })).status).toBe(400);
+    db.Ingredient.findByPk.mockResolvedValue(null);
+    expect((await send("post", "/5/items", { ingredientId: 999, totalQuantity: 1 })).status).toBe(404);
+  });
+
   test("TC-18-80: thêm, đọc và check/uncheck món phát sinh số lượng 0", async () => {
     const body = { itemName: "Túi nilon", totalQuantity: 0, unit: "cái" };
     db.ShoppingListItem.create.mockImplementation(async data => {
@@ -205,7 +249,7 @@ describe("Shopping Lists HTTP (mock DB)", () => {
     "post ": { EC: 0, EM: "Đã tổng hợp danh sách đi chợ thông minh thành công!", DT: { shoppingListId: 5, title: "Đi chợ", status: "In_Progress", totalItems: 1 } },
     "get /5": { EC: 0, EM: "Thành công!", DT: { shoppingListId: 5, title: "Đi chợ", status: "In_Progress", items: [{ itemId: 50, ingredientId: 1, itemName: "Thịt bò", totalQuantity: 1.01, unit: "kg", isPurchased: false }] } },
     "patch /5/items/50": { EC: 0, EM: "Cập nhật trạng thái mặt hàng thành công!", DT: { itemId: 50, isPurchased: true } },
-    "post /5/items": { EC: 0, EM: "Thêm món phát sinh thành công!", DT: { itemId: 51, itemName: "Xà phòng", totalQuantity: 1.01, unit: "chai", isPurchased: false } },
+    "post /5/items": { EC: 0, EM: "Thêm món phát sinh thành công!", DT: { itemId: 51, ingredientId: null, itemName: "Xà phòng", totalQuantity: 1.01, unit: "chai", isPurchased: false, merged: false } },
     "patch /5": { EC: 0, EM: "Cập nhật trạng thái chuyến đi chợ thành công!", DT: { shoppingListId: 5, status: "Completed" } },
     "delete /5": { EC: 0, EM: "Đã xóa danh sách đi chợ!", DT: null },
     "delete /5/items/purchased": { EC: 0, EM: "Đã xóa các mặt hàng đã mua!", DT: { shoppingListId: 5, deletedItems: 3 } },
@@ -344,11 +388,11 @@ describe("Shopping Lists HTTP (mock DB)", () => {
       const res = await send("post", "/5/items", { itemName: " Muối ", unit: " vừa đủ " });
       expect(res.status).toBe(201);
       expect(res.body).toEqual({ EC: 0, EM: "Thêm món phát sinh thành công!", DT: {
-        itemId: 51, itemName: "Muối", totalQuantity: 0, unit: "vừa đủ", isPurchased: false,
+        itemId: 51, ingredientId: null, itemName: "Muối", totalQuantity: 0, unit: "vừa đủ", isPurchased: false, merged: false,
       } });
       expect(db.ShoppingListItem.create).toHaveBeenCalledWith({
         shoppingListId: 5, ingredientId: null, itemName: "Muối", totalQuantity: 0, unit: "vừa đủ", isPurchased: false,
-      });
+      }, { transaction: expect.any(Object) });
     });
     test("7.7 xóa đúng danh sách và trả DT null", async () => {
       const res = await send("delete", "/5");

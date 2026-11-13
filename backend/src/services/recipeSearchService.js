@@ -183,6 +183,10 @@ const getRecipes = async (query = {}) => {
           DT: null,
         };
       }
+      const category = await db.Category.findOne({ where: { id: catId, createdBy: null } });
+      if (!category) {
+        return { EC: 1, EM: "Chỉ được lọc theo danh mục hệ thống!", DT: null };
+      }
       bind.recipeSearchCategoryId = catId;
       whereClause[Op.and] = whereClause[Op.and] || [];
       whereClause[Op.and].push(Sequelize.literal(`EXISTS (
@@ -231,6 +235,8 @@ const getRecipes = async (query = {}) => {
           as: "categories",
           attributes: ["id", "categoryName"],
           through: { attributes: [] },
+          where: { createdBy: null },
+          required: false,
         },
       ],
       order: [[orderCol, orderDir], ["id", orderDir]],
