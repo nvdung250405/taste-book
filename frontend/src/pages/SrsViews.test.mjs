@@ -10,6 +10,16 @@ let server, Shopping, Menu, Ingredients
 before(async () => {
   server = await createServer({
     server: { middlewareMode: true, hmr: false, watch: null },
+    plugins: [{
+      name: 'render-dialog-content-without-browser', enforce: 'pre',
+      load(id) {
+        if (!id.replaceAll('\\', '/').endsWith('/components/ui/dialog.jsx')) return
+        return `import { createElement } from 'react';
+          export const Dialog = ({open, children}) => open ? createElement('div', null, children) : null;
+          export const DialogContent = ({children}) => createElement('div', null, children);
+          export const DialogHeader = DialogContent, DialogTitle = DialogContent, DialogDescription = DialogContent, DialogFooter = DialogContent;`
+      },
+    }],
   })
   Shopping = (await server.ssrLoadModule('/src/pages/ShoppingListPage.jsx'))
     .default

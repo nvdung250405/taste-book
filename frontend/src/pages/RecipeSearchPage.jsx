@@ -1,4 +1,5 @@
 import useRecipeGridColumns from '../hooks/useRecipeGridColumns'
+import { publicRecipeCategories } from '../lib/categoryVisibility'
 import { recipeImageProps, handleRecipeImageError } from '../lib/recipeImages'
 import { useState, useEffect, useCallback } from 'react'
 import {
@@ -21,7 +22,7 @@ import RecipeSearchFilters from '../components/recipe/RecipeSearchFilters'
 import { Card, CardContent } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { useRecipes } from '../hooks/queries/useRecipeQueries'
-import { useCategories } from '../hooks/queries/useCategoryQueries'
+import { usePublicCategories } from '../hooks/queries/useCategoryQueries'
 import {
   useFavoriteIds,
   useAddFavorite,
@@ -133,7 +134,7 @@ export default function RecipeSearchPage() {
     isError: categoriesError,
     isFetching: categoriesFetching,
     refetch: retryCategories,
-  } = useCategories()
+  } = usePublicCategories()
 
   // Favorites
   const hasToken = !!localStorage.getItem('token')
@@ -301,7 +302,7 @@ export default function RecipeSearchPage() {
 
                       {/* Tags (Categories) */}
                       <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
-                        {(recipe.categories || recipe.tags || [])
+                        {publicRecipeCategories(recipe, categories)
                           .slice(0, 2)
                           .map((cat, idx) => (
                             <Badge

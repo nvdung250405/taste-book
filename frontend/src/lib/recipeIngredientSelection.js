@@ -32,7 +32,7 @@ export function changeRecipeIngredient(row, field, value, ingredients, units) {
 }
 
 export function recipeIngredientPayload(row) {
-  const quantity = isQualitativeUnit(row.unit) ? 0 : Number(row.quantity)
+  const quantity = isQualitativeUnit(row.unit) ? 0 : Number(String(row.quantity).replace(',', '.'))
   return row.ingredientId
     ? { ingredientId: Number(row.ingredientId), quantity }
     : {

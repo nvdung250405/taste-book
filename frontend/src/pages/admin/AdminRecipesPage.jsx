@@ -32,14 +32,15 @@ export default function AdminRecipesPage() {
   const [params, setParams] = useSearchParams()
   const difficulty = params.get('difficulty') || ''
   const maxTime = params.get('maxTime') || ''
-  const scope = params.get('scope') === 'admin' ? 'admin' : 'all'
+  const scope = ['admin', 'community'].includes(params.get('scope')) ? params.get('scope') : 'all'
   const query = useAdminRecipes({
-    scope,
+    scope: scope === 'community' ? 'all' : scope,
     ...(search.trim() ? { keyword: search.trim() } : {}),
   })
   // The all-scope DTO currently omits author.role; only the admin-only API can
   // establish ownership. If it fails, editing stays disabled.
   const adminOnly = useAdminRecipes({ scope: 'admin' })
+  const loading = query.isPending || (scope === 'community' && adminOnly.isPending)
   const canManage = (recipe) =>
     adminOnly.isSuccess &&
     adminOnly.data?.DT?.recipes?.some(
@@ -51,14 +52,15 @@ export default function AdminRecipesPage() {
   const [error, setError] = useState('')
   const recipes = (query.data?.DT?.recipes || []).filter(
     (recipe) =>
+      (scope !== 'community' || (adminOnly.isSuccess && !canManage(recipe))) &&
       (!difficulty || recipe.difficulty === difficulty) &&
       (!maxTime || Number(recipe.cookTimeMinutes) <= Number(maxTime)),
   )
   const totalPages = Math.max(1, Math.ceil(recipes.length / 10))
   useEffect(() => {
-    if (query.isSuccess && !query.isFetching && page > totalPages)
+    if (query.isSuccess && !query.isFetching && (scope !== 'community' || adminOnly.isSuccess) && page > totalPages)
       setPage(totalPages)
-  }, [query.isSuccess, query.isFetching, page, totalPages, setPage])
+  }, [query.isSuccess, query.isFetching, scope, adminOnly.isSuccess, page, totalPages, setPage])
   const changeFilters = (changes) => {
     const next = new URLSearchParams(params)
     if (searchQuery) next.set('search', searchQuery)
@@ -103,6 +105,7 @@ export default function AdminRecipesPage() {
         <div className="flex gap-2">
           <Button
             variant="outline"
+            className="h-10 rounded-xl"
             disabled={query.isFetching}
             onClick={() => {
               query.refetch()
@@ -113,6 +116,7 @@ export default function AdminRecipesPage() {
             <RefreshCw
               className={`h-4 w-4 ${query.isFetching ? 'animate-spin' : ''}`}
             />
+            Làm mới
           </Button>
           <Button
             asChild
@@ -133,6 +137,7 @@ export default function AdminRecipesPage() {
         {[
           ['all', 'Tất cả công thức đã duyệt'],
           ['admin', 'Chỉ công thức của Admin'],
+          ['community', 'Chỉ công thức cộng đồng'],
         ].map(([value, label]) => (
           <Button
             key={value}
@@ -201,11 +206,11 @@ export default function AdminRecipesPage() {
           </Button>
         )}
       </div>
-      {query.isError ? (
+      {query.isError || (scope === 'community' && adminOnly.isError) ? (
         <QueryError
           title="Không thể tải công thức chuẩn"
-          onRetry={query.refetch}
-          isRetrying={query.isFetching}
+          onRetry={() => { query.refetch(); if (scope === 'community') adminOnly.refetch() }}
+          isRetrying={query.isFetching || (scope === 'community' && adminOnly.isFetching)}
         />
       ) : (
         <Card className="gap-0 overflow-hidden rounded-2xl py-0">
@@ -235,7 +240,7 @@ export default function AdminRecipesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {query.isPending ? (
+                {loading ? (
                   <tr>
                     <td colSpan={6} className="p-12 text-center" role="status">
                       Đang tải công thức…
@@ -340,7 +345,7 @@ export default function AdminRecipesPage() {
               </tbody>
             </table>
           </div>
-          {!query.isPending && (
+          {!loading && (
             <div className="flex flex-wrap items-center justify-between gap-3 border-t p-4 [&_nav]:mt-0">
               <p className="text-sm text-slate-500" aria-live="polite">
                 {recipes.length ? (page - 1) * 10 + 1 : 0}–

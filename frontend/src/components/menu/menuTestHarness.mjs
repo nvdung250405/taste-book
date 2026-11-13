@@ -44,6 +44,7 @@ export const event = { preventDefault() {} }
 export const text = node => typeof node === 'string' ? node : (node?.children || []).map(text).join('')
 export async function mount(Component, props = {}, seed = []) {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false }, mutations: { retry: false } } })
+  client.setQueryData(['ingredients', {}], { DT: [] })
   for (const [key, value] of seed) client.setQueryData(key, value)
   let view
   await act(async () => {

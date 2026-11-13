@@ -112,6 +112,26 @@ test('admin creation uses only master categories and hides personal visibility/c
     cache.clear()
   }
 })
+
+test('community scope excludes admin recipes, combines difficulty and time filters, and has no edit/delete actions', () => {
+  const cache = client()
+  const system = { recipeId: 1, title: 'SystemOnly', difficulty: 'Easy', cookTimeMinutes: 10 }
+  const community = { recipeId: 2, title: 'CommunityOnly', authorName: 'Lan', difficulty: 'Easy', cookTimeMinutes: 20 }
+  const hard = { recipeId: 3, title: 'HardCommunity', difficulty: 'Hard', cookTimeMinutes: 20 }
+  const slow = { recipeId: 4, title: 'SlowCommunity', difficulty: 'Easy', cookTimeMinutes: 90 }
+  cache.setQueryData(['admin-recipes', { scope: 'all' }], { DT: { recipes: [system, community, hard, slow] } })
+  cache.setQueryData(['admin-recipes', { scope: 'admin' }], { DT: { recipes: [system] } })
+  try {
+    const html = render(cache, Page, '/admin/recipes?scope=community&difficulty=Easy&maxTime=30')
+    assert.match(html, /Chỉ công thức cộng đồng/)
+    assert.match(html, /CommunityOnly/)
+    assert.doesNotMatch(html, /SystemOnly|HardCommunity|SlowCommunity/)
+    assert.doesNotMatch(html, /aria-label="(?:Sửa|Xóa) /)
+    const state = cache.getQueryCache().find({ queryKey: ['admin-recipes', { scope: 'admin' }], exact: true })
+    state.setState({ status: 'error', error: new Error('Offline') })
+    assert.doesNotMatch(render(cache, Page, '/admin/recipes?scope=community'), /CommunityOnly|SystemOnly/)
+  } finally { cache.clear() }
+})
 test('successful soft deletion calls the admin endpoint and invalidates all affected cached views', async () => {
   const cache = client(),
     original = api.deleteAdminRecipe

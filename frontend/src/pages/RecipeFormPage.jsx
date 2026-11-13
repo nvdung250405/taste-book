@@ -22,6 +22,7 @@ import { changeRecipeIngredient, recipeIngredientPayload } from '../lib/recipeIn
 import { recipeStatus } from '../lib/collectionFilters'
 import { isQualitativeUnit } from '../lib/shoppingList'
 import { adminRecipePayload } from '../lib/adminRecipeForm'
+import { validServings } from '../lib/menuLists'
 
 import RecipeBasicInfoForm from '../components/recipe/RecipeBasicInfoForm'
 import RecipeIngredientsForm from '../components/recipe/RecipeIngredientsForm'
@@ -269,6 +270,8 @@ function RecipeForm({ id, recipe, admin }) {
     if (creating || updating) return
     if (isUploading) return toast.error('Vui lòng đợi ảnh tải lên hoàn tất')
     setSubmitError('')
+    if (!validServings(formData.servings))
+      return toast.error('Khẩu phần phải là số nguyên từ 1 đến 100 người.')
     let standardPayload
     if (admin) {
       if (categoriesError || fetchingCategories) {
@@ -293,14 +296,12 @@ function RecipeForm({ id, recipe, admin }) {
       return toast.error('Vui lòng nhập mô tả món ăn')
     if (!formData.prepTime || Number(formData.prepTime) <= 0)
       return toast.error('Thời gian nấu phải lớn hơn 0')
-    if (!formData.servings || Number(formData.servings) <= 0)
-      return toast.error('Khẩu phần phải lớn hơn 0')
     if (formData.categories.length === 0)
       return toast.error('Vui lòng chọn ít nhất 1 danh mục')
 
     const validIngs = formData.ingredients.filter((i) => i.name.trim())
     if (validIngs.length === 0) return toast.error('Cần ít nhất 1 nguyên liệu')
-    if (validIngs.some(i => !isQualitativeUnit(i.unit) && (!Number.isFinite(Number(i.quantity)) || Number(i.quantity) <= 0)))
+    if (validIngs.some(i => !isQualitativeUnit(i.unit) && (!Number.isFinite(Number(String(i.quantity).replace(',', '.'))) || Number(String(i.quantity).replace(',', '.')) <= 0)))
       return toast.error('Số lượng nguyên liệu định lượng phải lớn hơn 0')
     const validSteps = formData.steps.filter((s) => s.content.trim())
     if (validSteps.length === 0)

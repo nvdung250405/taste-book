@@ -10,6 +10,7 @@ import {
   Scale,
   AlertTriangle,
   X,
+  RefreshCw,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '../ui/button'
@@ -86,18 +87,39 @@ export default function MasterDataPage({
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             {title}
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-500">
             Quản lý dữ liệu chuẩn dùng chung trong hệ thống.
           </p>
         </div>
-        <Button
-          className="h-10 rounded-xl bg-orange-600 px-4 text-white shadow-sm hover:bg-orange-700 sm:self-center"
-          disabled={busy || !query.isSuccess || !referencesReady}
-          onClick={() => setEditor({ record: null })}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Thêm {label}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            className="h-10 rounded-xl"
+            disabled={
+              busy ||
+              query.isFetching ||
+              references.some((reference) => reference.isFetching)
+            }
+            onClick={() => {
+              query.refetch()
+              references.forEach((reference) => reference.refetch())
+            }}
+            aria-label={`Làm mới ${label}`}
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${query.isFetching ? 'animate-spin' : ''}`}
+            />
+            Làm mới
+          </Button>
+          <Button
+            className="h-10 rounded-xl bg-orange-600 px-4 text-white shadow-sm hover:bg-orange-700 sm:self-center"
+            disabled={busy || !query.isSuccess || !referencesReady}
+            onClick={() => setEditor({ record: null })}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Thêm {label}
+          </Button>
+        </div>
       </div>
       {references.map((reference, index) =>
         reference.isError ? (

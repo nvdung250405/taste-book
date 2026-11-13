@@ -77,6 +77,7 @@ export default function DashboardPage() {
         </div>
         <Button
           variant="outline"
+          className="h-10 rounded-xl"
           disabled={busy}
           onClick={() => {
             users.refetch()

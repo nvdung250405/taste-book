@@ -10,6 +10,7 @@ import { recipeImageProps, handleRecipeImageError } from '../../lib/recipeImages
 import { validServings } from '../../lib/menuLists'
 import { Button } from '../ui/button'
 import QueryError from '../ui/QueryError'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../ui/dialog'
 import RecipePicker from './RecipePicker'
 import MenuItemDeleteDialog from './MenuItemDeleteDialog'
 
@@ -23,12 +24,19 @@ export default function CustomMenuDetail({ list, onClose }) {
   const failure = (error) =>
     toast.error(error?.EM || 'Không thể cập nhật món ăn. Vui lòng thử lại.')
   return (
+    <Dialog open onOpenChange={open => { if (!open && !busy) onClose() }}>
+    <DialogContent
+      className="max-h-[85dvh] overflow-y-auto sm:max-w-4xl"
+      showCloseButton={!busy}
+      onEscapeKeyDown={event => { if (busy) event.preventDefault() }}
+      onInteractOutside={event => { if (busy) event.preventDefault() }}
+    >
     <section
-      className="space-y-4 rounded-2xl border bg-white p-5 dark:bg-slate-900"
+      className="min-w-0 space-y-4"
       aria-label={`Chi tiết ${list.listName}`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="break-words text-xl font-bold">{list.listName}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3 pr-6">
+        <DialogTitle className="break-words text-xl font-bold">{list.listName}</DialogTitle>
         <div className="flex gap-2">
           <Button
             disabled={busy || !query.isSuccess}
@@ -36,11 +44,12 @@ export default function CustomMenuDetail({ list, onClose }) {
           >
             Thêm món
           </Button>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" disabled={busy} onClick={onClose}>
             Đóng chi tiết
           </Button>
         </div>
       </div>
+      <DialogDescription>Danh sách món ăn trong thực đơn. Bạn có thể thêm món, thay đổi khẩu phần hoặc bỏ món.</DialogDescription>
       {query.isPending ? (
         <p role="status">Đang tải món ăn…</p>
       ) : query.isError ? (
@@ -143,5 +152,7 @@ export default function CustomMenuDetail({ list, onClose }) {
         }}
       />
     </section>
+    </DialogContent>
+    </Dialog>
   )
 }

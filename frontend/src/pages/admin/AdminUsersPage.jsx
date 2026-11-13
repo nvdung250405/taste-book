@@ -57,6 +57,7 @@ export default function AdminUsersPage() {
         </div>
         <Button
           variant="outline"
+          className="h-10 rounded-xl"
           disabled={query.isFetching}
           onClick={() => query.refetch()}
         >

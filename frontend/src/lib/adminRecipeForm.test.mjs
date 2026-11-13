@@ -57,6 +57,8 @@ for (const [field, value] of [
   ['description', ' '],
   ['prepTime', 1.2],
   ['servings', 0],
+  ['servings', 101],
+  ['servings', 1.5],
   ['servings', 2147483648],
   ['thumbnail', 'javascript:alert(1)'],
   ['categories', [99]],
