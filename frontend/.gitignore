@@ -10,6 +10,10 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+public/images/optimized/
+playwright-report/
+test-results/
+performance-results/
 *.local
 
 # Editor directories and files

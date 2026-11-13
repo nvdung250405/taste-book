@@ -44,7 +44,7 @@ export default function LoginPage() {
         {/* Bên trái - Ảnh & Thương hiệu */}
         <div className="hidden md:flex flex-col justify-between bg-slate-900 p-8 relative overflow-hidden group">
           {/* Ảnh nền trang trí */}
-          <div className="absolute inset-0 bg-[url('/images/auth-login-bg.jpg')] bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-105" />
+          <div className="absolute inset-0 bg-[url('/images/optimized/auth-login-bg-960.webp')] bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-105" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
 
           <div className="relative z-10 flex items-center gap-2 text-white">
