@@ -49,18 +49,20 @@ const getRecipeLists = async (userId) => {
 
     const lists = await db.RecipeList.findAll({
       where: { userId: Number(userId) },
+      attributes: ["id", "listName", "createdAt", [Sequelize.fn("COUNT", Sequelize.col("recipeListItems.id")), "totalItems"]],
       include: [
         {
           model: db.RecipeListItem,
           as: "recipeListItems",
-          attributes: ["id"],
+          attributes: [],
         },
       ],
+      group: ["RecipeList.id"],
       order: [["createdAt", "DESC"]],
     });
 
     const formattedLists = lists.map((list) => {
-      const totalItems = list.recipeListItems ? list.recipeListItems.length : 0;
+      const totalItems = Number(list.get ? list.get("totalItems") : list.totalItems) || 0;
       return {
         recipeListId: list.id,
         listName: list.listName,

@@ -42,6 +42,7 @@ const verify = async () => {
     `);
     for (const [model, method] of [
       [db.Recipe, "findAll"], [db.Recipe, "findAndCountAll"], [db.FavoriteRecipe, "findAndCountAll"],
+      [db.FavoriteRecipe, "count"], [db.FavoriteRecipe, "findAll"],
     ]) {
       const original = model[method];
       originals.push(() => { model[method] = original; });
