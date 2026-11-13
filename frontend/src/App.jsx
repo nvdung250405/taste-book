@@ -69,14 +69,14 @@ import { Suspense, lazy } from 'react'
 
 // Layouts
 import MainLayout from './components/layouts/MainLayout'
-import AdminLayout from './components/layouts/AdminLayout'
-import AdminRoute from './components/auth/AdminRoute'
+const AdminLayout = lazy(() => import('./components/layouts/AdminLayout'))
+const AdminRoute = lazy(() => import('./components/auth/AdminRoute'))
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import PublicOnlyRoute from './components/auth/PublicOnlyRoute'
 
 // Pages (Lazy loaded for better performance, except HomePage)
 import HomePage from './pages/HomePage'
-import RecipeDetailPage from './pages/RecipeDetailPage'
+const RecipeDetailPage = lazy(() => import('./pages/RecipeDetailPage'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const ForbiddenPage = lazy(() => import('./pages/ForbiddenPage'))
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
