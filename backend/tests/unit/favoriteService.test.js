@@ -1,3 +1,4 @@
+import { mockPage } from "../helpers/mockPage";
 import favoriteService from "../../src/services/favoriteService";
 import db from "../../src/models/index";
 import { Op } from "sequelize";
@@ -5,6 +6,7 @@ import { collectionTextMatch } from "../../src/services/recipeSearchService";
 
 describe("FavoriteService Unit Tests", () => {
   beforeEach(() => {
+    jest.spyOn(db.FavoriteRecipe, "count").mockResolvedValue(0);
     jest.clearAllMocks();
   });
 
@@ -88,7 +90,7 @@ describe("FavoriteService Unit Tests", () => {
         },
       ];
 
-      jest.spyOn(db.FavoriteRecipe, "findAndCountAll").mockResolvedValue({
+      mockPage(db.FavoriteRecipe, {
         count: 1,
         rows: mockFavorites,
       });
@@ -116,7 +118,7 @@ describe("FavoriteService Unit Tests", () => {
     });
 
     test("thành công: người dùng chưa có món yêu thích nào trả về items rỗng (EC: 0)", async () => {
-      jest.spyOn(db.FavoriteRecipe, "findAndCountAll").mockResolvedValue({
+      mockPage(db.FavoriteRecipe, {
         count: 0,
         rows: [],
       });
@@ -161,7 +163,7 @@ describe("FavoriteService Unit Tests", () => {
 
     test("thất bại: lỗi kết nối cơ sở dữ liệu (EC: -1)", async () => {
       jest
-        .spyOn(db.FavoriteRecipe, "findAndCountAll")
+        .spyOn(db.FavoriteRecipe, "findAll")
         .mockRejectedValue(new Error("Database connection error"));
 
       const res = await favoriteService.getUserFavorites(10);
@@ -466,7 +468,7 @@ describe("FavoriteService Unit Tests", () => {
 describe("#100: favorites search at the database", () => {
   let favorites;
   beforeEach(() => {
-    favorites = jest.spyOn(db.FavoriteRecipe, "findAndCountAll").mockResolvedValue({ count: 13, rows: [] });
+    favorites = mockPage(db.FavoriteRecipe, { count: 13, rows: [] });
   });
   test.each(["search", "keyword"])("favorites searches title, joined author and personal notes using %s", async (alias) => {
     const result = await favoriteService.getUserFavorites(10, { [alias]: " pho ", page: 2, limit: 12 });
@@ -487,6 +489,7 @@ describe("#100: favorites search at the database", () => {
 
   test("empty keyword adds no favorites search clause", async () => {
     await favoriteService.getUserFavorites(10, { keyword: " " });
-    expect(favorites.mock.calls[0][0].where).toEqual({ userId: 10 });
+    expect(favorites.mock.calls[0][0].where).toMatchObject({ userId: 10 });
+    expect(favorites.mock.calls[0][0].where[Op.or]).toBeUndefined();
   });
 });

@@ -8,7 +8,6 @@ const migration = require("../src/migrations/14-add-recipe-search-indexes");
 const verify = async () => {
   const transaction = await db.sequelize.transaction();
   const query = db.sequelize.query.bind(db.sequelize);
-  const originalFind = db.Recipe.findAndCountAll;
   const statements = [];
   try {
     const run = (sql, options = {}) => query(sql, { ...options, transaction });
@@ -24,7 +23,7 @@ const verify = async () => {
         "createdAt" TIMESTAMPTZ DEFAULT NOW(), "updatedAt" TIMESTAMPTZ DEFAULT NOW()
       ) ON COMMIT DROP;
       CREATE TEMP TABLE "Users" (id INTEGER, username TEXT) ON COMMIT DROP;
-      CREATE TEMP TABLE "Categories" (id INTEGER, "categoryName" TEXT) ON COMMIT DROP;
+      CREATE TEMP TABLE "Categories" (id INTEGER, "categoryName" TEXT, "createdBy" INTEGER, "createdAt" TIMESTAMPTZ DEFAULT NOW(), "updatedAt" TIMESTAMPTZ DEFAULT NOW()) ON COMMIT DROP;
       CREATE TEMP TABLE "RecipeCategories" ("recipeId" INTEGER, "categoryId" INTEGER) ON COMMIT DROP;
       CREATE TEMP TABLE "Ingredients" (id INTEGER, "ingredientName" TEXT) ON COMMIT DROP;
       CREATE TEMP TABLE "RecipeIngredients" ("recipeId" INTEGER, "ingredientId" INTEGER, "customIngredientName" TEXT) ON COMMIT DROP;
@@ -43,11 +42,16 @@ const verify = async () => {
         (4, 1, NULL), (5, 1, NULL), (6, 1, NULL);
     `);
 
-    // Inject transaction chỉ trong script để tất cả truy vấn dùng cùng bảng TEMP.
-    db.Recipe.findAndCountAll = (options) => originalFind.call(db.Recipe, { ...options, transaction });
+    await run(`ALTER TABLE "Recipes" ADD COLUMN "searchTitle" TEXT;
+      ALTER TABLE "Ingredients" ADD COLUMN "searchIngredientName" TEXT;
+      ALTER TABLE "RecipeIngredients" ADD COLUMN "searchCustomIngredientName" TEXT;
+      UPDATE "Recipes" SET "searchTitle" = unaccent(title);
+      UPDATE "Ingredients" SET "searchIngredientName" = unaccent("ingredientName");
+      UPDATE "RecipeIngredients" SET "searchCustomIngredientName" = unaccent("customIngredientName");`);
+    // Keep COUNT, SELECT and category validation on the same TEMP connection.
     db.sequelize.query = (sql, options) => {
       statements.push({ sql, bind: options?.bind });
-      return query(sql, options);
+      return query(sql, { ...options, transaction });
     };
     const check = async (params, expectedIds, total = expectedIds.length) => {
       const start = statements.length;
@@ -55,7 +59,7 @@ const verify = async () => {
       assert.equal(result.EC, 0, result.EM);
       assert.deepEqual(result.DT.recipes.map((recipe) => recipe.recipeId), expectedIds);
       assert.equal(result.DT.total, total);
-      assert.equal(statements.length - start, 2, "Chỉ COUNT và SELECT, không prefetch ID");
+      assert.equal(statements.length - start, params.categoryId ? 3 : 2, "COUNT + SELECT, plus optional category validation");
       return result;
     };
     await check({ keyword: "bò" }, [1, 2, 3]);
@@ -102,7 +106,7 @@ const verify = async () => {
     const large = await check({ keyword: "bo", categoryId: 1, ingredientId: 1, limit: 10 },
       [100, 1000, 10000, 10001, 10002, 10003, 10004, 10005, 10006, 10007], 10001);
     assert.equal(large.DT.recipes.length, 10);
-    const select = statements.filter(({ sql }) => /^SELECT "Recipe"\.\*/.test(sql)).at(-1);
+    const select = statements.filter(({ sql }) => /^SELECT "Recipe"\.(?:\*|"id")/.test(sql)).at(-1);
     assert.ok(select, "Lấy SQL SELECT thực tế do Sequelize sinh");
     const [plan] = await run(`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${select.sql}`, { bind: select.bind });
     const indexesUsed = new Set();
@@ -118,7 +122,6 @@ const verify = async () => {
       indexesUsed: [...indexesUsed],
     }, null, 2));
   } finally {
-    db.Recipe.findAndCountAll = originalFind;
     db.sequelize.query = query;
     await transaction.rollback();
   }
