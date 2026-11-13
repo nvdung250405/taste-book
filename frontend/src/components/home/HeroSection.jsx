@@ -32,13 +32,19 @@ export default function HeroSection() {
     <section className="relative w-full h-[340px] sm:h-[420px] md:h-[500px] flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
+        <picture className="block h-full w-full">
+        <source type="image/webp" srcSet="/images/optimized/hero-bg-640.webp 640w, /images/optimized/hero-bg-1280.webp 1280w, /images/optimized/hero-bg-1920.webp 1920w" sizes="100vw" />
         <img
           src="/images/hero-bg.jpg"
           alt="Nền trang chủ TasteBook - Ẩm thực Việt Nam"
           className="w-full h-full object-cover"
           fetchPriority="high"
           loading="eager"
+          decoding="async"
+          width="1920"
+          height="1072"
         />
+        </picture>
         <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
       </div>
 
