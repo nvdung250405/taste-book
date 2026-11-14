@@ -1,5 +1,17 @@
 import db from "../models/index";
-import { Sequelize, Op } from "sequelize";
+import { Op } from "sequelize";
+
+// Aggregate favorites once, rank before loading author/category associations.
+export const TRENDING_RANK_SQL = `SELECT "Recipe"."id", "favorites"."favoriteCount"
+  FROM "Recipes" AS "Recipe"
+  INNER JOIN (
+    SELECT "recipeId", COUNT(*) AS "favoriteCount"
+    FROM "FavoriteRecipes" GROUP BY "recipeId"
+  ) AS "favorites" ON "favorites"."recipeId" = "Recipe"."id"
+  WHERE "Recipe"."isPublic" = TRUE AND "Recipe"."approvalStatus" = 'Approved'
+    AND "Recipe"."isDeleted" = FALSE
+  ORDER BY "favorites"."favoriteCount" DESC, "Recipe"."updatedAt" DESC, "Recipe"."id" DESC
+  LIMIT $limit`;
 
 /**
  * 4.0. GET /api/v1/home (UC-01: Lấy dữ liệu công thức Trang chủ)
@@ -38,7 +50,41 @@ const getHomeData = async (query = {}) => {
       },
     ];
 
-    // Chạy song song 2 truy vấn SQL bằng Promise.all để tối ưu thời gian phản hồi (< 200ms)
+    const favoriteCounts = new Map();
+    const getTrending = async () => {
+      const [ranked] = await db.sequelize.query(TRENDING_RANK_SQL, {
+        bind: { limit },
+      });
+      if (!ranked.length) return [];
+      for (const row of ranked)
+        favoriteCounts.set(Number(row.id), Number(row.favoriteCount));
+      const recipes = await db.Recipe.findAll({
+        where: {
+          ...whereCondition,
+          id: { [Op.in]: ranked.map((row) => row.id) },
+        },
+        attributes: [
+          "id",
+          "title",
+          "thumbnailUrl",
+          "cookTimeMinutes",
+          "difficulty",
+          "defaultServings",
+          "createdAt",
+          "updatedAt",
+        ],
+        include: commonInclude,
+      });
+      const positions = new Map(
+        ranked.map((row, index) => [Number(row.id), index]),
+      );
+      return recipes.sort(
+        (left, right) =>
+          positions.get(Number(left.id)) - positions.get(Number(right.id)),
+      );
+    };
+
+    // Independent latest and trending reads can run concurrently.
     const [latestList, trendingList] = await Promise.all([
       db.Recipe.findAll({
         where: whereCondition,
@@ -60,39 +106,7 @@ const getHomeData = async (query = {}) => {
         ],
         limit: limit,
       }),
-      db.Recipe.findAll({
-        where: {
-          ...whereCondition,
-          // Chỉ lấy các công thức thực sự có người yêu thích (favoriteCount > 0)
-          [Op.and]: [
-            Sequelize.literal(
-              '(SELECT COUNT(*) FROM "FavoriteRecipes" WHERE "FavoriteRecipes"."recipeId" = "Recipe"."id") > 0'
-            ),
-          ],
-        },
-        attributes: [
-          "id",
-          "title",
-          "thumbnailUrl",
-          "cookTimeMinutes",
-          "difficulty",
-          "defaultServings",
-          "createdAt",
-          "updatedAt",
-          [
-            Sequelize.literal(
-              '(SELECT COUNT(*) FROM "FavoriteRecipes" WHERE "FavoriteRecipes"."recipeId" = "Recipe"."id")'
-            ),
-            "favoriteCount",
-          ],
-        ],
-        include: commonInclude,
-        order: [
-          [Sequelize.literal('"favoriteCount"'), "DESC"],
-          ["updatedAt", "DESC"],
-        ],
-        limit: limit,
-      }),
+      getTrending(),
     ]);
 
     const formatRecipe = (recipe, isTrending = false) => {
@@ -117,7 +131,7 @@ const getHomeData = async (query = {}) => {
       };
 
       if (isTrending) {
-        item.favoriteCount = parseInt(recipe.get("favoriteCount") || 0, 10);
+        item.favoriteCount = favoriteCounts.get(Number(recipe.id)) || 0;
       }
 
       return item;

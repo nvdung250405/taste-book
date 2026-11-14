@@ -1,3 +1,4 @@
+import { mockPage } from "../helpers/mockPage";
 import recipeService from "../../src/services/recipeService";
 import db from "../../src/models/index";
 import { Op } from "sequelize";
@@ -359,7 +360,7 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
         const ingredientLookup = jest.spyOn(db.RecipeIngredient, "findAll").mockResolvedValue([]);
         const categoryLookup = jest.spyOn(db.RecipeCategory, "findAll").mockResolvedValue([]);
         jest.spyOn(db.Category, "findOne").mockResolvedValue({ id: 2, createdBy: null });
-        const query = jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({ count: 25, rows: [] });
+        const query = mockPage(db.Recipe, { count: 25, rows: [] });
 
         const result = await recipeService.getRecipes({ keyword, categoryId: "2", ingredientId: "3", page: "2", limit: "10" });
 
@@ -372,22 +373,22 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
         expect(options).toMatchObject({
           where: { isPublic: true, approvalStatus: "Approved", isDeleted: false },
           bind: { recipeSearchKeyword: `%${keyword}%`, recipeSearchCategoryId: 2, recipeSearchIngredientId: 3 },
-          limit: 10, offset: 10, distinct: true,
+          limit: 10, offset: 10,
           order: [["createdAt", "DESC"], ["id", "DESC"]],
         });
         const conditions = options.where[Op.and];
-        const ingredientSql = conditions[0][Op.or][1].val;
-        expect(ingredientSql).toContain("EXISTS");
+        const ingredientSql = conditions[0].val;
+        expect(ingredientSql).toContain("UNION");
         expect(ingredientSql).toContain('$recipeSearchKeyword');
         expect(ingredientSql).not.toContain(`%${keyword}%`);
-        expect(ingredientSql.includes("unaccent(")).toBe(keyword !== "bò");
+        expect(ingredientSql.includes("unaccent(")).toBe(true);
         expect(conditions[1].val).toContain('$recipeSearchCategoryId');
         expect(conditions[2].val).toContain('$recipeSearchIngredientId');
       },
     );
 
     test.each([{}, { keyword: "" }])("không tìm kiếm vẫn giữ phân trang mặc định: %j (#72)", async (params) => {
-      const query = jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({ count: 0, rows: [] });
+      const query = mockPage(db.Recipe, { count: 0, rows: [] });
       expect((await recipeService.getRecipes(params)).DT).toMatchObject({ recipes: [], total: 0, totalPages: 0 });
       expect(query.mock.calls[0][0]).toMatchObject({ bind: {}, limit: 10, offset: 0 });
       expect(query.mock.calls[0][0].where[Op.and]).toBeUndefined();
@@ -398,7 +399,7 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
         { recipeId: 101 },
       ]);
 
-      jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({
+      mockPage(db.Recipe, {
         count: 1,
         rows: [
           {

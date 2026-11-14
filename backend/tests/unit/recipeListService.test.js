@@ -217,7 +217,7 @@ describe("RecipeListService (mock DB only)", () => {
   });
   test("list response filters user and counts items", async () => {
     list.createdAt = "2026-10-13T00:00:00.000Z";
-    list.recipeListItems = [{ id: 10 }, { id: 11 }];
+    list.totalItems = "2";
     expect((await service.getRecipeLists(1)).DT).toEqual([{ recipeListId: 1, listName: "Menu", totalItems: 2, createdAt: list.createdAt }]);
     expect(db.RecipeList.findAll).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: 1 } }));
   });

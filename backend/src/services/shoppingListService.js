@@ -189,22 +189,28 @@ const generateShoppingList = async (userId, rawData = {}) => {
       where: {
         id: { [Op.in]: cleanIds },
       },
+      attributes: ["id", "userId", "listName"],
       include: [
         {
           model: db.RecipeListItem,
           as: "recipeListItems",
+          attributes: ["id", "recipeListId", "recipeId", "targetServings"],
           include: [
             {
               model: db.Recipe,
               as: "recipe",
               required: false,
+              attributes: ["id", "title", "defaultServings", "isDeleted"],
               include: [
                 {
                   model: db.RecipeIngredient,
                   as: "ingredients",
+                  // One batched read for all recipe IDs, including recipes shared by menus.
+                  separate: true,
+                  attributes: ["id", "recipeId", "ingredientId", "customIngredientName", "quantity", "unitId", "customUnit"],
                   include: [
-                    { model: db.Ingredient, as: "ingredient" },
-                    { model: db.Unit, as: "unitGroup" },
+                    { model: db.Ingredient, as: "ingredient", attributes: ["id", "ingredientName"] },
+                    { model: db.Unit, as: "unitGroup", attributes: ["id", "unitName"] },
                   ],
                 },
               ],

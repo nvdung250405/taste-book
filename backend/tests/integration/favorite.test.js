@@ -1,3 +1,4 @@
+import { mockPage } from "../helpers/mockPage";
 import request from "supertest";
 import app from "../../src/server";
 import { createJWT } from "../../src/middleware/JWTAction";
@@ -26,7 +27,7 @@ describe("Favorites API Integration Tests (Supertest)", () => {
     });
 
     test("GET /api/v1/favorites - trả về 200 và danh sách yêu thích kèm phân trang khi có token hợp lệ", async () => {
-      jest.spyOn(db.FavoriteRecipe, "findAndCountAll").mockResolvedValue({
+      mockPage(db.FavoriteRecipe, {
         count: 1,
         rows: [
           {
@@ -205,7 +206,7 @@ describe("#100: authenticated favorite search API", () => {
     jest.spyOn(db.User, "findOne").mockResolvedValue({ id: 10, role: "User" });
     jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({ count: 13, rows: [{ id: 101, title: "Phở bò" }] });
     jest.spyOn(db.Recipe, "findAll").mockResolvedValue([{ isPublic: true, approvalStatus: "Approved", count: "13" }]);
-    jest.spyOn(db.FavoriteRecipe, "findAndCountAll").mockResolvedValue({ count: 13, rows: [
+    mockPage(db.FavoriteRecipe, { count: 13, rows: [
       { recipeId: 101, recipe: { title: "Phở bò", author: { id: 2, username: "chef" } }, personalNotes: "ít muối" },
     ] });
   });
@@ -216,7 +217,7 @@ describe("#100: authenticated favorite search API", () => {
     expect(response.status).toBe(200);
     expect(response.body.DT).toMatchObject({ page: 2, limit: 12, total: 13, totalPages: 2,
       items: [{ recipeId: 101, author: { username: "chef" }, personalNotes: "ít muối" }] });
-    expect(db.FavoriteRecipe.findAndCountAll).toHaveBeenCalledWith(expect.objectContaining({ limit: 12, offset: 12 }));
+    expect(db.FavoriteRecipe.findAll).toHaveBeenCalledWith(expect.objectContaining({ limit: 12, offset: 12 }));
   });
 
   test.each([
@@ -227,7 +228,7 @@ describe("#100: authenticated favorite search API", () => {
     expect(response.body.EC).toBe(1);
     expect(db.Recipe.findAndCountAll).not.toHaveBeenCalled();
     expect(db.Recipe.findAll).not.toHaveBeenCalled();
-    expect(db.FavoriteRecipe.findAndCountAll).not.toHaveBeenCalled();
+    expect(db.FavoriteRecipe.findAll).not.toHaveBeenCalled();
   });
 
   test.each(["/favorites?search=pho"])("search still requires authentication: %s", async (path) => {

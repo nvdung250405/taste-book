@@ -146,31 +146,26 @@ const getRecipes = async (query = {}) => {
     let kw = (keyword || search || "").trim();
     if (kw) {
       let isAccented = hasVietnameseAccents(kw);
-      let titleCondition = isAccented
-        ? { title: { [Op.iLike]: `%${kw}%` } }
-        : Sequelize.where(
-            Sequelize.fn("unaccent", Sequelize.col("Recipe.title")),
-            { [Op.iLike]: Sequelize.fn("unaccent", `%${kw}%`) },
-          );
-
       bind.recipeSearchKeyword = `%${kw}%`;
-      const ingredientMatch = isAccented
-        ? `"searchIngredient"."customIngredientName" ILIKE $recipeSearchKeyword
-           OR "searchIngredientName"."ingredientName" ILIKE $recipeSearchKeyword`
-        : `unaccent("searchIngredient"."customIngredientName") ILIKE unaccent($recipeSearchKeyword)
-           OR unaccent("searchIngredientName"."ingredientName") ILIKE unaccent($recipeSearchKeyword)`;
-      const ingredientCondition = Sequelize.literal(`EXISTS (
-        SELECT 1 FROM "RecipeIngredients" AS "searchIngredient"
-        LEFT JOIN "Ingredients" AS "searchIngredientName"
-          ON "searchIngredientName"."id" = "searchIngredient"."ingredientId"
-        WHERE "searchIngredient"."recipeId" = "Recipe"."id"
-          AND (${ingredientMatch})
+      // Match each ingredient once, rather than re-running text matching for every recipe.
+      const ingredientCondition = Sequelize.literal(`"Recipe"."id" IN (
+        SELECT "searchRecipe"."id" FROM "Recipes" AS "searchRecipe"
+        WHERE "searchRecipe"."searchTitle" ILIKE unaccent($recipeSearchKeyword)
+          ${isAccented ? 'AND "searchRecipe"."title" ILIKE $recipeSearchKeyword' : ""}
+        UNION
+        SELECT "searchIngredient"."recipeId" FROM "RecipeIngredients" AS "searchIngredient"
+        WHERE "searchIngredient"."searchCustomIngredientName" ILIKE unaccent($recipeSearchKeyword)
+          ${isAccented ? 'AND "searchIngredient"."customIngredientName" ILIKE $recipeSearchKeyword' : ""}
+        UNION
+        SELECT "searchIngredient"."recipeId" FROM "Ingredients" AS "searchIngredientName"
+        INNER JOIN "RecipeIngredients" AS "searchIngredient"
+          ON "searchIngredient"."ingredientId" = "searchIngredientName"."id"
+        WHERE "searchIngredientName"."searchIngredientName" ILIKE unaccent($recipeSearchKeyword)
+          ${isAccented ? 'AND "searchIngredientName"."ingredientName" ILIKE $recipeSearchKeyword' : ""}
       )`);
 
       whereClause[Op.and] = whereClause[Op.and] || [];
-      whereClause[Op.and].push({
-        [Op.or]: [titleCondition, ingredientCondition],
-      });
+      whereClause[Op.and].push(ingredientCondition);
     }
 
     // 6. Lọc theo danh mục món ăn
@@ -221,29 +216,32 @@ const getRecipes = async (query = {}) => {
 
     // 8. Truy vấn cơ sở dữ liệu có phân trang và sắp xếp
     const offset = (pageNumber - 1) * limitNumber;
-    const { count, rows: recipes } = await db.Recipe.findAndCountAll({
-      where: whereClause,
-      bind,
-      include: [
-        {
-          model: db.User,
-          as: "author",
-          attributes: ["id", "username"],
-        },
-        {
-          model: db.Category,
-          as: "categories",
-          attributes: ["id", "categoryName"],
-          through: { attributes: [] },
-          where: { createdBy: null },
-          required: false,
-        },
-      ],
-      order: [[orderCol, orderDir], ["id", orderDir]],
-      limit: limitNumber,
-      offset: offset,
-      distinct: true,
-    });
+    const [count, recipes] = await Promise.all([
+      db.Recipe.count({ where: whereClause, bind }),
+      db.Recipe.findAll({
+        where: whereClause,
+        bind,
+        attributes: ["id", "title", "thumbnailUrl", "cookTimeMinutes", "difficulty", "defaultServings", "createdAt"],
+        include: [
+          {
+            model: db.User,
+            as: "author",
+            attributes: ["id", "username"],
+          },
+          {
+            model: db.Category,
+            as: "categories",
+            attributes: ["id", "categoryName"],
+            through: { attributes: [] },
+            where: { createdBy: null },
+            required: false,
+          },
+        ],
+        order: [[orderCol, orderDir], ["id", orderDir]],
+        limit: limitNumber,
+        offset: offset,
+      }),
+    ]);
 
     let formattedRecipes = recipes.map((recipe) => ({
       recipeId: recipe.id,
