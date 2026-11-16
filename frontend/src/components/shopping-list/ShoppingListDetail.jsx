@@ -185,7 +185,7 @@ export default function ShoppingListDetail({ list }) {
   if (query.isLoading)
     return (
       <div role="status" className="flex justify-center p-12">
-        <Loader2 className="size-6 animate-spin text-orange-500" />
+        <Loader2 className="size-6 animate-spin text-orange-700" />
         <span className="sr-only">Đang tải danh sách</span>
       </div>
     )
@@ -200,7 +200,7 @@ export default function ShoppingListDetail({ list }) {
           <span className="text-sm font-medium" aria-live="polite">
             Đã mua {purchased}/{items.length} mục
           </span>
-          <span role="status" className="text-xs text-slate-500">
+          <span role="status" className="text-xs text-slate-600">
             {pendingIds.size || clearing || adding ? 'Đang lưu…' : 'Đã đồng bộ'}
           </span>
         </div>
@@ -213,7 +213,7 @@ export default function ShoppingListDetail({ list }) {
           className="h-2 overflow-hidden rounded-full bg-orange-100 dark:bg-slate-800"
         >
           <div
-            className="h-full rounded-full bg-orange-500 transition-[width] duration-300 motion-reduce:transition-none"
+            className="h-full rounded-full bg-orange-700 transition-[width] duration-300 motion-reduce:transition-none"
             style={{
               width: `${items.length ? (purchased / items.length) * 100 : 0}%`,
             }}
@@ -232,7 +232,7 @@ export default function ShoppingListDetail({ list }) {
       )}
       <div className="space-y-2">
         {!items.length && (
-          <p className="py-8 text-center text-sm text-slate-500">
+          <p className="py-8 text-center text-sm text-slate-600">
             Danh sách trống. Thêm nguyên liệu cần mua bên dưới.
           </p>
         )}
@@ -249,7 +249,7 @@ export default function ShoppingListDetail({ list }) {
               className="size-6 shrink-0 accent-orange-500"
             />
             <span
-              className={`min-w-0 flex-1 break-words text-base transition-colors ${item.isPurchased ? 'text-slate-400 line-through decoration-2' : 'font-medium'}`}
+              className={`min-w-0 flex-1 break-words text-base transition-colors ${item.isPurchased ? 'text-slate-600 line-through decoration-2' : 'font-medium'}`}
             >
               {item.itemName}
               {conflicts.has(item.itemId) && (
@@ -258,7 +258,7 @@ export default function ShoppingListDetail({ list }) {
                 </span>
               )}
             </span>
-            <span className="max-w-[35%] break-words text-right text-sm text-slate-500">
+            <span className="max-w-[35%] break-words text-right text-sm text-slate-600">
               {item.totalQuantity === 0
                 ? ''
                 : Number(item.totalQuantity).toLocaleString('vi-VN', {
@@ -315,7 +315,7 @@ export default function ShoppingListDetail({ list }) {
         <Button
           type="submit"
           disabled={adding || clearing || !!pendingIds.size}
-          className="h-11 w-full bg-orange-500 text-white hover:bg-orange-600"
+          className="h-11 w-full bg-orange-700 text-white hover:bg-orange-800"
         >
           {adding ? (
             <Loader2 className="mr-2 size-4 animate-spin" />
@@ -359,7 +359,7 @@ export default function ShoppingListDetail({ list }) {
           <DialogHeader>
             <DialogTitle>Xóa {purchased} mục đã mua?</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-600">
             Các mục chưa mua sẽ được giữ lại. Thao tác xóa không thể hoàn tác.
           </p>
           <DialogFooter>

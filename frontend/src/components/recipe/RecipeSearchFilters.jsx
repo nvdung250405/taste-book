@@ -28,7 +28,7 @@ export default function RecipeSearchFilters({
       {/* Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="flex-1 relative flex items-center">
-          <Search className="absolute left-4 w-5 h-5 text-slate-400" />
+          <Search className="absolute left-4 w-5 h-5 text-slate-600" />
           <Input
             aria-label="Tìm kiếm công thức"
             value={inputValue}
@@ -40,7 +40,7 @@ export default function RecipeSearchFilters({
             <button
               type="button"
               onClick={() => updateFilters({ search: '' })}
-              className="absolute right-4 text-slate-400 hover:text-slate-600"
+              className="absolute right-4 text-slate-600 hover:text-slate-600"
               aria-label="Xóa từ khóa tìm kiếm"
             >
               <X className="w-5 h-5" />
@@ -91,7 +91,7 @@ export default function RecipeSearchFilters({
             <Button
               variant="ghost"
               onClick={clearAllFilters}
-              className="h-10 text-slate-500"
+              className="h-10 text-slate-600"
             >
               Xóa bộ lọc
             </Button>
@@ -109,7 +109,7 @@ export default function RecipeSearchFilters({
       <div className="flex gap-2 flex-wrap mb-8">
         <button
           onClick={() => handleCategoryChange('')}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${!selectedCategory ? 'bg-orange-500 text-white border-orange-500 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-300'}`}
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${!selectedCategory ? 'bg-orange-700 text-white border-orange-500 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-300'}`}
         >
           Tất cả danh mục
         </button>
@@ -120,7 +120,7 @@ export default function RecipeSearchFilters({
             <button
               key={id}
               onClick={() => handleCategoryChange(id)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${selectedCategory === id ? 'bg-orange-500 text-white border-orange-500 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-300'}`}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${selectedCategory === id ? 'bg-orange-700 text-white border-orange-500 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-300'}`}
             >
               {name}
             </button>

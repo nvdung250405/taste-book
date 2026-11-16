@@ -66,11 +66,11 @@ export default function AdminRoute({ children }) {
         <h1 className="text-2xl font-bold">
           Không thể kiểm tra quyền truy cập
         </h1>
-        <p className="text-slate-500">
+        <p className="text-slate-600">
           {error?.EM || 'Vui lòng thử lại để tải thông tin tài khoản.'}
         </p>
         <Button onClick={() => refetch()}>Thử lại</Button>
-        <Link to="/" className="text-orange-500 hover:underline">
+        <Link to="/" className="text-orange-700 hover:underline">
           Về trang chủ
         </Link>
       </div>

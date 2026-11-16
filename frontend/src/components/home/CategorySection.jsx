@@ -21,7 +21,7 @@ import { Skeleton } from '../ui/skeleton'
 const CATEGORY_STYLES = {
   1: { icon: <UtensilsCrossed className="w-6 h-6" />, color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' },        // Món chính
   2: { icon: <Soup className="w-6 h-6" />,            color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' },       // Món canh
-  3: { icon: <Flame className="w-6 h-6" />,           color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' }, // Món kho
+  3: { icon: <Flame className="w-6 h-6" />,           color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' }, // Món kho
   4: { icon: <Fish className="w-6 h-6" />,            color: 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400' }, // Món xào
   5: { icon: <Salad className="w-6 h-6" />,           color: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' },    // Bún - Mì - Phở
   6: { icon: <CakeSlice className="w-6 h-6" />,       color: 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400' },       // Khai vị & Ăn vặt
@@ -65,14 +65,14 @@ export default function CategorySection({ categories, loadingCats }) {
           <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
             Khám phá danh mục
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
             Lựa chọn món ăn theo sở thích của bạn
           </p>
         </div>
         <Button
           variant="ghost"
           onClick={() => navigate('/search')}
-          className="hidden sm:flex text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/50"
+          className="hidden sm:flex text-orange-700 hover:text-orange-800 hover:bg-orange-50 dark:hover:bg-orange-950/50"
         >
           Xem tất cả <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
@@ -85,26 +85,28 @@ export default function CategorySection({ categories, loadingCats }) {
         <div className="relative group/carousel">
           {/* Left arrow — overlay căn giữa với card */}
           <button
+            aria-label="Danh mục trước"
             onClick={() => scroll('left')}
             className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-20
               w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
               shadow-md items-center justify-center text-slate-600 dark:text-slate-300
-              hover:bg-orange-50 hover:text-orange-500 hover:border-orange-200
+              hover:bg-orange-50 hover:text-orange-800 hover:border-orange-200
               dark:hover:bg-orange-950/30 dark:hover:text-orange-400
-              opacity-0 group-hover/carousel:opacity-100 transition-all duration-200"
+              opacity-0 group-hover/carousel:opacity-100 focus-visible:opacity-100 transition-all duration-200"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
 
           {/* Right arrow — overlay căn giữa với card */}
           <button
+            aria-label="Danh mục tiếp theo"
             onClick={() => scroll('right')}
             className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-20
               w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
               shadow-md items-center justify-center text-slate-600 dark:text-slate-300
-              hover:bg-orange-50 hover:text-orange-500 hover:border-orange-200
+              hover:bg-orange-50 hover:text-orange-800 hover:border-orange-200
               dark:hover:bg-orange-950/30 dark:hover:text-orange-400
-              opacity-0 group-hover/carousel:opacity-100 transition-all duration-200"
+              opacity-0 group-hover/carousel:opacity-100 focus-visible:opacity-100 transition-all duration-200"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -147,7 +149,7 @@ export default function CategorySection({ categories, loadingCats }) {
         <Button
           variant="ghost"
           onClick={() => navigate('/search')}
-          className="text-orange-500 hover:text-orange-600"
+          className="text-orange-700 hover:text-orange-800"
         >
           Xem tất cả danh mục <ArrowRight className="w-4 h-4 ml-2" />
         </Button>

@@ -20,12 +20,12 @@ export default function FavoriteNoteDialog({
       <DialogContent className="max-w-md rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
-            <MessageSquare className="w-5 h-5 text-orange-500" /> Ghi chú cho
+            <MessageSquare className="w-5 h-5 text-orange-700" /> Ghi chú cho
             món ăn
           </DialogTitle>
         </DialogHeader>
         <div className="py-2">
-          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">
+          <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5 block">
             Ghi chú cá nhân (chỉ bạn nhìn thấy)
           </label>
           <textarea
@@ -44,7 +44,7 @@ export default function FavoriteNoteDialog({
             Hủy
           </Button>
           <Button
-            className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl"
+            className="bg-orange-700 hover:bg-orange-800 text-white rounded-xl"
             onClick={onSave}
             disabled={pending}
           >

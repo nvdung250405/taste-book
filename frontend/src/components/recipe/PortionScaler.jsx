@@ -16,7 +16,7 @@ export default function PortionScaler({ servings, onChange }) {
       <button
         type="button" disabled={servings <= 1}
         aria-label="Giảm khẩu phần" onClick={() => onChange(Math.max(1, servings - 1))}
-        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center shadow-sm hover:text-orange-500 transition-colors disabled:opacity-40"
+        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center shadow-sm hover:text-orange-800 transition-colors disabled:opacity-40"
       >
         <Minus className="w-3.5 h-3.5" />
       </button>
@@ -39,7 +39,7 @@ export default function PortionScaler({ servings, onChange }) {
       <button
         type="button" disabled={servings >= 100}
         aria-label="Tăng khẩu phần" onClick={() => onChange(Math.min(100, servings + 1))}
-        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center shadow-sm hover:text-orange-500 transition-colors disabled:opacity-40"
+        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center shadow-sm hover:text-orange-800 transition-colors disabled:opacity-40"
       >
         <Plus className="w-3.5 h-3.5" />
       </button>

@@ -41,7 +41,7 @@ export default function RecipeHero({ recipe, isFavorited, handleFavorite, disabl
         </button>
         <button
           onClick={handleShare}
-          className="w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-600 hover:text-orange-500 flex items-center justify-center backdrop-blur-md shadow transition-all"
+          className="w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-600 hover:text-orange-800 flex items-center justify-center backdrop-blur-md shadow transition-all"
           aria-label="Chia sẻ công thức"
         >
           <Share2 className="w-5 h-5" />

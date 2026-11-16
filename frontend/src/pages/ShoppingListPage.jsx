@@ -76,7 +76,7 @@ function CreateDialog({ onClose, onCreated }) {
             />
           </label>
           {titleError && <p id="shopping-title-error" role="alert" className="text-sm text-red-600">{titleError}</p>}
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-600">
             Chọn thực đơn để tổng hợp nguyên liệu theo khẩu phần.
           </p>
           {query.isLoading ? (
@@ -89,7 +89,7 @@ function CreateDialog({ onClose, onCreated }) {
           ) : !lists.length ? (
             <p className="text-sm">
               Chưa có thực đơn có món.{' '}
-              <Link to="/menu" className="text-orange-600 underline">
+              <Link to="/menu" className="text-orange-700 underline">
                 Lên lịch thực đơn
               </Link>
             </p>
@@ -125,7 +125,7 @@ function CreateDialog({ onClose, onCreated }) {
           <Button
             type="submit"
             disabled={!selected.length || mutation.isPending}
-            className="h-11 w-full bg-orange-500 text-white hover:bg-orange-600"
+            className="h-11 w-full bg-orange-700 text-white hover:bg-orange-800"
           >
             {mutation.isPending
               ? 'Đang tổng hợp…'
@@ -166,17 +166,17 @@ export default function ShoppingListPage() {
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 pb-24 sm:py-10">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="mb-2 text-xs font-semibold tracking-widest text-orange-500">
+          <p className="mb-2 text-xs font-semibold tracking-widest text-orange-700">
             MUA ĐỦ · NẤU NGON
           </p>
           <h1 className="text-2xl font-bold sm:text-3xl">Danh sách đi chợ</h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-600">
             Chạm để đánh dấu, bớt một điều phải nhớ.
           </p>
         </div>
         <Button
           onClick={() => setCreating(true)}
-          className="h-11 rounded-xl bg-orange-500 text-white hover:bg-orange-600"
+          className="h-11 rounded-xl bg-orange-700 text-white hover:bg-orange-800"
         >
           <Plus className="mr-2 size-4" />
           Tạo danh sách
@@ -196,7 +196,7 @@ export default function ShoppingListPage() {
         <div className="space-y-4 rounded-2xl border border-dashed border-slate-300 px-5 py-16 text-center dark:border-slate-700">
           <ShoppingCart className="mx-auto size-12 text-orange-400" />
           <h2 className="text-lg font-semibold">Sẵn sàng cho chuyến đi chợ?</h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-600">
             Tạo danh sách từ thực đơn, sau đó thêm những món cần mua ngoài công
             thức.
           </p>
@@ -226,7 +226,7 @@ export default function ShoppingListPage() {
                 <h2 className="break-words text-xl font-semibold">
                   {selected.title}
                 </h2>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-600">
                   {selected.status === 'Completed'
                     ? 'Chuyến đi đã hoàn thành'
                     : 'Đang mua sắm'}
@@ -235,7 +235,7 @@ export default function ShoppingListPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-11 shrink-0 text-slate-400 hover:text-red-500"
+                className="size-11 shrink-0 text-slate-600 hover:text-red-500"
                 aria-label="Xóa danh sách này"
                 disabled={statusChange.isPending}
                 onClick={() => setToDelete(selected)}
@@ -286,7 +286,7 @@ export default function ShoppingListPage() {
           <DialogHeader>
             <DialogTitle>Xóa danh sách đi chợ?</DialogTitle>
           </DialogHeader>
-          <p className="break-words text-sm text-slate-500">
+          <p className="break-words text-sm text-slate-600">
             Xóa “{toDelete?.title}” và toàn bộ các mục bên trong? Thao tác không
             thể hoàn tác.
           </p>
@@ -330,7 +330,7 @@ export default function ShoppingListPage() {
                 : 'Mở lại chuyến đi chợ?'}
             </DialogTitle>
           </DialogHeader>
-          <p className="break-words text-sm text-slate-500">
+          <p className="break-words text-sm text-slate-600">
             {statusTarget?.nextStatus === 'Completed'
               ? 'Chuyển chuyến đi sang trạng thái đã hoàn tất. Bạn vẫn có thể mở lại khi cần.'
               : 'Chuyển chuyến đi về trạng thái đang mua sắm.'}

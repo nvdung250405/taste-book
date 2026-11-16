@@ -104,7 +104,7 @@ export default function MyRecipesPage() {
       count: totals?.private,
       label: 'Riêng tư / Nháp',
       icon: Lock,
-      color: 'text-slate-500',
+      color: 'text-slate-600',
       activeColor:
         'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
     },
@@ -131,13 +131,13 @@ export default function MyRecipesPage() {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight">
             Công Thức Của Tôi
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">
+          <p className="text-slate-600 dark:text-slate-400 mt-2 text-sm sm:text-base">
             Quản lý, theo dõi trạng thái kiểm duyệt và cập nhật các món ăn của
             bạn
           </p>
         </div>
         <Button
-          className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-lg shadow-orange-500/20 px-5 py-2.5 font-medium transition-transform active:scale-95 shrink-0"
+          className="bg-orange-700 hover:bg-orange-800 text-white rounded-xl shadow-lg shadow-orange-500/20 px-5 py-2.5 font-medium transition-transform active:scale-95 shrink-0"
           asChild
         >
           <Link to="/recipe/create">
@@ -168,7 +168,7 @@ export default function MyRecipesPage() {
                   className={`w-4 h-4 ${
                     isActive
                       ? 'text-white dark:text-slate-900'
-                      : tab.color || 'text-slate-400'
+                      : tab.color || 'text-slate-600'
                   }`}
                 />
                 <span>{tab.label}</span>
@@ -189,7 +189,7 @@ export default function MyRecipesPage() {
         {/* Tìm kiếm nhanh */}
         {
           <div className="relative w-full md:w-64 shrink-0">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
             <input
               type="text"
               aria-label="Tìm công thức của bạn..."
@@ -201,7 +201,7 @@ export default function MyRecipesPage() {
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-600 hover:text-slate-600"
               >
                 Xóa
               </button>
@@ -211,7 +211,7 @@ export default function MyRecipesPage() {
       </div>
 
       {/* Content list */}
-      <div className="min-h-6 text-sm text-slate-500" role="status" aria-live="polite">
+      <div className="min-h-6 text-sm text-slate-600" role="status" aria-live="polite">
         {isPlaceholderData ? 'Đang tải danh sách công thức…' : ''}
       </div>
       <div aria-busy={isPlaceholderData} inert={isPlaceholderData} className={`min-h-80 ${isPlaceholderData ? 'opacity-60' : ''}`}>
@@ -232,12 +232,12 @@ export default function MyRecipesPage() {
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">
             Bạn chưa có công thức nào
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mt-2 mb-6">
+          <p className="text-slate-600 dark:text-slate-400 text-sm max-w-sm mt-2 mb-6">
             Hãy chia sẻ bí quyết và hương vị món ăn yêu thích của bạn đến với
             cộng đồng ẩm thực TasteBook!
           </p>
           <Button
-            className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-lg shadow-orange-500/20 px-6 py-2.5 font-medium transition-transform active:scale-95"
+            className="bg-orange-700 hover:bg-orange-800 text-white rounded-xl shadow-lg shadow-orange-500/20 px-6 py-2.5 font-medium transition-transform active:scale-95"
             asChild
           >
             <Link to="/recipe/create">
@@ -248,13 +248,13 @@ export default function MyRecipesPage() {
       ) : recipes.length === 0 ? (
         /* Empty State: Tab hoặc tìm kiếm không có kết quả */
         <div className="flex flex-col items-center justify-center py-16 px-4 text-center rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50">
-          <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3 text-slate-400">
+          <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3 text-slate-600">
             {activeTab === 'pending' ? (
               <Clock3 className="w-8 h-8 text-amber-500" />
             ) : activeTab === 'rejected' ? (
               <CheckCircle2 className="w-8 h-8 text-emerald-500" />
             ) : (
-              <Search className="w-8 h-8 text-slate-400" />
+              <Search className="w-8 h-8 text-slate-600" />
             )}
           </div>
           <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
@@ -268,7 +268,7 @@ export default function MyRecipesPage() {
                     ? 'Không có bản nháp hoặc công thức riêng tư'
                     : 'Không tìm thấy công thức phù hợp'}
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-sm">
             {searchQuery
               ? 'Hãy thử tìm kiếm bằng từ khóa khác hoặc xóa bộ lọc tìm kiếm.'
               : activeTab === 'rejected'

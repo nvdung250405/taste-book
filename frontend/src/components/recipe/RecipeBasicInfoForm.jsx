@@ -59,7 +59,7 @@ export default function RecipeBasicInfoForm({
     <Card className="border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
       <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 pb-4">
         <CardTitle className="text-xl flex items-center gap-2">
-          <ChefHat className="w-5 h-5 text-orange-500" /> Thông tin cơ bản
+          <ChefHat className="w-5 h-5 text-orange-700" /> Thông tin cơ bản
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
@@ -78,7 +78,7 @@ export default function RecipeBasicInfoForm({
                 <>
                   <img
                     src={formData.thumbnail}
-                    alt="Preview"
+                    alt="Xem trước ảnh công thức"
                     className="w-full h-full object-cover"
                     onError={(e) => (e.target.style.display = 'none')}
                   />
@@ -91,12 +91,12 @@ export default function RecipeBasicInfoForm({
               ) : (
                 <div className="text-center p-6">
                   <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mx-auto mb-4">
-                    <ImageIcon className="w-8 h-8 text-orange-500" />
+                    <ImageIcon className="w-8 h-8 text-orange-700" />
                   </div>
                   <p className="text-base font-medium text-slate-700 dark:text-slate-200 mb-1">
                     Tải ảnh lên
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-600">
                     Kéo thả hoặc bấm để chọn ảnh
                     <br />
                     PNG, JPG (Max 5MB)
@@ -116,7 +116,7 @@ export default function RecipeBasicInfoForm({
 
               {isUploading && (
                 <div className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 flex flex-col items-center justify-center backdrop-blur-sm z-10">
-                  <Loader2 className="w-8 h-8 text-orange-500 animate-spin mb-3" />
+                  <Loader2 className="w-8 h-8 text-orange-700 animate-spin mb-3" />
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     Đang xử lý ảnh...
                   </span>
@@ -133,7 +133,7 @@ export default function RecipeBasicInfoForm({
                 htmlFor="recipe-title"
                 className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
               >
-                Tên món ăn <span className="text-red-500">*</span>
+                Tên món ăn <span className="text-red-700">*</span>
               </label>
               <Input
                 id="recipe-title"
@@ -147,7 +147,7 @@ export default function RecipeBasicInfoForm({
               />
               <p
                 id="recipe-title-count"
-                className="mt-1 text-right text-xs text-slate-500"
+                className="mt-1 text-right text-xs text-slate-600"
               >
                 {formData.title.length}/255 ký tự
               </p>
@@ -283,14 +283,14 @@ export default function RecipeBasicInfoForm({
                 />
               )}
               {!categoriesError && fetchingCategories && !categories.length && (
-                <p role="status" className="text-sm text-slate-500">
+                <p role="status" className="text-sm text-slate-600">
                   Đang tải danh mục...
                 </p>
               )}
               {!categoriesError &&
                 !fetchingCategories &&
                 !categories.length && (
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-600">
                     {admin
                       ? 'Chưa có danh mục hệ thống. Hãy tạo tại trang Quản lý danh mục.'
                       : 'Chưa có danh mục. Bạn có thể tạo danh mục mới.'}
@@ -317,7 +317,7 @@ export default function RecipeBasicInfoForm({
                       }`}
                     >
                       {cat.categoryName || cat.name || cat.title}
-                      {cat.createdBy === null && <span className="ml-1 text-xs opacity-75">· Hệ thống</span>}
+                      {cat.createdBy === null && <span className="ml-1 text-xs">· Hệ thống</span>}
                     </button>
                   )
                 })}
@@ -344,7 +344,7 @@ export default function RecipeBasicInfoForm({
                     <span className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
                       Công khai công thức
                     </span>
-                    <span className="block text-xs text-slate-500 dark:text-slate-500 mt-0.5">
+                    <span className="block text-xs text-slate-600 dark:text-slate-500 mt-0.5">
                       Chia sẻ để mọi người cùng xem (bỏ chọn nếu muốn giữ riêng
                       tư)
                     </span>

@@ -132,7 +132,7 @@ function RecipeCard({ recipe, rank }) {
               className={`rounded-full w-8 h-8 backdrop-blur-sm relative z-10 transition-all hover:scale-110 active:scale-95 ${
                 isFavorited
                   ? 'bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-500/30'
-                  : 'bg-white/80 hover:bg-white text-slate-400 hover:text-red-500'
+                  : 'bg-white/80 hover:bg-white text-slate-600 hover:text-red-500'
               }`}
               aria-label={isFavorited ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
             >
@@ -144,12 +144,12 @@ function RecipeCard({ recipe, rank }) {
         <CardContent className="p-5">
           {/* Meta */}
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-1.5 text-orange-500">
+            <div className="flex items-center gap-1.5 text-orange-700">
               <Star className="w-4 h-4 fill-orange-500" />
               <span className="font-semibold">{recipe.rating || '4.5'}</span>
-              <span className="text-slate-400 text-sm">({recipe.reviews || 0})</span>
+              <span className="text-slate-600 text-sm">({recipe.reviews || 0})</span>
             </div>
-            <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
                 {recipe.cookTimeMinutes ? `${recipe.cookTimeMinutes}p` : recipe.prepTime || recipe.time || '30p'}
@@ -166,7 +166,7 @@ function RecipeCard({ recipe, rank }) {
           </div>
 
           {/* Title */}
-          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-2 line-clamp-1 group-hover:text-orange-500 transition-colors">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-2 line-clamp-1 group-hover:text-orange-800 transition-colors">
             <Link to={`/recipe/${recipe.recipeId || recipe.id || recipe._id}`} className="after:absolute after:inset-0">
               {recipe.title}
             </Link>
@@ -174,7 +174,7 @@ function RecipeCard({ recipe, rank }) {
 
           {/* Author */}
           <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 font-bold text-xs uppercase">
+            <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-700 font-bold text-xs uppercase">
               {(recipe.author?.username || recipe.author?.name || recipe.user?.username || recipe.user?.name || 'C').charAt(0)}
             </div>
             <span className="text-sm font-medium text-slate-600 dark:text-slate-300 line-clamp-1">
@@ -198,14 +198,14 @@ export function LatestRecipesSection({ recipes, isLoading }) {
           <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
             Công thức mới nhất
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
             Những công thức vừa được chia sẻ từ cộng đồng
           </p>
         </div>
         <Button
           variant="ghost"
           onClick={() => navigate('/search')}
-          className="hidden sm:flex text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/50"
+          className="hidden sm:flex text-orange-700 hover:text-orange-800 hover:bg-orange-50 dark:hover:bg-orange-950/50"
         >
           Xem tất cả <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
@@ -214,7 +214,7 @@ export function LatestRecipesSection({ recipes, isLoading }) {
       {isLoading ? (
         <RecipeSkeletonGrid count={6} />
       ) : recipes.length === 0 ? (
-        <div className="text-center py-12 text-slate-500">Chưa có công thức nào.</div>
+        <div className="text-center py-12 text-slate-600">Chưa có công thức nào.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {recipes.map((recipe) => (
@@ -238,19 +238,19 @@ export function TrendingRecipesSection({ recipes, isLoading }) {
             <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
               Món ngon thịnh hành
             </h2>
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
               <Sparkles className="w-3 h-3" />
               HOT
             </span>
           </div>
-          <p className="text-slate-500 dark:text-slate-400">
+          <p className="text-slate-600 dark:text-slate-400">
             Những công thức được lưu yêu thích nhiều nhất
           </p>
         </div>
         <Button
           variant="ghost"
           onClick={() => navigate('/search')}
-          className="hidden sm:flex text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/50"
+          className="hidden sm:flex text-orange-700 hover:text-orange-800 hover:bg-orange-50 dark:hover:bg-orange-950/50"
         >
           Xem tất cả <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
@@ -259,7 +259,7 @@ export function TrendingRecipesSection({ recipes, isLoading }) {
       {isLoading ? (
         <RecipeSkeletonGrid count={6} />
       ) : recipes.length === 0 ? (
-        <div className="text-center py-12 text-slate-500">Chưa có công thức nào.</div>
+        <div className="text-center py-12 text-slate-600">Chưa có công thức nào.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {recipes.map((recipe, idx) => (

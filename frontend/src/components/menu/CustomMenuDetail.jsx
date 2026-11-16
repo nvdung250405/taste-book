@@ -55,7 +55,7 @@ export default function CustomMenuDetail({ list, onClose }) {
       ) : query.isError ? (
         <QueryError onRetry={query.refetch} isRetrying={query.isFetching} />
       ) : !query.data?.DT?.items?.length ? (
-        <p className="py-6 text-sm text-slate-500">
+        <p className="py-6 text-sm text-slate-600">
           Thực đơn chưa có món ăn. Chọn “Thêm món” để bắt đầu.
         </p>
       ) : (
@@ -69,11 +69,11 @@ export default function CustomMenuDetail({ list, onClose }) {
               <div className="min-w-0 flex-1 basis-40">
               {item.isRecipeDeleted ? <div className="min-w-0 flex-1 break-words font-medium">{item.title}<span className="ml-2 rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">Công thức đã bị xóa</span></div> : <Link
                 to={`/recipe/${item.recipeId}`}
-                className="min-w-0 flex-1 break-words font-medium hover:text-orange-600"
+                className="min-w-0 flex-1 break-words font-medium hover:text-orange-800"
               >
                 {item.title}
               </Link>}
-              <p className="mt-1 break-words text-sm text-slate-500">{item.cookTimeMinutes} phút · {({ Easy: 'Dễ', Medium: 'Trung bình', Hard: 'Khó' })[item.difficulty] || item.difficulty} · {item.authorName}</p>
+              <p className="mt-1 break-words text-sm text-slate-600">{item.cookTimeMinutes} phút · {({ Easy: 'Dễ', Medium: 'Trung bình', Hard: 'Khó' })[item.difficulty] || item.difficulty} · {item.authorName}</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <label className="flex items-center gap-2 text-sm">

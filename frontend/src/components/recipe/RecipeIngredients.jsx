@@ -7,14 +7,14 @@ export default function RecipeIngredients({ ingredients, actualServings, setServ
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">
           Nguyên liệu
-          <span className="ml-2 text-base font-normal text-slate-500">({ingredients.length} loại)</span>
+          <span className="ml-2 text-base font-normal text-slate-600">({ingredients.length} loại)</span>
         </h2>
         {/* Servings adjuster */}
         <PortionScaler servings={actualServings} onChange={setServings} />
       </div>
 
       {ingredients.length === 0 ? (
-        <p className="text-slate-400 text-sm">Chưa có thông tin nguyên liệu.</p>
+        <p className="text-slate-600 text-sm">Chưa có thông tin nguyên liệu.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {ingredients.map((ing, idx) => {
@@ -29,7 +29,7 @@ export default function RecipeIngredients({ ingredients, actualServings, setServ
                 <div className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
                 <span className="flex-1 text-slate-700 dark:text-slate-300 text-sm">{name}</span>
                 {(qty || unit) && (
-                  <span className="text-sm font-semibold text-orange-600 dark:text-orange-400 shrink-0">
+                  <span className="text-sm font-semibold text-orange-700 dark:text-orange-400 shrink-0">
                     {qty} {unit}
                   </span>
                 )}

@@ -89,7 +89,7 @@ export default function RecipeFormPage({ admin = false }) {
         className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center"
       >
         <h1 className="text-2xl font-bold">Không thể tải công thức</h1>
-        <p className="text-slate-500">
+        <p className="text-slate-600">
           Vui lòng thử lại để chỉnh sửa công thức.
         </p>
         <div className="flex gap-3">
@@ -384,7 +384,7 @@ function RecipeForm({ id, recipe, admin }) {
                 ? 'Chỉnh sửa công thức'
                 : 'Tạo công thức mới'}
           </h1>
-          <p className="text-slate-500 mt-1">
+          <p className="text-slate-600 mt-1">
             {admin
               ? 'Công thức hệ thống được công khai và duyệt ngay sau khi lưu.'
               : 'Chia sẻ công thức nấu ăn của bạn với mọi người'}

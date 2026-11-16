@@ -162,7 +162,7 @@ export default function MasterDataFormDialog({
             <Button
               type="submit"
               disabled={pending}
-              className="rounded-xl bg-orange-600 text-white hover:bg-orange-700"
+              className="rounded-xl bg-orange-700 text-white hover:bg-orange-700"
             >
               {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {pending ? 'Đang lưu…' : 'Lưu'}

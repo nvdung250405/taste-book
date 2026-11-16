@@ -109,7 +109,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
 
       {/* Card Content */}
       <CardContent className="p-4 sm:p-5 flex flex-col flex-1">
-        <h2 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-2 mb-2 text-base sm:text-lg group-hover:text-orange-500 transition-colors">
+        <h2 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-2 mb-2 text-base sm:text-lg group-hover:text-orange-800 transition-colors">
           <Link
             to={locked ? `/recipe/${rId}` : `/recipe/${rId}/edit`}
             className="hover:underline"
@@ -119,9 +119,9 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
         </h2>
 
         {/* Meta info */}
-        <div className="flex items-center gap-4 text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-3">
+        <div className="flex items-center gap-4 text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-3">
           <div className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <Clock className="w-3.5 h-3.5 text-slate-600" />
             <span>
               {recipe.cookTimeMinutes || recipe.prepTime || recipe.time || '30'}
               p
@@ -129,7 +129,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
           </div>
 
           <div className="flex items-center gap-1">
-            <ChefHat className="w-3.5 h-3.5 text-slate-400" />
+            <ChefHat className="w-3.5 h-3.5 text-slate-600" />
             <span>
               {recipe.difficulty === 'Easy'
                 ? 'Dễ'
@@ -141,7 +141,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
 
           {recipe.defaultServings && (
             <div className="flex items-center gap-1">
-              <Users className="w-3.5 h-3.5 text-slate-400" />
+              <Users className="w-3.5 h-3.5 text-slate-600" />
               <span>{recipe.defaultServings} người</span>
             </div>
           )}
@@ -189,7 +189,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
           <Button
             size="sm"
             variant="outline"
-            className="flex-1 rounded-xl hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-950/30 text-xs font-medium"
+            className="flex-1 rounded-xl hover:bg-orange-50 hover:text-orange-800 hover:border-orange-200 dark:hover:bg-orange-950/30 text-xs font-medium"
             asChild
           >
             <Link to={`/recipe/${rId}/edit`}>

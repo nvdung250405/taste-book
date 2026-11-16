@@ -8,7 +8,7 @@ export default function ForgotPasswordPage() {
       <div className="rounded-2xl border bg-white p-6 text-center sm:p-10 dark:bg-slate-900">
         <KeyRound
           aria-hidden="true"
-          className="mx-auto mb-5 size-10 text-orange-600"
+          className="mx-auto mb-5 size-10 text-orange-700"
         />
         <h1 className="text-2xl font-bold">Quên mật khẩu?</h1>
         <p className="my-5 text-sm leading-6 text-slate-600 dark:text-slate-400">

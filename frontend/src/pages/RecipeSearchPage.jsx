@@ -210,7 +210,7 @@ export default function RecipeSearchPage() {
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
           Tìm kiếm công thức
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">
+        <p className="text-slate-600 dark:text-slate-400 mt-2 text-sm sm:text-base">
           Khám phá hàng nghìn công thức nấu ăn ngon được chia sẻ từ cộng đồng
         </p>
       </div>
@@ -253,13 +253,13 @@ export default function RecipeSearchPage() {
           <h3 className="text-xl font-semibold text-slate-700 dark:text-slate-300">
             Không tìm thấy công thức
           </h3>
-          <p className="text-slate-500 text-sm max-w-sm text-center">
+          <p className="text-slate-600 text-sm max-w-sm text-center">
             Rất tiếc, không có món ăn nào khớp với bộ lọc của bạn. Vui lòng thử
             từ khóa hoặc tiêu chí khác.
           </p>
           <Button
             onClick={clearAllFilters}
-            className="mt-2 bg-orange-500 hover:bg-orange-600 text-white"
+            className="mt-2 bg-orange-700 hover:bg-orange-800 text-white"
           >
             Xóa toàn bộ bộ lọc
           </Button>
@@ -267,9 +267,9 @@ export default function RecipeSearchPage() {
       ) : (
         <>
           <div className="flex items-center justify-between mb-6">
-            <p className="text-sm font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
+            <p className="text-sm font-medium text-slate-600 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
               Tìm thấy{' '}
-              <span className="text-orange-600 font-bold">{totalItems}</span>{' '}
+              <span className="text-orange-700 font-bold">{totalItems}</span>{' '}
               công thức
             </p>
           </div>
@@ -331,7 +331,7 @@ export default function RecipeSearchPage() {
                             recipe.recipeId || recipe.id || recipe._id,
                           )
                             ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/40'
-                            : 'bg-white/90 hover:bg-white text-slate-400 hover:text-red-500'
+                            : 'bg-white/90 hover:bg-white text-slate-600 hover:text-red-500'
                         }`}
                         aria-label={
                           isFavorited(
@@ -365,7 +365,7 @@ export default function RecipeSearchPage() {
                     </div>
 
                     <CardContent className="p-5 flex flex-col flex-1">
-                      <h3 className="font-bold text-lg text-slate-900 dark:text-slate-50 line-clamp-2 group-hover:text-orange-500 transition-colors mb-4 flex-1">
+                      <h3 className="font-bold text-lg text-slate-900 dark:text-slate-50 line-clamp-2 group-hover:text-orange-800 transition-colors mb-4 flex-1">
                         <Link
                           to={recipeUrl}
                           onClick={(e) => e.stopPropagation()}
@@ -374,7 +374,7 @@ export default function RecipeSearchPage() {
                         </Link>
                       </h3>
 
-                      <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                      <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
                         <div className="flex items-center gap-1.5">
                           <Clock className="w-4 h-4" />
                           <span>
@@ -431,7 +431,7 @@ export default function RecipeSearchPage() {
                           currentPage === pageNumber ? 'default' : 'ghost'
                         }
                         onClick={() => handlePageChange(pageNumber)}
-                        className={`w-10 h-10 rounded-xl font-medium ${currentPage === pageNumber ? 'bg-orange-500 text-white hover:bg-orange-600' : 'text-slate-600 hover:bg-slate-100'}`}
+                        className={`w-10 h-10 rounded-xl font-medium ${currentPage === pageNumber ? 'bg-orange-700 text-white hover:bg-orange-800' : 'text-slate-600 hover:bg-slate-100'}`}
                       >
                         {pageNumber}
                       </Button>
@@ -441,7 +441,7 @@ export default function RecipeSearchPage() {
                     pageNumber === currentPage + 2
                   ) {
                     return (
-                      <span key={pageNumber} className="px-2 text-slate-400">
+                      <span key={pageNumber} className="px-2 text-slate-600">
                         ...
                       </span>
                     )

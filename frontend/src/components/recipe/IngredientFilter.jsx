@@ -98,13 +98,13 @@ export default function IngredientFilter({ value, onChange }) {
                       role="option"
                       aria-selected={String(item.ingredientId) === value}
                       onClick={() => choose(String(item.ingredientId))}
-                      className={`block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-orange-50 focus:bg-orange-50 dark:hover:bg-slate-800 dark:focus:bg-slate-800 ${String(item.ingredientId) === value ? 'font-semibold text-orange-600' : ''}`}
+                      className={`block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-orange-50 focus:bg-orange-50 dark:hover:bg-slate-800 dark:focus:bg-slate-800 ${String(item.ingredientId) === value ? 'font-semibold text-orange-700' : ''}`}
                     >
                       {item.ingredientName}
                     </button>
                   ))
                 ) : (
-                  <p className="p-3 text-sm text-slate-500">
+                  <p className="p-3 text-sm text-slate-600">
                     Không tìm thấy nguyên liệu.
                   </p>
                 )}

@@ -29,7 +29,7 @@ export default function RecipeSidebar({
               <p className="font-semibold text-slate-900 dark:text-slate-50">
                 {author.name || 'TasteBook Chef'}
               </p>
-              <p className="text-xs text-slate-500">{author.email || ''}</p>
+              <p className="text-xs text-slate-600">{author.email || ''}</p>
             </div>
           </div>
         </CardContent>
@@ -38,7 +38,7 @@ export default function RecipeSidebar({
       {/* Action buttons */}
       <div className="space-y-2">
         <Button
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-xl gap-2"
+          className="w-full bg-orange-700 hover:bg-orange-800 text-white rounded-xl gap-2"
           onClick={handleFavorite}
           disabled={disabledBtn}
         >
@@ -71,7 +71,7 @@ export default function RecipeSidebar({
             <div className="space-y-2">
               {Object.entries(recipe.nutrition).map(([key, val]) => (
                 <div key={key} className="flex justify-between text-sm">
-                  <span className="text-slate-500 capitalize">{key}</span>
+                  <span className="text-slate-600 capitalize">{key}</span>
                   <span className="font-medium text-slate-700 dark:text-slate-300">
                     {val}
                   </span>

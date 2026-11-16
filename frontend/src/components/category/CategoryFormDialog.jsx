@@ -45,7 +45,7 @@ export default function CategoryFormDialog({ category, onClose, onCreated }) {
           {error && <p id={`${inputId}-error`} role="alert" className="text-sm text-red-600">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={pending}>Hủy</Button>
-            <Button type="submit" disabled={pending} className="bg-orange-500 hover:bg-orange-600">{pending ? 'Đang lưu…' : 'Lưu danh mục'}</Button>
+            <Button type="submit" disabled={pending} className="bg-orange-700 hover:bg-orange-800">{pending ? 'Đang lưu…' : 'Lưu danh mục'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

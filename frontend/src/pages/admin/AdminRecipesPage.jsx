@@ -97,7 +97,7 @@ export default function AdminRecipesPage() {
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Quản lý công thức chuẩn
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-600">
             Công thức đã duyệt từ hệ thống và cộng đồng. Chỉ được sửa/xóa bài do
             Admin tạo.
           </p>
@@ -120,7 +120,7 @@ export default function AdminRecipesPage() {
           </Button>
           <Button
             asChild
-            className="rounded-xl bg-orange-600 text-white hover:bg-orange-700"
+            className="rounded-xl bg-orange-700 text-white hover:bg-orange-700"
           >
             <Link to="/admin/recipes/create">
               <Plus className="h-4 w-4" />
@@ -159,7 +159,7 @@ export default function AdminRecipesPage() {
       )}
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
           <Input
             aria-label="Tìm công thức chuẩn"
             value={searchQuery}
@@ -219,7 +219,7 @@ export default function AdminRecipesPage() {
               <caption className="sr-only">
                 Danh sách công thức chuẩn hệ thống
               </caption>
-              <thead className="border-b bg-slate-50 text-slate-500 dark:bg-slate-900">
+              <thead className="border-b bg-slate-50 text-slate-600 dark:bg-slate-900">
                 <tr>
                   {[
                     'Công thức',
@@ -248,7 +248,7 @@ export default function AdminRecipesPage() {
                   </tr>
                 ) : !recipes.length ? (
                   <tr>
-                    <td colSpan={6} className="p-12 text-center text-slate-500">
+                    <td colSpan={6} className="p-12 text-center text-slate-600">
                       {search || difficulty || maxTime
                         ? 'Không tìm thấy công thức phù hợp.'
                         : 'Chưa có công thức chuẩn. Hãy thêm công thức đầu tiên.'}
@@ -263,7 +263,7 @@ export default function AdminRecipesPage() {
                       <td className="px-4 py-3">
                         <Link
                           to={`/recipe/${recipe.recipeId}`}
-                          className="flex items-center gap-3 hover:text-orange-600"
+                          className="flex items-center gap-3 hover:text-orange-800"
                         >
                           <img
                             {...recipeImageProps(recipe.thumbnailUrl)}
@@ -274,7 +274,7 @@ export default function AdminRecipesPage() {
                           />
                           <div className="max-w-64 break-words font-medium">
                             {recipe.title}
-                            <span className="mt-1 block text-xs font-normal text-slate-500">
+                            <span className="mt-1 block text-xs font-normal text-slate-600">
                               #{recipe.recipeId} · Đã duyệt
                             </span>
                           </div>
@@ -347,7 +347,7 @@ export default function AdminRecipesPage() {
           </div>
           {!loading && (
             <div className="flex flex-wrap items-center justify-between gap-3 border-t p-4 [&_nav]:mt-0">
-              <p className="text-sm text-slate-500" aria-live="polite">
+              <p className="text-sm text-slate-600" aria-live="polite">
                 {recipes.length ? (page - 1) * 10 + 1 : 0}–
                 {Math.min(page * 10, recipes.length)} / {recipes.length} công
                 thức

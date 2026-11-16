@@ -31,16 +31,16 @@ function MyCategories() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div><h1 className="text-3xl font-bold flex items-center gap-3"><FolderHeart className="text-orange-500" />Danh mục của tôi</h1><p className="text-slate-500 mt-2">Sắp xếp công thức theo các danh mục riêng của bạn.</p></div>
-        <Button onClick={() => setEditor({})} className="bg-orange-500 hover:bg-orange-600"><Plus />Thêm danh mục</Button>
+        <div><h1 className="text-3xl font-bold flex items-center gap-3"><FolderHeart className="text-orange-700" />Danh mục của tôi</h1><p className="text-slate-600 mt-2">Sắp xếp công thức theo các danh mục riêng của bạn.</p></div>
+        <Button onClick={() => setEditor({})} className="bg-orange-700 hover:bg-orange-800"><Plus />Thêm danh mục</Button>
       </div>
       {isPending ? <div role="status" className="flex justify-center py-16"><Loader2 className="animate-spin" /><span className="sr-only">Đang tải danh mục</span></div> : isError && !data ?
         <QueryError title="Không thể tải danh mục cá nhân" onRetry={refetch} isRetrying={isFetching} /> : categories.length === 0 ?
-        <div className="rounded-2xl border border-dashed p-10 text-center space-y-3"><FolderHeart className="mx-auto w-12 h-12 text-orange-400" /><h2 className="text-xl font-semibold">Bạn chưa có danh mục cá nhân</h2><p className="text-slate-500">Tạo danh mục để dễ chọn khi viết công thức.</p><Button variant="outline" onClick={() => setEditor({})}>Tạo danh mục đầu tiên</Button></div> :
+        <div className="rounded-2xl border border-dashed p-10 text-center space-y-3"><FolderHeart className="mx-auto w-12 h-12 text-orange-400" /><h2 className="text-xl font-semibold">Bạn chưa có danh mục cá nhân</h2><p className="text-slate-600">Tạo danh mục để dễ chọn khi viết công thức.</p><Button variant="outline" onClick={() => setEditor({})}>Tạo danh mục đầu tiên</Button></div> :
         <div className="grid sm:grid-cols-2 gap-4">{categories.map(category => (
           <div key={category.categoryId} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 bg-white dark:bg-slate-900">
             <h2 className="font-semibold break-words min-w-0">{category.categoryName}</h2>
-            <div className="flex shrink-0 gap-1"><Button size="icon" variant="ghost" aria-label={`Sửa ${category.categoryName}`} onClick={() => setEditor(category)}><Pencil className="w-4 h-4" /></Button><Button size="icon" variant="ghost" className="text-red-500" aria-label={`Xóa ${category.categoryName}`} onClick={() => { setDeleting(category); setDeleteError('') }}><Trash2 className="w-4 h-4" /></Button></div>
+            <div className="flex shrink-0 gap-1"><Button size="icon" variant="ghost" aria-label={`Sửa ${category.categoryName}`} onClick={() => setEditor(category)}><Pencil className="w-4 h-4" /></Button><Button size="icon" variant="ghost" className="text-red-700" aria-label={`Xóa ${category.categoryName}`} onClick={() => { setDeleting(category); setDeleteError('') }}><Trash2 className="w-4 h-4" /></Button></div>
           </div>
         ))}</div>}
       {editor && <CategoryFormDialog category={editor.categoryId ? editor : null} onClose={() => setEditor(null)} />}

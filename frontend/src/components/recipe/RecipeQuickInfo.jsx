@@ -6,26 +6,26 @@ export default function RecipeQuickInfo({ recipe, actualServings }) {
     <Card className="border-slate-200 dark:border-slate-800">
       <CardContent className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="flex flex-col items-center gap-1 text-center">
-          <Star className="w-5 h-5 text-orange-500 fill-orange-400" />
+          <Star className="w-5 h-5 text-orange-700 fill-orange-400" />
           <span className="text-lg font-bold text-slate-900 dark:text-slate-50">{recipe.rating || '—'}</span>
-          <span className="text-xs text-slate-500">{recipe.reviews || 0} đánh giá</span>
+          <span className="text-xs text-slate-600">{recipe.reviews || 0} đánh giá</span>
         </div>
         <div className="flex flex-col items-center gap-1 text-center">
           <Clock className="w-5 h-5 text-blue-500" />
           <span className="text-lg font-bold text-slate-900 dark:text-slate-50">{recipe.cookTimeMinutes || recipe.prepTime || recipe.time || '—'}</span>
-          <span className="text-xs text-slate-500">Thời gian (phút)</span>
+          <span className="text-xs text-slate-600">Thời gian (phút)</span>
         </div>
         <div className="flex flex-col items-center gap-1 text-center">
           <ChefHat className="w-5 h-5 text-purple-500" />
           <span className="text-lg font-bold text-slate-900 dark:text-slate-50">
             {recipe.difficulty === 'Easy' ? 'Dễ' : recipe.difficulty === 'Medium' ? 'Trung bình' : recipe.difficulty === 'Hard' ? 'Khó' : recipe.difficulty || '—'}
           </span>
-          <span className="text-xs text-slate-500">Độ khó</span>
+          <span className="text-xs text-slate-600">Độ khó</span>
         </div>
         <div className="flex flex-col items-center gap-1 text-center">
           <Users className="w-5 h-5 text-green-500" />
           <span className="text-lg font-bold text-slate-900 dark:text-slate-50">{actualServings}</span>
-          <span className="text-xs text-slate-500">Khẩu phần</span>
+          <span className="text-xs text-slate-600">Khẩu phần</span>
         </div>
       </CardContent>
     </Card>

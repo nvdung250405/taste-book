@@ -32,7 +32,7 @@ export default function RecipeDeleteDialog({
             "{recipe?.title}"
           </span>
           ?
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
             Hành động này sẽ xóa vĩnh viễn dữ liệu công thức, nguyên liệu và các
             bước hướng dẫn. Không thể hoàn tác.
           </p>

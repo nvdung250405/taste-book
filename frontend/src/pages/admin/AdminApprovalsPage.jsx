@@ -144,7 +144,7 @@ function ReviewDialog({ recipe, status, rejectInitially = false, onClose }) {
                 key={step.stepNumber || index}
                 className="rounded-lg border p-3 text-sm whitespace-pre-wrap break-words"
               >
-                <span className="font-semibold text-orange-600">
+                <span className="font-semibold text-orange-700">
                   Bước {step.stepNumber || index + 1}.{' '}
                 </span>
                 {step.instruction}
@@ -285,7 +285,7 @@ export default function AdminApprovalsPage() {
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Kiểm duyệt công thức
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-600">
             Xem nội dung, duyệt và tuyển chọn công thức từ cộng đồng.
           </p>
         </div>
@@ -328,7 +328,7 @@ export default function AdminApprovalsPage() {
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-0 flex-1">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-600" />
           <Input
             aria-label="Tìm công thức hoặc tác giả"
             placeholder="Tìm theo tên món hoặc tác giả…"
@@ -341,14 +341,14 @@ export default function AdminApprovalsPage() {
               type="button"
               aria-label="Xóa tìm kiếm"
               onClick={() => setSearch('')}
-              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-2 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <X className="h-4 w-4" />
             </button>
           )}
         </div>
       </div>
-      <p role="status" className="text-sm text-slate-500">
+      <p role="status" className="text-sm text-slate-600">
         {query.isFetching
           ? 'Đang cập nhật danh sách…'
           : 'Danh sách tự cập nhật mỗi 30 giây và sau khi kiểm duyệt.'}
@@ -373,7 +373,7 @@ export default function AdminApprovalsPage() {
               : 'Không có công thức ở trạng thái ' +
                 statusLabels[status].toLocaleLowerCase('vi')}
           </h2>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-600">
             {recipes.length
               ? 'Thử tìm theo tên món hoặc tác giả khác.'
               : 'Các công thức mới gửi sẽ tự động xuất hiện tại đây.'}
@@ -386,7 +386,7 @@ export default function AdminApprovalsPage() {
               <caption className="sr-only">
                 Danh sách công thức · {statusLabels[status]}
               </caption>
-              <thead className="border-b bg-slate-50 text-slate-500 dark:bg-slate-900">
+              <thead className="border-b bg-slate-50 text-slate-600 dark:bg-slate-900">
                 <tr>
                   {[
                     'Công thức',
@@ -424,7 +424,7 @@ export default function AdminApprovalsPage() {
                           <p className="max-w-72 break-words font-semibold">
                             {recipe.title}
                           </p>
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className="mt-1 text-xs text-slate-600">
                             {recipe.cookTimeMinutes} phút ·{' '}
                             {difficulty[recipe.difficulty] || recipe.difficulty}
                           </p>
@@ -494,7 +494,7 @@ export default function AdminApprovalsPage() {
             </table>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t p-4 [&_nav]:mt-0">
-            <p aria-live="polite" className="text-sm text-slate-500">
+            <p aria-live="polite" className="text-sm text-slate-600">
               {(page - 1) * 10 + 1}–{Math.min(page * 10, filtered.length)} /{' '}
               {filtered.length} công thức
             </p>
