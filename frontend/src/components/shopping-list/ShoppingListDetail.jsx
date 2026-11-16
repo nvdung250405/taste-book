@@ -259,7 +259,7 @@ export default function ShoppingListDetail({ list }) {
               )}
             </span>
             <span className="max-w-[35%] break-words text-right text-sm text-slate-500">
-              {item.totalQuantity === 0
+              {isQualitativeUnit(item.unit)
                 ? ''
                 : Number(item.totalQuantity).toLocaleString('vi-VN', {
                     maximumFractionDigits: 6,

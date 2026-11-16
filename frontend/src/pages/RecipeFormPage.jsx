@@ -465,7 +465,7 @@ function RecipeForm({ id, recipe, admin }) {
           </Button>
         </div>
       </form>
-      <Dialog open={confirmSubmission} onOpenChange={setConfirmSubmission}><DialogContent><DialogHeader><DialogTitle>Gửi công thức để kiểm duyệt?</DialogTitle><DialogDescription>Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa, xóa hoặc chuyển công thức về riêng tư trong thời gian chờ kết quả.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setConfirmSubmission(false)}>Hủy</Button><Button onClick={() => handleSubmit(null, true)}>Xác nhận gửi duyệt</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={confirmSubmission} onOpenChange={setConfirmSubmission}><DialogContent><DialogHeader><DialogTitle>Gửi công thức để kiểm duyệt?</DialogTitle><DialogDescription>Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa, xóa hoặc chuyển công thức về riêng tư trong thời gian chờ kết quả. Nếu bị từ chối, bạn có thể chỉnh sửa và gửi lại. Nếu được duyệt công khai, quyền sửa/xóa qua chức năng cá nhân tiếp tục bị khóa.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setConfirmSubmission(false)}>Hủy</Button><Button onClick={() => handleSubmit(null, true)}>Xác nhận gửi duyệt</Button></DialogFooter></DialogContent></Dialog>
     </div>
   )
 }
