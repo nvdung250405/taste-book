@@ -259,7 +259,7 @@ export default function RecipeSearchPage() {
           </p>
           <Button
             onClick={clearAllFilters}
-            className="mt-2 bg-orange-700 hover:bg-orange-800 text-white"
+            className="mt-2 bg-orange-500 hover:bg-orange-600 text-white"
           >
             Xóa toàn bộ bộ lọc
           </Button>
@@ -269,7 +269,7 @@ export default function RecipeSearchPage() {
           <div className="flex items-center justify-between mb-6">
             <p className="text-sm font-medium text-slate-600 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
               Tìm thấy{' '}
-              <span className="text-orange-700 font-bold">{totalItems}</span>{' '}
+              <span className="text-orange-600 font-bold">{totalItems}</span>{' '}
               công thức
             </p>
           </div>
@@ -365,7 +365,7 @@ export default function RecipeSearchPage() {
                     </div>
 
                     <CardContent className="p-5 flex flex-col flex-1">
-                      <h3 className="font-bold text-lg text-slate-900 dark:text-slate-50 line-clamp-2 group-hover:text-orange-800 transition-colors mb-4 flex-1">
+                      <h3 className="font-bold text-lg text-slate-900 dark:text-slate-50 line-clamp-2 group-hover:text-orange-500 transition-colors mb-4 flex-1">
                         <Link
                           to={recipeUrl}
                           onClick={(e) => e.stopPropagation()}
@@ -431,7 +431,7 @@ export default function RecipeSearchPage() {
                           currentPage === pageNumber ? 'default' : 'ghost'
                         }
                         onClick={() => handlePageChange(pageNumber)}
-                        className={`w-10 h-10 rounded-xl font-medium ${currentPage === pageNumber ? 'bg-orange-700 text-white hover:bg-orange-800' : 'text-slate-600 hover:bg-slate-100'}`}
+                        className={`w-10 h-10 rounded-xl font-medium ${currentPage === pageNumber ? 'bg-orange-500 text-white hover:bg-orange-600' : 'text-slate-600 hover:bg-slate-100'}`}
                       >
                         {pageNumber}
                       </Button>

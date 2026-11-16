@@ -31,8 +31,8 @@ function MyCategories() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div><h1 className="text-3xl font-bold flex items-center gap-3"><FolderHeart className="text-orange-700" />Danh mục của tôi</h1><p className="text-slate-600 mt-2">Sắp xếp công thức theo các danh mục riêng của bạn.</p></div>
-        <Button onClick={() => setEditor({})} className="bg-orange-700 hover:bg-orange-800"><Plus />Thêm danh mục</Button>
+        <div><h1 className="text-3xl font-bold flex items-center gap-3"><FolderHeart className="text-orange-500" />Danh mục của tôi</h1><p className="text-slate-600 mt-2">Sắp xếp công thức theo các danh mục riêng của bạn.</p></div>
+        <Button onClick={() => setEditor({})} className="bg-orange-500 hover:bg-orange-600"><Plus />Thêm danh mục</Button>
       </div>
       {isPending ? <div role="status" className="flex justify-center py-16"><Loader2 className="animate-spin" /><span className="sr-only">Đang tải danh mục</span></div> : isError && !data ?
         <QueryError title="Không thể tải danh mục cá nhân" onRetry={refetch} isRetrying={isFetching} /> : categories.length === 0 ?

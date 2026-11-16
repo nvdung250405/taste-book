@@ -29,7 +29,7 @@ export default function Header({
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <UtensilsCrossed className="w-6 h-6 text-orange-700" />
+          <UtensilsCrossed className="w-6 h-6 text-orange-500" />
           <span className="text-xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
             TasteBook
           </span>
@@ -46,7 +46,7 @@ export default function Header({
               className={`relative flex items-center gap-1.5 px-3 py-2 transition-colors group ${
                 isActive(to)
                   ? 'text-orange-700 dark:text-orange-400'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-orange-800'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-orange-500'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -55,7 +55,7 @@ export default function Header({
               </span>
               {/* Premium Underline Effect */}
               <span
-                className={`absolute left-2 right-2 bottom-0.5 h-[2px] rounded-full bg-orange-700 transition-transform duration-300 ease-out origin-center ${
+                className={`absolute left-2 right-2 bottom-0.5 h-[2px] rounded-full bg-orange-500 transition-transform duration-300 ease-out origin-center ${
                   isActive(to)
                     ? 'scale-x-100 group-hover/nav:scale-x-0 group-hover:!scale-x-100'
                     : 'scale-x-0 group-hover:scale-x-100'

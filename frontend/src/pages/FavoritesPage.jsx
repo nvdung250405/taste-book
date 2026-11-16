@@ -133,7 +133,7 @@ export default function FavoritesPage() {
       {!hasToken ? (
         /* Chưa đăng nhập */
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-          <div className="w-16 h-16 rounded-full bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center mb-4 text-orange-700 shadow-inner">
+          <div className="w-16 h-16 rounded-full bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center mb-4 text-orange-500 shadow-inner">
             <Lock className="w-8 h-8" />
           </div>
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">
@@ -144,7 +144,7 @@ export default function FavoritesPage() {
             bạn có thể xem lại bất cứ lúc nào.
           </p>
           <Button
-            className="bg-orange-700 hover:bg-orange-800 text-white rounded-xl shadow-lg shadow-orange-500/20 px-6 py-2.5 font-medium"
+            className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-lg shadow-orange-500/20 px-6 py-2.5 font-medium"
             asChild
           >
             <Link to="/login">Đăng nhập ngay</Link>
@@ -176,7 +176,7 @@ export default function FavoritesPage() {
             lại vào đây và xem lại dễ dàng bất cứ lúc nào!
           </p>
           <Button
-            className="bg-orange-700 hover:bg-orange-800 text-white rounded-xl shadow-lg shadow-orange-500/20 px-6 py-2.5 font-medium transition-transform active:scale-95"
+            className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-lg shadow-orange-500/20 px-6 py-2.5 font-medium transition-transform active:scale-95"
             asChild
           >
             <Link to="/search">

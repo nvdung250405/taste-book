@@ -31,7 +31,7 @@ export default function ProfileSidebar({ user, profileForm, activeTab, setActive
           onClick={() => setActiveTab('info')}
           className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
             activeTab === 'info'
-              ? 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400'
+              ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
         >
@@ -41,7 +41,7 @@ export default function ProfileSidebar({ user, profileForm, activeTab, setActive
           onClick={() => setActiveTab('security')}
           className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
             activeTab === 'security'
-              ? 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400'
+              ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
         >

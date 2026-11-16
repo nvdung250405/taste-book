@@ -178,7 +178,7 @@ function RecipeDetail({ id }) {
       {/* Back button */}
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-slate-600 hover:text-orange-800 transition-colors mb-6 text-sm font-medium"
+        className="flex items-center gap-2 text-slate-600 hover:text-orange-500 transition-colors mb-6 text-sm font-medium"
       >
         <ArrowLeft className="w-4 h-4" /> Quay lại
       </button>

@@ -63,7 +63,7 @@ export default function ShoppingMealPicker({ days, lists, refreshing, onClose })
       <p role="status" className="text-sm text-slate-600">{refreshing ? 'Đang cập nhật thực đơn…' : `Đã chọn ${chosen.length} bữa · ${chosen.reduce((sum, list) => sum + list.totalItems, 0)} món`}</p>
       {!!chosen.length && <div className="rounded-lg bg-orange-50 p-3 text-sm dark:bg-orange-950/30"><p className="break-words"><span className="font-medium">Tên chuyến đi chợ: </span>{title}</p>{title.includes(':S') || title.includes(':Tr') || title.includes(':T') ? <p className="mt-1 text-xs text-slate-600">S: Sáng · Tr: Trưa · T: Tối</p> : null}</div>}
       {confirmation && <DeletedRecipesWarning recipes={confirmation.recipes} />}
-      <DialogFooter><Button variant="outline" disabled={saving} onClick={onClose}>Hủy</Button><Button disabled={saving || refreshing || !chosen.length} onClick={() => create(!!confirmation)} className="bg-orange-700 text-white hover:bg-orange-800">{saving && <Loader2 className="mr-2 size-4 animate-spin" />}{saving ? 'Đang tạo…' : confirmation ? 'Tiếp tục' : 'Tạo danh sách đi chợ'}</Button></DialogFooter>
+      <DialogFooter><Button variant="outline" disabled={saving} onClick={onClose}>Hủy</Button><Button disabled={saving || refreshing || !chosen.length} onClick={() => create(!!confirmation)} className="bg-orange-500 text-white hover:bg-orange-600">{saving && <Loader2 className="mr-2 size-4 animate-spin" />}{saving ? 'Đang tạo…' : confirmation ? 'Tiếp tục' : 'Tạo danh sách đi chợ'}</Button></DialogFooter>
     </DialogContent>
   </Dialog>
 }

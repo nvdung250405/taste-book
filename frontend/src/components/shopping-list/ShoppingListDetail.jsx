@@ -185,7 +185,7 @@ export default function ShoppingListDetail({ list }) {
   if (query.isLoading)
     return (
       <div role="status" className="flex justify-center p-12">
-        <Loader2 className="size-6 animate-spin text-orange-700" />
+        <Loader2 className="size-6 animate-spin text-orange-500" />
         <span className="sr-only">Đang tải danh sách</span>
       </div>
     )
@@ -213,7 +213,7 @@ export default function ShoppingListDetail({ list }) {
           className="h-2 overflow-hidden rounded-full bg-orange-100 dark:bg-slate-800"
         >
           <div
-            className="h-full rounded-full bg-orange-700 transition-[width] duration-300 motion-reduce:transition-none"
+            className="h-full rounded-full bg-orange-500 transition-[width] duration-300 motion-reduce:transition-none"
             style={{
               width: `${items.length ? (purchased / items.length) * 100 : 0}%`,
             }}
@@ -315,7 +315,7 @@ export default function ShoppingListDetail({ list }) {
         <Button
           type="submit"
           disabled={adding || clearing || !!pendingIds.size}
-          className="h-11 w-full bg-orange-700 text-white hover:bg-orange-800"
+          className="h-11 w-full bg-orange-500 text-white hover:bg-orange-600"
         >
           {adding ? (
             <Loader2 className="mr-2 size-4 animate-spin" />

@@ -89,7 +89,7 @@ function CreateDialog({ onClose, onCreated }) {
           ) : !lists.length ? (
             <p className="text-sm">
               Chưa có thực đơn có món.{' '}
-              <Link to="/menu" className="text-orange-700 underline">
+              <Link to="/menu" className="text-orange-600 underline">
                 Lên lịch thực đơn
               </Link>
             </p>
@@ -125,7 +125,7 @@ function CreateDialog({ onClose, onCreated }) {
           <Button
             type="submit"
             disabled={!selected.length || mutation.isPending}
-            className="h-11 w-full bg-orange-700 text-white hover:bg-orange-800"
+            className="h-11 w-full bg-orange-500 text-white hover:bg-orange-600"
           >
             {mutation.isPending
               ? 'Đang tổng hợp…'
@@ -166,7 +166,7 @@ export default function ShoppingListPage() {
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 pb-24 sm:py-10">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="mb-2 text-xs font-semibold tracking-widest text-orange-700">
+          <p className="mb-2 text-xs font-semibold tracking-widest text-orange-500">
             MUA ĐỦ · NẤU NGON
           </p>
           <h1 className="text-2xl font-bold sm:text-3xl">Danh sách đi chợ</h1>
@@ -176,7 +176,7 @@ export default function ShoppingListPage() {
         </div>
         <Button
           onClick={() => setCreating(true)}
-          className="h-11 rounded-xl bg-orange-700 text-white hover:bg-orange-800"
+          className="h-11 rounded-xl bg-orange-500 text-white hover:bg-orange-600"
         >
           <Plus className="mr-2 size-4" />
           Tạo danh sách

@@ -227,7 +227,7 @@ export default function AddToMenuDialog({ recipeId, servings, onClose }) {
                 !query.isSuccess ||
                 (type === 'custom' && !custom.length)
               }
-              className="bg-orange-700 text-white hover:bg-orange-700"
+              className="bg-orange-600 text-white hover:bg-orange-700"
             >
               {busy ? 'Đang thêm…' : 'Thêm món'}
             </Button>

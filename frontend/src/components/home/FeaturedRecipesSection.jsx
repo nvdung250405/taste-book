@@ -144,7 +144,7 @@ function RecipeCard({ recipe, rank }) {
         <CardContent className="p-5">
           {/* Meta */}
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-1.5 text-orange-700">
+            <div className="flex items-center gap-1.5 text-orange-500">
               <Star className="w-4 h-4 fill-orange-500" />
               <span className="font-semibold">{recipe.rating || '4.5'}</span>
               <span className="text-slate-600 text-sm">({recipe.reviews || 0})</span>
@@ -166,7 +166,7 @@ function RecipeCard({ recipe, rank }) {
           </div>
 
           {/* Title */}
-          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-2 line-clamp-1 group-hover:text-orange-800 transition-colors">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-2 line-clamp-1 group-hover:text-orange-500 transition-colors">
             <Link to={`/recipe/${recipe.recipeId || recipe.id || recipe._id}`} className="after:absolute after:inset-0">
               {recipe.title}
             </Link>
@@ -174,7 +174,7 @@ function RecipeCard({ recipe, rank }) {
 
           {/* Author */}
           <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-700 font-bold text-xs uppercase">
+            <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 font-bold text-xs uppercase">
               {(recipe.author?.username || recipe.author?.name || recipe.user?.username || recipe.user?.name || 'C').charAt(0)}
             </div>
             <span className="text-sm font-medium text-slate-600 dark:text-slate-300 line-clamp-1">
@@ -205,7 +205,7 @@ export function LatestRecipesSection({ recipes, isLoading }) {
         <Button
           variant="ghost"
           onClick={() => navigate('/search')}
-          className="hidden sm:flex text-orange-700 hover:text-orange-800 hover:bg-orange-50 dark:hover:bg-orange-950/50"
+          className="hidden sm:flex text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/50"
         >
           Xem tất cả <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
@@ -238,7 +238,7 @@ export function TrendingRecipesSection({ recipes, isLoading }) {
             <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
               Món ngon thịnh hành
             </h2>
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
               <Sparkles className="w-3 h-3" />
               HOT
             </span>
@@ -250,7 +250,7 @@ export function TrendingRecipesSection({ recipes, isLoading }) {
         <Button
           variant="ghost"
           onClick={() => navigate('/search')}
-          className="hidden sm:flex text-orange-700 hover:text-orange-800 hover:bg-orange-50 dark:hover:bg-orange-950/50"
+          className="hidden sm:flex text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/50"
         >
           Xem tất cả <ArrowRight className="w-4 h-4 ml-2" />
         </Button>

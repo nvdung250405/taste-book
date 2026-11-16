@@ -137,7 +137,7 @@ export default function MyRecipesPage() {
           </p>
         </div>
         <Button
-          className="bg-orange-700 hover:bg-orange-800 text-white rounded-xl shadow-lg shadow-orange-500/20 px-5 py-2.5 font-medium transition-transform active:scale-95 shrink-0"
+          className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-lg shadow-orange-500/20 px-5 py-2.5 font-medium transition-transform active:scale-95 shrink-0"
           asChild
         >
           <Link to="/recipe/create">
@@ -237,7 +237,7 @@ export default function MyRecipesPage() {
             cộng đồng ẩm thực TasteBook!
           </p>
           <Button
-            className="bg-orange-700 hover:bg-orange-800 text-white rounded-xl shadow-lg shadow-orange-500/20 px-6 py-2.5 font-medium transition-transform active:scale-95"
+            className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-lg shadow-orange-500/20 px-6 py-2.5 font-medium transition-transform active:scale-95"
             asChild
           >
             <Link to="/recipe/create">

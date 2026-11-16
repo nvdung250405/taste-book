@@ -37,7 +37,7 @@ export default function MobileNavigation({
         <SheetTitle className="sr-only">Menu điều hướng</SheetTitle>
         {/* Mobile header */}
         <div className="h-16 flex items-center gap-2 px-6 border-b shrink-0">
-          <UtensilsCrossed className="w-5 h-5 text-orange-700" />
+          <UtensilsCrossed className="w-5 h-5 text-orange-500" />
           <span className="text-xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
             TasteBook
           </span>
@@ -83,7 +83,7 @@ export default function MobileNavigation({
                 <Link
                   to="/admin"
                   onClick={closeMobileMenu}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20"
                 >
                   <ShieldCheck className="w-5 h-5" />
                   <span>Quản lý Admin</span>

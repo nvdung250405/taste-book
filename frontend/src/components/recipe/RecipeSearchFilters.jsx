@@ -109,7 +109,7 @@ export default function RecipeSearchFilters({
       <div className="flex gap-2 flex-wrap mb-8">
         <button
           onClick={() => handleCategoryChange('')}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${!selectedCategory ? 'bg-orange-700 text-white border-orange-500 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-300'}`}
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${!selectedCategory ? 'bg-orange-500 text-white border-orange-500 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-300'}`}
         >
           Tất cả danh mục
         </button>
@@ -120,7 +120,7 @@ export default function RecipeSearchFilters({
             <button
               key={id}
               onClick={() => handleCategoryChange(id)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${selectedCategory === id ? 'bg-orange-700 text-white border-orange-500 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-300'}`}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${selectedCategory === id ? 'bg-orange-500 text-white border-orange-500 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-300'}`}
             >
               {name}
             </button>

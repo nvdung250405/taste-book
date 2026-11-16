@@ -112,7 +112,7 @@ export default function MasterDataPage({
             Làm mới
           </Button>
           <Button
-            className="h-10 rounded-xl bg-orange-700 px-4 text-white shadow-sm hover:bg-orange-700 sm:self-center"
+            className="h-10 rounded-xl bg-orange-600 px-4 text-white shadow-sm hover:bg-orange-700 sm:self-center"
             disabled={busy || !query.isSuccess || !referencesReady}
             onClick={() => setEditor({ record: null })}
           >

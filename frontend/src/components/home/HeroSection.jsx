@@ -50,7 +50,7 @@ export default function HeroSection() {
 
       {/* Hero Content */}
       <div className="relative z-10 w-full max-w-4xl mx-auto px-4 text-center flex flex-col items-center gap-6">
-        <Badge className="bg-orange-700/20 text-orange-300 hover:bg-orange-800/30 border-orange-500/30 backdrop-blur-md px-4 py-1.5 text-sm">
+        <Badge className="bg-orange-500/20 text-orange-300 hover:bg-orange-500/30 border-orange-500/30 backdrop-blur-md px-4 py-1.5 text-sm">
           Khám phá 10,000+ công thức nấu ăn
         </Badge>
         <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold text-white tracking-tight drop-shadow-lg">
@@ -62,7 +62,7 @@ export default function HeroSection() {
         
         {/* Search Bar */}
         <div className="w-full max-w-2xl mt-2 sm:mt-4 relative flex items-center group">
-          <Search aria-hidden="true" className="absolute left-3 sm:left-4 w-5 sm:w-6 h-5 sm:h-6 text-slate-300 group-focus-within:text-orange-300 transition-colors" />
+          <Search aria-hidden="true" className="absolute left-3 sm:left-4 w-5 sm:w-6 h-5 sm:h-6 text-slate-300 group-focus-within:text-orange-500 transition-colors" />
           <Input 
             id="hero-search-input"
             aria-label="Tìm món ăn hoặc nguyên liệu"
@@ -76,7 +76,7 @@ export default function HeroSection() {
           <Button
             id="hero-search-btn"
             onClick={handleSearch}
-            className="absolute right-1.5 sm:right-2 rounded-full h-8 sm:h-10 px-3 sm:px-6 text-sm sm:text-base bg-orange-700 hover:bg-orange-800 text-white font-medium"
+            className="absolute right-1.5 sm:right-2 rounded-full h-8 sm:h-10 px-3 sm:px-6 text-sm sm:text-base bg-orange-500 hover:bg-orange-600 text-white font-medium"
           >
             Tìm kiếm
           </Button>

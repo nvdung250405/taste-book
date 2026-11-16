@@ -120,7 +120,7 @@ export default function AdminRecipesPage() {
           </Button>
           <Button
             asChild
-            className="rounded-xl bg-orange-700 text-white hover:bg-orange-700"
+            className="rounded-xl bg-orange-600 text-white hover:bg-orange-700"
           >
             <Link to="/admin/recipes/create">
               <Plus className="h-4 w-4" />
@@ -263,7 +263,7 @@ export default function AdminRecipesPage() {
                       <td className="px-4 py-3">
                         <Link
                           to={`/recipe/${recipe.recipeId}`}
-                          className="flex items-center gap-3 hover:text-orange-800"
+                          className="flex items-center gap-3 hover:text-orange-600"
                         >
                           <img
                             {...recipeImageProps(recipe.thumbnailUrl)}

@@ -144,7 +144,7 @@ function ReviewDialog({ recipe, status, rejectInitially = false, onClose }) {
                 key={step.stepNumber || index}
                 className="rounded-lg border p-3 text-sm whitespace-pre-wrap break-words"
               >
-                <span className="font-semibold text-orange-700">
+                <span className="font-semibold text-orange-600">
                   Bước {step.stepNumber || index + 1}.{' '}
                 </span>
                 {step.instruction}

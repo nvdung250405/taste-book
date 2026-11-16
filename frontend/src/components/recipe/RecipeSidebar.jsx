@@ -38,7 +38,7 @@ export default function RecipeSidebar({
       {/* Action buttons */}
       <div className="space-y-2">
         <Button
-          className="w-full bg-orange-700 hover:bg-orange-800 text-white rounded-xl gap-2"
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-xl gap-2"
           onClick={handleFavorite}
           disabled={disabledBtn}
         >

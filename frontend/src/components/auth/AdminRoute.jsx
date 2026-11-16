@@ -70,7 +70,7 @@ export default function AdminRoute({ children }) {
           {error?.EM || 'Vui lòng thử lại để tải thông tin tài khoản.'}
         </p>
         <Button onClick={() => refetch()}>Thử lại</Button>
-        <Link to="/" className="text-orange-700 hover:underline">
+        <Link to="/" className="text-orange-500 hover:underline">
           Về trang chủ
         </Link>
       </div>

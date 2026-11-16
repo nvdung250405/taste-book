@@ -120,7 +120,7 @@ export default function RecipeIngredientsForm({
         <Button
           type="button"
           variant="outline"
-          className="w-full mt-2 border-dashed border-2 text-slate-600 hover:text-orange-800 hover:border-orange-200"
+          className="w-full mt-2 border-dashed border-2 text-slate-600 hover:text-orange-500 hover:border-orange-200"
           onClick={addIngredient}
         >
           <Plus className="w-4 h-4 mr-2" /> Thêm nguyên liệu

@@ -82,7 +82,7 @@ export default function CustomMenus() {
         <Button
           disabled={!query.isSuccess}
           onClick={() => setEditor({ list: null })}
-          className="rounded-xl bg-orange-700 text-white hover:bg-orange-700"
+          className="rounded-xl bg-orange-600 text-white hover:bg-orange-700"
         >
           <Plus className="h-4 w-4" />
           Tạo thực đơn mới

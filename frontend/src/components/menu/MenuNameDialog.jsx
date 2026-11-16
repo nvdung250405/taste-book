@@ -106,7 +106,7 @@ export default function MenuNameDialog({ list, lists, onClose, onSaved }) {
             </Button>
             <Button
               disabled={busy}
-              className="bg-orange-700 text-white hover:bg-orange-700"
+              className="bg-orange-600 text-white hover:bg-orange-700"
             >
               {busy ? 'Đang lưu…' : 'Lưu thực đơn'}
             </Button>

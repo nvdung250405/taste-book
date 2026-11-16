@@ -29,7 +29,7 @@ export default function RecipeIngredients({ ingredients, actualServings, setServ
                 <div className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
                 <span className="flex-1 text-slate-700 dark:text-slate-300 text-sm">{name}</span>
                 {(qty || unit) && (
-                  <span className="text-sm font-semibold text-orange-700 dark:text-orange-400 shrink-0">
+                  <span className="text-sm font-semibold text-orange-600 dark:text-orange-400 shrink-0">
                     {qty} {unit}
                   </span>
                 )}

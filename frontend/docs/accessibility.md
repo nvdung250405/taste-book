@@ -24,6 +24,10 @@ npx lighthouse http://127.0.0.1:4173/ --only-categories=accessibility --preset=d
 
 ## Kết quả và giới hạn
 
+**Cập nhật theo yêu cầu giao diện:** đã khôi phục các màu cam trước đợt sửa Accessibility. Các điểm Lighthouse và kết quả tương phản dưới đây thuộc phiên bản màu cam đậm trước khi khôi phục, không đại diện cho bản hiện tại. Cần đo lại trước nghiệm thu; kiểm tra axe vẫn giữ quy tắc tương phản để hiển thị trung thực các lỗi còn lại.
+
+Kiểm tra Chrome desktop sau khi khôi phục màu cam: 3/18 test đạt (trang tạo công thức, tìm kiếm bằng bàn phím và hiện/ẩn mật khẩu đăng ký); 15 test audit trang còn lỗi `color-contrast`, không phát hiện loại vi phạm tự động khác trong bộ quy tắc đã bật. Lint/build đạt. Không coi trạng thái này là đã đạt toàn bộ audit Accessibility.
+
 - Ngày 16/11/2026: Lighthouse trang chủ production local đạt **100/100 Accessibility**, cả mobile và desktop; không có audit tự động thất bại. Báo cáo local nằm tại `performance-results/accessibility-local-{mobile,desktop}.report.html` và JSON tương ứng.
 - 164 unit test đạt. Kiểm tra axe trên 16 trang ở Chrome desktop/mobile: 32 lượt đạt, không có vi phạm tự động trong các quy tắc đã bật.
 - Bộ kiểm tra đầy đủ Chrome/Edge desktop/mobile: 134 lượt đạt, 2 lượt bỏ qua có chủ đích (menu mobile ở viewport desktop). Trong đó có 64 lượt axe trên 16 trang. Hai kiểm tra bổ sung xác nhận từ khóa phổ biến kích hoạt được bằng phím Enter trên Chrome desktop/mobile cũng đạt.

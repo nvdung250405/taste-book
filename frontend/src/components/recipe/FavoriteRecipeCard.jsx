@@ -99,7 +99,7 @@ export default function FavoriteRecipeCard({
 
       {/* Card Content */}
       <CardContent className="p-4 flex flex-col flex-1">
-        <h2 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-2 text-base group-hover:text-orange-800 transition-colors mb-2">
+        <h2 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-2 text-base group-hover:text-orange-500 transition-colors mb-2">
           <Link to={`/recipe/${recipeId}`} className="hover:underline">
             {recipe.title}
           </Link>

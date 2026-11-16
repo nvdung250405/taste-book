@@ -57,7 +57,7 @@ export default function DashboardPage() {
       icon: UtensilsCrossed,
       note: 'Công thức đã được duyệt và công khai',
       color:
-        'bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300',
+        'bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-300',
     },
   ]
   return (
@@ -228,7 +228,7 @@ export default function DashboardPage() {
                   <Link
                     key={recipe.recipeId}
                     to={`/recipe/${recipe.recipeId}`}
-                    className="flex items-center gap-3 rounded-lg py-3 hover:text-orange-800"
+                    className="flex items-center gap-3 rounded-lg py-3 hover:text-orange-600"
                   >
                     <img
                       {...recipeImageProps(recipe.thumbnailUrl)}

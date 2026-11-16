@@ -9,7 +9,7 @@ export default function ForbiddenPage() {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-slate-50 px-5 py-12 text-slate-900 dark:bg-slate-950 dark:text-slate-50">
       <section aria-labelledby="forbidden-title" className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-10 dark:border-slate-800 dark:bg-slate-900">
-        <ShieldX aria-hidden="true" className="mx-auto mb-5 size-14 text-orange-700" />
+        <ShieldX aria-hidden="true" className="mx-auto mb-5 size-14 text-orange-600" />
         <p className="text-sm font-semibold uppercase tracking-widest text-orange-700 dark:text-orange-400">403 Forbidden</p>
         <h1 id="forbidden-title" className="mt-3 text-2xl font-bold sm:text-3xl">Bạn không có quyền truy cập</h1>
         <p className="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-400">Khu vực quản trị chỉ dành cho tài khoản Admin đã được xác thực. Vui lòng đăng nhập bằng tài khoản có quyền phù hợp.</p>

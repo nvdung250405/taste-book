@@ -51,7 +51,7 @@ export default function UserDropdown({ user, onLogout }) {
           <Link
             to="/profile"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:text-orange-800 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+            className="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
           >
             <UserCircle className="w-4 h-4" /> Hồ sơ cá nhân
           </Link>
@@ -61,7 +61,7 @@ export default function UserDropdown({ user, onLogout }) {
             <Link
               to="/admin"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-4 py-2 text-sm text-orange-700 dark:text-orange-400 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors font-medium"
+              className="flex items-center gap-3 px-4 py-2 text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors font-medium"
             >
               <ShieldCheck className="w-4 h-4" /> Quản lý Admin
             </Link>

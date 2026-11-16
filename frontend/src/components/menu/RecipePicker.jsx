@@ -156,7 +156,7 @@ export default function RecipePicker({ slot, onClose }) {
                 <span className="flex-1 text-sm font-medium">
                   {recipe.title}
                 </span>
-                <Plus className="size-4 text-orange-700" />
+                <Plus className="size-4 text-orange-500" />
               </button>
             ))
           )}

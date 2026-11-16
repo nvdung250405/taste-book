@@ -48,7 +48,7 @@ export default function LoginPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
 
           <div className="relative z-10 flex items-center gap-2 text-white">
-            <UtensilsCrossed className="w-8 h-8 text-orange-700" />
+            <UtensilsCrossed className="w-8 h-8 text-orange-500" />
             <span className="text-2xl font-bold tracking-tight">TasteBook</span>
           </div>
 
@@ -105,7 +105,7 @@ export default function LoginPage() {
                   </label>
                   <Link
                     to="/forgot-password"
-                    className="text-xs text-orange-700 hover:text-orange-800 hover:underline"
+                    className="text-xs text-orange-500 hover:text-orange-600 hover:underline"
                   >
                     Quên mật khẩu?
                   </Link>
@@ -133,7 +133,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-orange-700 hover:bg-orange-800 text-white"
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white"
                 disabled={isLoading}
               >
                 {isLoading ? 'Đang xử lý...' : 'Đăng nhập'}
@@ -145,7 +145,7 @@ export default function LoginPage() {
               Bạn chưa có tài khoản?{' '}
               <Link
                 to="/register"
-                className="font-semibold text-orange-700 hover:text-orange-800 underline-offset-4 hover:underline"
+                className="font-semibold text-orange-500 hover:text-orange-600 underline-offset-4 hover:underline"
               >
                 Đăng ký ngay
               </Link>

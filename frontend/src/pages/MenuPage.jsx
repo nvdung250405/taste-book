@@ -94,7 +94,7 @@ function MealCell({ list, date, meal, onAdd }) {
       aria-label={`${MEALS[meal]} ${format(date)}`}
     >
       {query.isLoading && list ? (
-        <Loader2 className="mx-auto my-6 size-5 animate-spin text-orange-700" />
+        <Loader2 className="mx-auto my-6 size-5 animate-spin text-orange-500" />
       ) : query.isError && !query.data ? (
         <button
           onClick={() => query.refetch()}
@@ -163,7 +163,7 @@ function MealCell({ list, date, meal, onAdd }) {
       <button
         onClick={() => onAdd({ date, meal, list })}
         disabled={busy || query.isError || (!!list && query.isLoading)}
-        className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 py-3 text-xs text-slate-600 transition-colors hover:border-orange-400 hover:bg-orange-50 hover:text-orange-800 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800"
+        className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 py-3 text-xs text-slate-600 transition-colors hover:border-orange-400 hover:bg-orange-50 hover:text-orange-600 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800"
       >
         <Plus className="size-4" /> Thêm món
       </button>
@@ -198,7 +198,7 @@ export default function MenuPage() {
       <MenuConnectionNotice query={query} />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="mb-2 text-sm font-medium text-orange-700">
+          <p className="mb-2 text-sm font-medium text-orange-500">
             KẾ HOẠCH BỮA ĂN
           </p>
           <h1 className="text-3xl font-bold tracking-tight">
@@ -212,7 +212,7 @@ export default function MenuPage() {
           <Button
             onClick={() => setShoppingOpen(true)}
             disabled={!count || query.isError}
-            className="rounded-xl bg-orange-700 text-white hover:bg-orange-800"
+            className="rounded-xl bg-orange-500 text-white hover:bg-orange-600"
           >
             <ShoppingCart className="mr-2 size-4" /> Tạo danh sách đi chợ
           </Button>
@@ -315,7 +315,7 @@ export default function MenuPage() {
                   {days.map((date, index) => (
                     <div
                       key={dateKey(date)}
-                      className={`border-b border-r border-slate-200 p-4 text-center dark:border-slate-800 ${dateKey(date) === dateKey(new Date()) ? 'bg-orange-50 text-orange-700 dark:bg-orange-950/30' : ''}`}
+                      className={`border-b border-r border-slate-200 p-4 text-center dark:border-slate-800 ${dateKey(date) === dateKey(new Date()) ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/30' : ''}`}
                     >
                       <p className="text-xs text-slate-600">
                         {index === 6 ? 'Chủ nhật' : `Thứ ${index + 2}`}

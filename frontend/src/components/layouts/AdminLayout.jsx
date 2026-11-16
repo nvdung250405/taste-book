@@ -27,7 +27,7 @@ export default function AdminLayout() {
       {/* Sidebar */}
       <aside aria-label="Thanh bên quản trị" className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r bg-white lg:flex dark:bg-slate-950">
         <div className="h-16 shrink-0 flex items-center px-6 border-b">
-          <Link to="/admin" className="text-xl font-bold text-orange-700">
+          <Link to="/admin" className="text-xl font-bold text-orange-500">
             TasteBook Admin
           </Link>
         </div>
@@ -58,13 +58,13 @@ export default function AdminLayout() {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="hidden h-16 shrink-0 items-center justify-between border-b bg-white px-6 dark:bg-slate-950 lg:flex">
           <span className="font-semibold">Không gian quản trị</span>
-          <Link to="/" className="text-sm text-slate-600 hover:text-orange-800">
+          <Link to="/" className="text-sm text-slate-600 hover:text-orange-500">
             Về trang chính
           </Link>
         </header>
         {/* Mobile Header */}
         <header className="sticky top-0 z-30 h-16 shrink-0 bg-white dark:bg-slate-950 border-b flex items-center justify-between px-4 lg:hidden">
-          <span className="text-xl font-bold text-orange-700">
+          <span className="text-xl font-bold text-orange-500">
             TasteBook Admin
           </span>
 
@@ -81,7 +81,7 @@ export default function AdminLayout() {
             >
               <SheetTitle className="sr-only">Menu quản trị</SheetTitle>
               <div className="h-16 flex items-center px-6 border-b shrink-0">
-                <span className="text-xl font-bold text-orange-700">
+                <span className="text-xl font-bold text-orange-500">
                   TasteBook Admin
                 </span>
               </div>

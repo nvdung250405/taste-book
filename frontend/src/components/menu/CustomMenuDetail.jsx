@@ -69,7 +69,7 @@ export default function CustomMenuDetail({ list, onClose }) {
               <div className="min-w-0 flex-1 basis-40">
               {item.isRecipeDeleted ? <div className="min-w-0 flex-1 break-words font-medium">{item.title}<span className="ml-2 rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">Công thức đã bị xóa</span></div> : <Link
                 to={`/recipe/${item.recipeId}`}
-                className="min-w-0 flex-1 break-words font-medium hover:text-orange-800"
+                className="min-w-0 flex-1 break-words font-medium hover:text-orange-600"
               >
                 {item.title}
               </Link>}

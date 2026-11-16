@@ -171,7 +171,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-orange-700 hover:bg-orange-800 text-white mt-2 cursor-pointer" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white mt-2 cursor-pointer" disabled={isLoading}>
                 {isLoading ? 'Đang xử lý...' : 'Đăng ký'}
                 {!isLoading && <UserPlus className="w-4 h-4 ml-2" />}
               </Button>
@@ -179,7 +179,7 @@ export default function RegisterPage() {
 
             <div className="text-center text-sm text-slate-600">
               Đã có tài khoản?{' '}
-              <Link to="/login" className="font-semibold text-orange-700 hover:text-orange-800 underline-offset-4 hover:underline">
+              <Link to="/login" className="font-semibold text-orange-500 hover:text-orange-600 underline-offset-4 hover:underline">
                 Đăng nhập
               </Link>
             </div>
@@ -194,7 +194,7 @@ export default function RegisterPage() {
           
           <div className="relative z-10 flex items-center justify-end gap-2 text-white">
             <span className="text-2xl font-bold tracking-tight">TasteBook</span>
-            <UtensilsCrossed className="w-8 h-8 text-orange-700" />
+            <UtensilsCrossed className="w-8 h-8 text-orange-500" />
           </div>
 
           <div className="relative z-10 mt-auto text-right">

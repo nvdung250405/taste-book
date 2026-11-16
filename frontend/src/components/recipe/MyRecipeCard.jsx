@@ -109,7 +109,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
 
       {/* Card Content */}
       <CardContent className="p-4 sm:p-5 flex flex-col flex-1">
-        <h2 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-2 mb-2 text-base sm:text-lg group-hover:text-orange-800 transition-colors">
+        <h2 className="font-bold text-slate-900 dark:text-slate-50 line-clamp-2 mb-2 text-base sm:text-lg group-hover:text-orange-500 transition-colors">
           <Link
             to={locked ? `/recipe/${rId}` : `/recipe/${rId}/edit`}
             className="hover:underline"
@@ -189,7 +189,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
           <Button
             size="sm"
             variant="outline"
-            className="flex-1 rounded-xl hover:bg-orange-50 hover:text-orange-800 hover:border-orange-200 dark:hover:bg-orange-950/30 text-xs font-medium"
+            className="flex-1 rounded-xl hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-950/30 text-xs font-medium"
             asChild
           >
             <Link to={`/recipe/${rId}/edit`}>
