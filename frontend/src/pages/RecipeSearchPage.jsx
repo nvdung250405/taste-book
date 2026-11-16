@@ -210,7 +210,7 @@ export default function RecipeSearchPage() {
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
           Tìm kiếm công thức
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">
+        <p className="text-slate-600 dark:text-slate-400 mt-2 text-sm sm:text-base">
           Khám phá hàng nghìn công thức nấu ăn ngon được chia sẻ từ cộng đồng
         </p>
       </div>
@@ -253,7 +253,7 @@ export default function RecipeSearchPage() {
           <h3 className="text-xl font-semibold text-slate-700 dark:text-slate-300">
             Không tìm thấy công thức
           </h3>
-          <p className="text-slate-500 text-sm max-w-sm text-center">
+          <p className="text-slate-600 text-sm max-w-sm text-center">
             Rất tiếc, không có món ăn nào khớp với bộ lọc của bạn. Vui lòng thử
             từ khóa hoặc tiêu chí khác.
           </p>
@@ -267,7 +267,7 @@ export default function RecipeSearchPage() {
       ) : (
         <>
           <div className="flex items-center justify-between mb-6">
-            <p className="text-sm font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
+            <p className="text-sm font-medium text-slate-600 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
               Tìm thấy{' '}
               <span className="text-orange-600 font-bold">{totalItems}</span>{' '}
               công thức
@@ -331,7 +331,7 @@ export default function RecipeSearchPage() {
                             recipe.recipeId || recipe.id || recipe._id,
                           )
                             ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/40'
-                            : 'bg-white/90 hover:bg-white text-slate-400 hover:text-red-500'
+                            : 'bg-white/90 hover:bg-white text-slate-600 hover:text-red-500'
                         }`}
                         aria-label={
                           isFavorited(
@@ -374,7 +374,7 @@ export default function RecipeSearchPage() {
                         </Link>
                       </h3>
 
-                      <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                      <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
                         <div className="flex items-center gap-1.5">
                           <Clock className="w-4 h-4" />
                           <span>
@@ -441,7 +441,7 @@ export default function RecipeSearchPage() {
                     pageNumber === currentPage + 2
                   ) {
                     return (
-                      <span key={pageNumber} className="px-2 text-slate-400">
+                      <span key={pageNumber} className="px-2 text-slate-600">
                         ...
                       </span>
                     )

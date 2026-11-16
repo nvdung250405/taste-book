@@ -55,7 +55,7 @@ export default function CustomMenuDetail({ list, onClose }) {
       ) : query.isError ? (
         <QueryError onRetry={query.refetch} isRetrying={query.isFetching} />
       ) : !query.data?.DT?.items?.length ? (
-        <p className="py-6 text-sm text-slate-500">
+        <p className="py-6 text-sm text-slate-600">
           Thực đơn chưa có món ăn. Chọn “Thêm món” để bắt đầu.
         </p>
       ) : (
@@ -73,7 +73,7 @@ export default function CustomMenuDetail({ list, onClose }) {
               >
                 {item.title}
               </Link>}
-              <p className="mt-1 break-words text-sm text-slate-500">{item.cookTimeMinutes} phút · {({ Easy: 'Dễ', Medium: 'Trung bình', Hard: 'Khó' })[item.difficulty] || item.difficulty} · {item.authorName}</p>
+              <p className="mt-1 break-words text-sm text-slate-600">{item.cookTimeMinutes} phút · {({ Easy: 'Dễ', Medium: 'Trung bình', Hard: 'Khó' })[item.difficulty] || item.difficulty} · {item.authorName}</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <label className="flex items-center gap-2 text-sm">

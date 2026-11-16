@@ -77,11 +77,11 @@ export default function FavoriteRecipeCard({
               e.stopPropagation()
               onRemove(recipeId, recipe.title)
             }}
-            className="group/btn w-8 h-8 rounded-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-md shadow hover:shadow-md flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all hover:scale-110 active:scale-90"
+            className="group/btn w-8 h-8 rounded-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-md shadow hover:shadow-md flex items-center justify-center text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all hover:scale-110 active:scale-90"
             title="Bỏ lưu khỏi yêu thích"
             aria-label="Bỏ lưu khỏi yêu thích"
           >
-            <Heart className="w-4 h-4 fill-red-500 text-red-500 transition-transform group-hover/btn:scale-110" />
+            <Heart className="w-4 h-4 fill-red-500 text-red-700 transition-transform group-hover/btn:scale-110" />
           </button>
         </div>
 
@@ -119,7 +119,7 @@ export default function FavoriteRecipeCard({
         )}
 
         {/* Recipe Meta Info */}
-        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-auto pt-3 border-t border-slate-100 dark:border-slate-800/80">
+        <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mt-auto pt-3 border-t border-slate-100 dark:border-slate-800/80">
           <div className="flex items-center gap-1 font-medium text-amber-500">
             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
             <span>{recipe.rating || '4.8'}</span>
@@ -158,7 +158,7 @@ export default function FavoriteRecipeCard({
             variant="ghost"
             size="sm"
             onClick={() => onRemove(recipeId, recipe.title)}
-            className="w-full text-xs text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg py-1.5 h-auto transition-colors"
+            className="w-full text-xs text-red-700 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg py-1.5 h-auto transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Hủy lưu món này
           </Button>

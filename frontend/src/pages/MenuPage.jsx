@@ -98,7 +98,7 @@ function MealCell({ list, date, meal, onAdd }) {
       ) : query.isError && !query.data ? (
         <button
           onClick={() => query.refetch()}
-          className="text-sm text-red-500"
+          className="text-sm text-red-700"
         >
           Tải lỗi · Thử lại
         </button>
@@ -118,10 +118,10 @@ function MealCell({ list, date, meal, onAdd }) {
               />
               <p className="mb-2 text-sm font-semibold leading-snug">
                 {item.title}
-                {item.isRecipeDeleted && <span className="mt-1 block text-xs text-slate-500">Công thức đã bị xóa</span>}
+                {item.isRecipeDeleted && <span className="mt-1 block text-xs text-slate-600">Công thức đã bị xóa</span>}
               </p>
               <div className="flex items-center justify-between gap-1">
-                <label className="flex items-center gap-1 text-xs text-slate-500">
+                <label className="flex items-center gap-1 text-xs text-slate-600">
                   <input
                     key={item.targetServings}
                     type="number"
@@ -151,7 +151,7 @@ function MealCell({ list, date, meal, onAdd }) {
                   disabled={busy}
                   onClick={() => setDeleting(item)}
                   aria-label={`Xóa ${item.title}`}
-                  className="rounded p-2 text-slate-400 hover:text-red-500 disabled:opacity-40"
+                  className="rounded p-2 text-slate-600 hover:text-red-500 disabled:opacity-40"
                 >
                   <Trash2 className="size-4" />
                 </button>
@@ -163,7 +163,7 @@ function MealCell({ list, date, meal, onAdd }) {
       <button
         onClick={() => onAdd({ date, meal, list })}
         disabled={busy || query.isError || (!!list && query.isLoading)}
-        className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 py-3 text-xs text-slate-500 transition-colors hover:border-orange-400 hover:bg-orange-50 hover:text-orange-600 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800"
+        className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 py-3 text-xs text-slate-600 transition-colors hover:border-orange-400 hover:bg-orange-50 hover:text-orange-600 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800"
       >
         <Plus className="size-4" /> Thêm món
       </button>
@@ -204,7 +204,7 @@ export default function MenuPage() {
           <h1 className="text-3xl font-bold tracking-tight">
             Thực đơn của bạn
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-600">
             Một tuần ngon miệng, bắt đầu từ kế hoạch nhỏ.
           </p>
         </div>
@@ -286,7 +286,7 @@ export default function MenuPage() {
               </Button>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-slate-500">
+              <span className="text-sm text-slate-600">
                 {count} món đã lên lịch
               </span>
               <Button variant="outline" onClick={() => setWeek(weekStart())}>
@@ -306,7 +306,7 @@ export default function MenuPage() {
             />
           ) : (
             <>
-              <p className="text-xs text-slate-500 sm:hidden">
+              <p className="text-xs text-slate-600 sm:hidden">
                 Vuốt ngang để xem đủ 7 ngày.
               </p>
               <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
@@ -317,7 +317,7 @@ export default function MenuPage() {
                       key={dateKey(date)}
                       className={`border-b border-r border-slate-200 p-4 text-center dark:border-slate-800 ${dateKey(date) === dateKey(new Date()) ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/30' : ''}`}
                     >
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-600">
                         {index === 6 ? 'Chủ nhật' : `Thứ ${index + 2}`}
                       </p>
                       <p className="mt-1 text-lg font-bold">{format(date)}</p>
@@ -345,7 +345,7 @@ export default function MenuPage() {
                   ])}
                 </div>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-600">
                 Thêm món vào từng bữa. Nhập khẩu phần rồi nhấn Enter hoặc rời ô
                 để lưu.
               </p>

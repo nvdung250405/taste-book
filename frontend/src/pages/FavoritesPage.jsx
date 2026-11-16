@@ -100,7 +100,7 @@ export default function FavoritesPage() {
               </span>
             )}
           </div>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">
+          <p className="text-slate-600 dark:text-slate-400 mt-2 text-sm sm:text-base">
             Bộ sưu tập những món ngon bạn đã lưu để sẵn sàng nấu bất cứ lúc nào
           </p>
         </div>
@@ -108,7 +108,7 @@ export default function FavoritesPage() {
         {/* Search filter if there are items */}
         {hasToken && (
           <div className="relative w-full md:w-72">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" />
             <input
               type="text"
               aria-label="Tìm trong danh sách..."
@@ -120,7 +120,7 @@ export default function FavoritesPage() {
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-600 hover:text-slate-600"
               >
                 Xóa
               </button>
@@ -139,7 +139,7 @@ export default function FavoritesPage() {
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">
             Đăng nhập để xem danh sách yêu thích
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mt-2 mb-6">
+          <p className="text-slate-600 dark:text-slate-400 text-sm max-w-sm mt-2 mb-6">
             Danh sách món yêu thích được lưu an toàn trên tài khoản của bạn để
             bạn có thể xem lại bất cứ lúc nào.
           </p>
@@ -171,7 +171,7 @@ export default function FavoritesPage() {
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">
             Chưa có món yêu thích nào
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm max-w-md mt-2 mb-6">
+          <p className="text-slate-600 dark:text-slate-400 text-sm max-w-md mt-2 mb-6">
             Khi lướt xem các công thức, hãy nhấn vào biểu tượng trái tim để lưu
             lại vào đây và xem lại dễ dàng bất cứ lúc nào!
           </p>
@@ -191,7 +191,7 @@ export default function FavoritesPage() {
           <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-300">
             Không tìm thấy công thức phù hợp
           </h2>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-600 mt-1">
             Thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc tìm kiếm
           </p>
           <Button

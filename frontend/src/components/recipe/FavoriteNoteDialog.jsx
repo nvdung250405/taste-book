@@ -25,7 +25,7 @@ export default function FavoriteNoteDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="py-2">
-          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">
+          <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5 block">
             Ghi chú cá nhân (chỉ bạn nhìn thấy)
           </label>
           <textarea

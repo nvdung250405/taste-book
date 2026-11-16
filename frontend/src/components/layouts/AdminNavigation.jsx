@@ -46,7 +46,7 @@ export default function AdminNavigation({ onNavigate }) {
           {({ isActive }) => (
             <>
               <Icon
-                className={`h-5 w-5 shrink-0 ${isActive ? 'text-orange-600 dark:text-orange-400' : 'text-slate-500'}`}
+                className={`h-5 w-5 shrink-0 ${isActive ? 'text-orange-600 dark:text-orange-400' : 'text-slate-600'}`}
               />
               <span>{label}</span>
             </>

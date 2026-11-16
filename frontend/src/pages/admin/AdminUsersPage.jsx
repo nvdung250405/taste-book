@@ -51,7 +51,7 @@ export default function AdminUsersPage() {
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Quản lý người dùng
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-600">
             Tra cứu thông tin các tài khoản trên hệ thống.
           </p>
         </div>
@@ -69,7 +69,7 @@ export default function AdminUsersPage() {
       </div>
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
           <Input
             aria-label="Tìm người dùng theo email, tên hoặc số điện thoại"
             placeholder="Tìm tên, email hoặc số điện thoại…"
@@ -82,7 +82,7 @@ export default function AdminUsersPage() {
               type="button"
               aria-label="Xóa tìm kiếm"
               onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-500"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-600"
             >
               <X className="h-4 w-4" />
             </button>
@@ -110,7 +110,7 @@ export default function AdminUsersPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px] text-left text-sm">
               <caption className="sr-only">Danh sách người dùng</caption>
-              <thead className="border-b bg-slate-50 text-slate-500 dark:bg-slate-900">
+              <thead className="border-b bg-slate-50 text-slate-600 dark:bg-slate-900">
                 <tr>
                   {[
                     'Mã',
@@ -136,7 +136,7 @@ export default function AdminUsersPage() {
                   <tr>
                     <td
                       colSpan={7}
-                      className="p-12 text-center text-slate-500"
+                      className="p-12 text-center text-slate-600"
                       role="status"
                     >
                       Đang tải danh sách…
@@ -144,7 +144,7 @@ export default function AdminUsersPage() {
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-12 text-center text-slate-500">
+                    <td colSpan={7} className="p-12 text-center text-slate-600">
                       {search || role
                         ? 'Không tìm thấy tài khoản phù hợp.'
                         : 'Chưa có người dùng nào.'}
@@ -156,7 +156,7 @@ export default function AdminUsersPage() {
                       key={user.userId}
                       className="hover:bg-orange-50/50 dark:hover:bg-orange-950/20"
                     >
-                      <td className="px-4 py-4 font-mono text-xs text-slate-500">
+                      <td className="px-4 py-4 font-mono text-xs text-slate-600">
                         #{user.userId}
                       </td>
                       <td className="px-4 py-4">
@@ -185,7 +185,7 @@ export default function AdminUsersPage() {
                           {user.role}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-4 text-slate-500">
+                      <td className="whitespace-nowrap px-4 py-4 text-slate-600">
                         {user.createdAt
                           ? new Date(user.createdAt).toLocaleDateString('vi-VN')
                           : '—'}
@@ -209,7 +209,7 @@ export default function AdminUsersPage() {
           </div>
           {!query.isPending && (
             <div className="flex flex-wrap items-center justify-between gap-3 border-t p-4 [&_nav]:mt-0">
-              <p aria-live="polite" className="text-sm text-slate-500">
+              <p aria-live="polite" className="text-sm text-slate-600">
                 {total ? (page - 1) * 20 + 1 : 0}–{Math.min(page * 20, total)} /{' '}
                 {total} tài khoản
               </p>

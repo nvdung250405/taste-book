@@ -62,9 +62,10 @@ export default function HeroSection() {
         
         {/* Search Bar */}
         <div className="w-full max-w-2xl mt-2 sm:mt-4 relative flex items-center group">
-          <Search className="absolute left-3 sm:left-4 w-5 sm:w-6 h-5 sm:h-6 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
+          <Search aria-hidden="true" className="absolute left-3 sm:left-4 w-5 sm:w-6 h-5 sm:h-6 text-slate-300 group-focus-within:text-orange-500 transition-colors" />
           <Input 
             id="hero-search-input"
+            aria-label="Tìm món ăn hoặc nguyên liệu"
             type="text"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
@@ -86,12 +87,12 @@ export default function HeroSection() {
           <span className="text-sm text-slate-300 mr-2">Phổ biến:</span>
           {POPULAR_TAGS.map((tag) => (
             <Badge
+              asChild
               key={tag}
-              onClick={() => handleTagClick(tag)}
               variant="outline"
               className="text-slate-300 border-white/20 hover:bg-white/10 cursor-pointer backdrop-blur-sm transition-colors"
             >
-              {tag}
+              <button type="button" onClick={() => handleTagClick(tag)}>{tag}</button>
             </Badge>
           ))}
         </div>

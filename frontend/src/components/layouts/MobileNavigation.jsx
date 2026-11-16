@@ -53,7 +53,7 @@ export default function MobileNavigation({
               <p className="font-semibold text-slate-900 dark:text-slate-50 text-sm">
                 {displayName}
               </p>
-              <p className="text-xs text-slate-500">{user.email}</p>
+              <p className="text-xs text-slate-600">{user.email}</p>
             </div>
           </div>
         )}
@@ -135,7 +135,7 @@ export default function MobileNavigation({
                 closeMobileMenu()
                 handleLogout()
               }}
-              className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium text-sm"
+              className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium text-sm"
             >
               <LogOut className="w-4 h-4" />
               Đăng xuất

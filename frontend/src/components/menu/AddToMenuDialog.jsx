@@ -181,7 +181,7 @@ export default function AddToMenuDialog({ recipeId, servings, onClose }) {
                   ))}
                 </select>
                 {query.isSuccess && !custom.length && (
-                  <span className="block text-slate-500">
+                  <span className="block text-slate-600">
                     Chưa có thực đơn tùy biến. Hãy tạo tại trang Thực đơn hoặc
                     chọn Lịch tuần.
                   </span>

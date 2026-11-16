@@ -7,10 +7,10 @@ export default function RecipeSteps({ steps, checkedSteps, toggleStep }) {
     <div>
       <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-4">
         Các bước thực hiện
-        <span className="ml-2 text-base font-normal text-slate-500">({steps.length} bước)</span>
+        <span className="ml-2 text-base font-normal text-slate-600">({steps.length} bước)</span>
       </h2>
       {steps.length === 0 ? (
-        <p className="text-slate-400 text-sm">Chưa có hướng dẫn.</p>
+        <p className="text-slate-600 text-sm">Chưa có hướng dẫn.</p>
       ) : (
         <div className="space-y-4 mb-8">
           {steps.map((step, idx) => {
@@ -36,7 +36,7 @@ export default function RecipeSteps({ steps, checkedSteps, toggleStep }) {
                 </div>
                 <div className="flex-1">
                   {step.title && <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">{step.title}</p>}
-                  <p className={`text-sm leading-relaxed ${checked ? 'line-through text-slate-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                  <p className={`text-sm leading-relaxed ${checked ? 'line-through text-slate-600' : 'text-slate-600 dark:text-slate-400'}`}>
                     {step.description || step.content || step.instruction || step}
                   </p>
                   {step.image && (
@@ -58,7 +58,7 @@ export default function RecipeSteps({ steps, checkedSteps, toggleStep }) {
       {steps.length > 0 && (
         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4">
           <div className="flex justify-between text-sm mb-2">
-            <span className="text-slate-500">Tiến độ nấu ăn</span>
+            <span className="text-slate-600">Tiến độ nấu ăn</span>
             <span className="font-semibold text-orange-500">
               {Object.values(checkedSteps).filter(Boolean).length}/{steps.length} bước
             </span>

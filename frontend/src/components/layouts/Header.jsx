@@ -73,7 +73,7 @@ export default function Header({
               ref={triggerRef}
               variant="ghost"
               size="icon"
-              className="text-slate-500"
+              className="text-slate-600"
               aria-label="Mở menu điều hướng"
               aria-expanded={mobileMenuOpen}
               onClick={() => setMobileMenuOpen(true)}

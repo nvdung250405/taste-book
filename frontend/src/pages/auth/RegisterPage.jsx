@@ -83,7 +83,7 @@ export default function RegisterPage() {
           <div className="mx-auto w-full max-w-sm space-y-6">
             <div className="space-y-2 text-center md:text-left">
               <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Tạo tài khoản</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
                 Tham gia cộng đồng TasteBook ngay hôm nay
               </p>
             </div>
@@ -177,7 +177,7 @@ export default function RegisterPage() {
               </Button>
             </form>
 
-            <div className="text-center text-sm text-slate-500">
+            <div className="text-center text-sm text-slate-600">
               Đã có tài khoản?{' '}
               <Link to="/login" className="font-semibold text-orange-500 hover:text-orange-600 underline-offset-4 hover:underline">
                 Đăng nhập

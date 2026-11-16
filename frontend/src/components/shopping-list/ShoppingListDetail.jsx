@@ -200,7 +200,7 @@ export default function ShoppingListDetail({ list }) {
           <span className="text-sm font-medium" aria-live="polite">
             Đã mua {purchased}/{items.length} mục
           </span>
-          <span role="status" className="text-xs text-slate-500">
+          <span role="status" className="text-xs text-slate-600">
             {pendingIds.size || clearing || adding ? 'Đang lưu…' : 'Đã đồng bộ'}
           </span>
         </div>
@@ -232,7 +232,7 @@ export default function ShoppingListDetail({ list }) {
       )}
       <div className="space-y-2">
         {!items.length && (
-          <p className="py-8 text-center text-sm text-slate-500">
+          <p className="py-8 text-center text-sm text-slate-600">
             Danh sách trống. Thêm nguyên liệu cần mua bên dưới.
           </p>
         )}
@@ -249,7 +249,7 @@ export default function ShoppingListDetail({ list }) {
               className="size-6 shrink-0 accent-orange-500"
             />
             <span
-              className={`min-w-0 flex-1 break-words text-base transition-colors ${item.isPurchased ? 'text-slate-400 line-through decoration-2' : 'font-medium'}`}
+              className={`min-w-0 flex-1 break-words text-base transition-colors ${item.isPurchased ? 'text-slate-600 line-through decoration-2' : 'font-medium'}`}
             >
               {item.itemName}
               {conflicts.has(item.itemId) && (
@@ -258,7 +258,7 @@ export default function ShoppingListDetail({ list }) {
                 </span>
               )}
             </span>
-            <span className="max-w-[35%] break-words text-right text-sm text-slate-500">
+            <span className="max-w-[35%] break-words text-right text-sm text-slate-600">
               {isQualitativeUnit(item.unit)
                 ? ''
                 : Number(item.totalQuantity).toLocaleString('vi-VN', {
@@ -359,7 +359,7 @@ export default function ShoppingListDetail({ list }) {
           <DialogHeader>
             <DialogTitle>Xóa {purchased} mục đã mua?</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-600">
             Các mục chưa mua sẽ được giữ lại. Thao tác xóa không thể hoàn tác.
           </p>
           <DialogFooter>

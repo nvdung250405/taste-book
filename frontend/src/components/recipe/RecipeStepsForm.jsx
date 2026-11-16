@@ -33,7 +33,7 @@ export default function RecipeStepsForm({ formData, handleStepChange, removeStep
               type="button"
               variant="ghost"
               size="icon"
-              className="shrink-0 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+              className="shrink-0 text-slate-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
               aria-label={`Xóa bước ${idx + 1}`} onClick={() => removeStep(idx)}
               disabled={formData.steps.length === 1}
             >
@@ -44,7 +44,7 @@ export default function RecipeStepsForm({ formData, handleStepChange, removeStep
         <Button
           type="button"
           variant="outline"
-          className="w-full mt-2 border-dashed border-2 text-slate-500 hover:text-orange-500 hover:border-orange-200"
+          className="w-full mt-2 border-dashed border-2 text-slate-600 hover:text-orange-500 hover:border-orange-200"
           onClick={addStep}
         >
           <Plus className="w-4 h-4 mr-2" /> Thêm bước mới

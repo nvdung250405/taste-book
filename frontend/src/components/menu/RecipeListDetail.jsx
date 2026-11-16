@@ -12,7 +12,7 @@ export default function RecipeListDetail({ list }) {
       {isLoading ? (
         <div className="flex justify-center py-6"><Loader2 className="w-6 h-6 animate-spin text-orange-400" /></div>
       ) : items.length === 0 ? (
-        <div className="text-center py-6 text-slate-400 text-sm">Thực đơn này chưa có món nào.</div>
+        <div className="text-center py-6 text-slate-600 text-sm">Thực đơn này chưa có món nào.</div>
       ) : (
         <div className="space-y-2">
           {items.map(item => (
@@ -24,7 +24,7 @@ export default function RecipeListDetail({ list }) {
               />
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-slate-800 dark:text-slate-200 line-clamp-1">{item.recipe?.title || 'Chưa đặt tên'}</p>
-                <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                <div className="flex items-center gap-2 text-xs text-slate-600 mt-0.5">
                   <Users className="w-3 h-3" />
                   <span>{item.portions || item.servings || 1} phần ăn</span>
                   {item.recipe?.prepTime && (
@@ -41,7 +41,7 @@ export default function RecipeListDetail({ list }) {
                   onSuccess: () => toast.success('Đã xóa món khỏi thực đơn'),
                   onError: () => toast.error('Xóa thất bại'),
                 })}
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500"
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-600 hover:text-red-500"
                 disabled={removing}
               >
                 <Trash2 className="w-4 h-4" />

@@ -72,7 +72,7 @@ export default function LoginPage() {
               <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Đăng nhập
               </h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
                 Nhập email và mật khẩu của bạn để truy cập tài khoản
               </p>
             </div>
@@ -120,9 +120,11 @@ export default function LoginPage() {
                     placeholder="••••••••"
                   />
                   <button
+                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                    aria-pressed={showPassword}
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-600 dark:hover:text-slate-200"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -139,7 +141,7 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="text-center text-sm text-slate-500">
+            <div className="text-center text-sm text-slate-600">
               Bạn chưa có tài khoản?{' '}
               <Link
                 to="/register"

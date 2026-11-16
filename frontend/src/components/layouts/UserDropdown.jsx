@@ -37,7 +37,7 @@ export default function UserDropdown({ user, onLogout }) {
           </div>
         )}
         <span className="hidden lg:block text-sm font-medium text-slate-700 dark:text-slate-200 max-w-[100px] truncate">{name}</span>
-        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform hidden lg:block ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-slate-600 transition-transform hidden lg:block ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
@@ -45,7 +45,7 @@ export default function UserDropdown({ user, onLogout }) {
           {/* User info */}
           <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800">
             <p className="font-semibold text-slate-900 dark:text-slate-50 text-sm truncate">{name}</p>
-            <p className="text-xs text-slate-500 truncate">{user?.email || ''}</p>
+            <p className="text-xs text-slate-600 truncate">{user?.email || ''}</p>
           </div>
 
           <Link
@@ -70,7 +70,7 @@ export default function UserDropdown({ user, onLogout }) {
           <div className="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1">
             <button
               onClick={() => { setOpen(false); onLogout() }}
-              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             >
               <LogOut className="w-4 h-4" /> Đăng xuất
             </button>

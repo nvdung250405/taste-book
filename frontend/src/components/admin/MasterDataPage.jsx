@@ -87,7 +87,7 @@ export default function MasterDataPage({
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             {title}
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-600">
             Quản lý dữ liệu chuẩn dùng chung trong hệ thống.
           </p>
         </div>
@@ -130,7 +130,7 @@ export default function MasterDataPage({
             isRetrying={reference.isFetching}
           />
         ) : reference.isPending ? (
-          <p key={index} role="status" className="text-sm text-slate-500">
+          <p key={index} role="status" className="text-sm text-slate-600">
             Đang tải dữ liệu cho biểu mẫu…
           </p>
         ) : null,
@@ -139,7 +139,7 @@ export default function MasterDataPage({
         <div className="relative w-full sm:max-w-md">
           <Search
             aria-hidden="true"
-            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600"
           />
           <Input
             aria-label={`Tìm kiếm ${label}`}
@@ -153,7 +153,7 @@ export default function MasterDataPage({
               type="button"
               aria-label="Xóa tìm kiếm"
               onClick={() => setSearch('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <X className="h-4 w-4" />
             </button>
@@ -208,7 +208,7 @@ export default function MasterDataPage({
                   <tr>
                     <td
                       colSpan={columns.length + 2}
-                      className="p-10 text-center text-slate-500"
+                      className="p-10 text-center text-slate-600"
                     >
                       <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
                         <Search className="h-5 w-5" />
@@ -235,7 +235,7 @@ export default function MasterDataPage({
                       key={item[idKey]}
                       className="hover:bg-slate-50 dark:hover:bg-slate-900"
                     >
-                      <td className="px-4 py-3 font-mono text-xs text-slate-500">
+                      <td className="px-4 py-3 font-mono text-xs text-slate-600">
                         #{item[idKey]}
                       </td>
                       {columns.map((column) => (
@@ -251,7 +251,7 @@ export default function MasterDataPage({
                           variant="ghost"
                           size="icon"
                           title={`Sửa ${item[nameKey]}`}
-                          className="rounded-lg text-slate-500 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300"
+                          className="rounded-lg text-slate-600 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300"
                           aria-label={`Sửa ${item[nameKey]}`}
                           disabled={busy || !referencesReady}
                           onClick={() => setEditor({ record: item })}
@@ -281,7 +281,7 @@ export default function MasterDataPage({
           </div>
           {!query.isPending && (
             <div className="flex flex-col gap-3 border-t bg-slate-50/60 p-4 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-900/30 [&_nav]:mt-0 [&_nav]:gap-2">
-              <p className="text-sm text-slate-500" aria-live="polite">
+              <p className="text-sm text-slate-600" aria-live="polite">
                 {filtered.length ? (page - 1) * 10 + 1 : 0}–
                 {Math.min(page * 10, filtered.length)} / {filtered.length} kết
                 quả

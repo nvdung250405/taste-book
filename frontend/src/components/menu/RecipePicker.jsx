@@ -132,11 +132,11 @@ export default function RecipePicker({ slot, onClose }) {
           aria-busy={busy}
         >
           {query.isLoading ? (
-            <p className="py-8 text-center text-slate-500">Đang tìm món…</p>
+            <p className="py-8 text-center text-slate-600">Đang tìm món…</p>
           ) : query.isError ? (
             <QueryError onRetry={query.refetch} />
           ) : recipes.length === 0 ? (
-            <p className="py-8 text-center text-slate-500">
+            <p className="py-8 text-center text-slate-600">
               Không tìm thấy món phù hợp.
             </p>
           ) : (

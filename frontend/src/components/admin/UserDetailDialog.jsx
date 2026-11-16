@@ -24,7 +24,7 @@ export default function UserDetailDialog({ userId, onClose }) {
           <DialogDescription>Thông tin tài khoản #{userId}</DialogDescription>
         </DialogHeader>
         {query.isPending ? (
-          <p role="status" className="py-6 text-slate-500">
+          <p role="status" className="py-6 text-slate-600">
             Đang tải thông tin…
           </p>
         ) : query.isError ? (
@@ -45,7 +45,7 @@ export default function UserDetailDialog({ userId, onClose }) {
                 key={label}
                 className="grid gap-1 py-3 sm:grid-cols-[140px_1fr]"
               >
-                <dt className="text-slate-500">{label}</dt>
+                <dt className="text-slate-600">{label}</dt>
                 <dd className="break-words font-medium">{value || '—'}</dd>
               </div>
             ))}

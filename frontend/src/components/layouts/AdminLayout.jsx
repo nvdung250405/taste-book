@@ -46,7 +46,7 @@ export default function AdminLayout() {
             variant="ghost"
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
+            className="w-full justify-start text-red-700 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
           >
             <LogOut className="w-5 h-5 mr-3" />
             {isLoggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}
@@ -58,7 +58,7 @@ export default function AdminLayout() {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="hidden h-16 shrink-0 items-center justify-between border-b bg-white px-6 dark:bg-slate-950 lg:flex">
           <span className="font-semibold">Không gian quản trị</span>
-          <Link to="/" className="text-sm text-slate-500 hover:text-orange-500">
+          <Link to="/" className="text-sm text-slate-600 hover:text-orange-500">
             Về trang chính
           </Link>
         </header>
@@ -99,7 +99,7 @@ export default function AdminLayout() {
                   variant="ghost"
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
+                  className="w-full justify-start text-red-700 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
                 >
                   <LogOut className="w-5 h-5 mr-3" />
                   {isLoggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}

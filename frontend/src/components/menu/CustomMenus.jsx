@@ -75,7 +75,7 @@ export default function CustomMenus() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold">Thực đơn của tôi</h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-600">
             Lưu các bộ món ăn cho gia đình, chế độ ăn hoặc những dịp đặc biệt.
           </p>
         </div>
@@ -89,13 +89,13 @@ export default function CustomMenus() {
         </Button>
       </div>
       {query.isPending ? (
-        <p role="status" className="py-8 text-slate-500">
+        <p role="status" className="py-8 text-slate-600">
           Đang tải thực đơn…
         </p>
       ) : query.isError && !query.data ? (
         <QueryError title="Không thể tải thực đơn" onRetry={query.refetch} />
       ) : !custom.length ? (
-        <div className="rounded-2xl border border-dashed p-10 text-center text-slate-500">
+        <div className="rounded-2xl border border-dashed p-10 text-center text-slate-600">
           <BookOpen className="mx-auto mb-3 h-9 w-9 text-orange-400" />
           Bạn chưa có thực đơn tùy biến. Hãy tạo thực đơn đầu tiên!
         </div>
@@ -109,7 +109,7 @@ export default function CustomMenus() {
               <h3 className="break-words text-lg font-semibold">
                 {list.listName}
               </h3>
-              <p className="my-3 text-sm text-slate-500">
+              <p className="my-3 text-sm text-slate-600">
                 {list.totalItems ?? 0} món ăn
               </p>
               <div className="flex flex-wrap gap-2">

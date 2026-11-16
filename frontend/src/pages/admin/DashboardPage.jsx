@@ -71,7 +71,7 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Tổng quan hệ thống
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-600">
             Theo dõi tài khoản và các công thức mới nhất của TasteBook.
           </p>
         </div>
@@ -94,7 +94,7 @@ export default function DashboardPage() {
           <Card key={title} className="rounded-2xl">
             <CardContent className="flex items-center justify-between gap-4 px-6">
               <div>
-                <h2 className="text-sm font-medium text-slate-500">{title}</h2>
+                <h2 className="text-sm font-medium text-slate-600">{title}</h2>
                 <p
                   aria-live="polite"
                   className="my-2 text-4xl font-bold tabular-nums"
@@ -115,7 +115,7 @@ export default function DashboardPage() {
                     {note} →
                   </Link>
                 ) : (
-                  <p className="text-xs text-slate-500">{note}</p>
+                  <p className="text-xs text-slate-600">{note}</p>
                 )}
                 {href && query.isError && (
                   <button
@@ -158,7 +158,7 @@ export default function DashboardPage() {
                 isRetrying={users.isFetching}
               />
             ) : users.isPending ? (
-              <p role="status" className="py-8 text-sm text-slate-500">
+              <p role="status" className="py-8 text-sm text-slate-600">
                 Đang tải tài khoản…
               </p>
             ) : users.data?.DT?.users?.length ? (
@@ -178,7 +178,7 @@ export default function DashboardPage() {
                       <p className="truncate text-sm font-medium">
                         {user.username}
                       </p>
-                      <p className="truncate text-xs text-slate-500">
+                      <p className="truncate text-xs text-slate-600">
                         {user.email}
                       </p>
                     </div>
@@ -189,7 +189,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <p className="py-8 text-sm text-slate-500">
+              <p className="py-8 text-sm text-slate-600">
                 Chưa có người dùng nào.
               </p>
             )}
@@ -219,7 +219,7 @@ export default function DashboardPage() {
                 isRetrying={recipes.isFetching}
               />
             ) : recipes.isPending ? (
-              <p role="status" className="py-8 text-sm text-slate-500">
+              <p role="status" className="py-8 text-sm text-slate-600">
                 Đang tải công thức…
               </p>
             ) : recipes.data?.DT?.recipes?.length ? (
@@ -241,7 +241,7 @@ export default function DashboardPage() {
                       <p className="truncate text-sm font-medium">
                         {recipe.title}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-600">
                         {recipe.cookTimeMinutes ?? '—'} phút ·{' '}
                         {{ Easy: 'Dễ', Medium: 'Trung bình', Hard: 'Khó' }[
                           recipe.difficulty
@@ -252,7 +252,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <p className="py-8 text-sm text-slate-500">
+              <p className="py-8 text-sm text-slate-600">
                 Chưa có công thức công khai đã duyệt.
               </p>
             )}

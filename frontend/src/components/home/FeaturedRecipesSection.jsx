@@ -132,7 +132,7 @@ function RecipeCard({ recipe, rank }) {
               className={`rounded-full w-8 h-8 backdrop-blur-sm relative z-10 transition-all hover:scale-110 active:scale-95 ${
                 isFavorited
                   ? 'bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-500/30'
-                  : 'bg-white/80 hover:bg-white text-slate-400 hover:text-red-500'
+                  : 'bg-white/80 hover:bg-white text-slate-600 hover:text-red-500'
               }`}
               aria-label={isFavorited ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
             >
@@ -147,9 +147,9 @@ function RecipeCard({ recipe, rank }) {
             <div className="flex items-center gap-1.5 text-orange-500">
               <Star className="w-4 h-4 fill-orange-500" />
               <span className="font-semibold">{recipe.rating || '4.5'}</span>
-              <span className="text-slate-400 text-sm">({recipe.reviews || 0})</span>
+              <span className="text-slate-600 text-sm">({recipe.reviews || 0})</span>
             </div>
-            <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
                 {recipe.cookTimeMinutes ? `${recipe.cookTimeMinutes}p` : recipe.prepTime || recipe.time || '30p'}
@@ -198,7 +198,7 @@ export function LatestRecipesSection({ recipes, isLoading }) {
           <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
             Công thức mới nhất
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
             Những công thức vừa được chia sẻ từ cộng đồng
           </p>
         </div>
@@ -214,7 +214,7 @@ export function LatestRecipesSection({ recipes, isLoading }) {
       {isLoading ? (
         <RecipeSkeletonGrid count={6} />
       ) : recipes.length === 0 ? (
-        <div className="text-center py-12 text-slate-500">Chưa có công thức nào.</div>
+        <div className="text-center py-12 text-slate-600">Chưa có công thức nào.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {recipes.map((recipe) => (
@@ -243,7 +243,7 @@ export function TrendingRecipesSection({ recipes, isLoading }) {
               HOT
             </span>
           </div>
-          <p className="text-slate-500 dark:text-slate-400">
+          <p className="text-slate-600 dark:text-slate-400">
             Những công thức được lưu yêu thích nhiều nhất
           </p>
         </div>
@@ -259,7 +259,7 @@ export function TrendingRecipesSection({ recipes, isLoading }) {
       {isLoading ? (
         <RecipeSkeletonGrid count={6} />
       ) : recipes.length === 0 ? (
-        <div className="text-center py-12 text-slate-500">Chưa có công thức nào.</div>
+        <div className="text-center py-12 text-slate-600">Chưa có công thức nào.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {recipes.map((recipe, idx) => (
