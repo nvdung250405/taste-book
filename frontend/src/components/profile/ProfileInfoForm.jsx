@@ -70,7 +70,7 @@ export default function ProfileInfoForm({ user, profileForm, setProfileForm, han
                 {profileForm.avatar ? (
                   <img 
                     src={profileForm.avatar} 
-                    alt="Xem trước ảnh đại diện" 
+                    alt="Xem trước ảnh đại diện"
                     className="w-full h-full object-cover"
                   />
                 ) : (
