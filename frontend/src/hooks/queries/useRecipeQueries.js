@@ -1,10 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import recipesApi from '../../api/recipes.api';
-import axiosClient from '../../api/axiosClient';
 
 export const useHomeRecipes = () => useQuery({
   queryKey: ['home-recipes'],
-  queryFn: () => axiosClient.get('/home', { params: { limit: 6 } }),
+  queryFn: () => recipesApi.getHomeRecipes(),
   staleTime: 2 * 60 * 1000,
 });
 
