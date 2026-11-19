@@ -10,11 +10,13 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-public/images/optimized/
+*.local
+
+# Generated audit reports and image variants
+performance-results/
 playwright-report/
 test-results/
-performance-results/
-*.local
+public/images/optimized/
 
 # Editor directories and files
 .vscode/*
