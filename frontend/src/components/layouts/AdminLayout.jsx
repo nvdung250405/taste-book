@@ -8,7 +8,7 @@ import { useLogout } from '../../hooks/queries/useAuthQueries'
 
 export default function AdminLayout() {
   const navigate = useNavigate()
-  const { mutate: logout, isPending: isLoggingOut } = useLogout()
+  const { mutateAsync: logout, isPending: isLoggingOut } = useLogout()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const closeMobileMenu = () => setMobileMenuOpen(false)
 
@@ -16,10 +16,10 @@ export default function AdminLayout() {
     if (isLoggingOut) return
     closeMobileMenu()
 
-    logout(undefined, {
-      // useLogout clears the session even if the API request fails.
-      onSettled: () => navigate('/login', { replace: true }),
-    })
+    // Clearing the session unmounts AdminLayout. Promise handlers still run
+    // after unmount, unlike callbacks passed to mutate().
+    const returnHome = () => navigate('/', { replace: true })
+    void logout().then(returnHome, returnHome)
   }
 
   return (
