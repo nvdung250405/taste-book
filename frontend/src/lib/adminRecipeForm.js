@@ -1,13 +1,14 @@
 import { isQualitativeUnit } from './shoppingList.js'
+import { validServings } from './menuLists.js'
 
 export function adminRecipePayload(form, categories) {
   const title = form.title.trim()
   if (!title || title.length > 255)
     throw new Error('Tên món phải có từ 1 đến 255 ký tự.')
   if (!form.description.trim()) throw new Error('Vui lòng nhập mô tả món ăn.')
+  if (!validServings(form.servings)) throw new Error('Khẩu phần phải là số nguyên từ 1 đến 100 người.')
   for (const [value, label] of [
     [form.prepTime, 'Thời gian nấu'],
-    [form.servings, 'Khẩu phần'],
   ]) {
     if (
       !Number.isInteger(Number(value)) ||

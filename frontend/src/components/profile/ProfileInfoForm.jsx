@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { Camera, Loader2, UploadCloud, Link as LinkIcon } from 'lucide-react'
+import { useRef } from 'react'
+import { Camera, Loader2, UploadCloud } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card'
@@ -8,7 +8,6 @@ import { toast } from 'sonner'
 
 export default function ProfileInfoForm({ user, profileForm, setProfileForm, handleProfileSubmit, updating }) {
   const fileInputRef = useRef(null)
-  const [showUrlInput, setShowUrlInput] = useState(false)
   const { mutate: uploadImage, isPending: isUploading } = useUploadImage()
 
   const handleFileChange = (e) => {
@@ -71,11 +70,11 @@ export default function ProfileInfoForm({ user, profileForm, setProfileForm, han
                 {profileForm.avatar ? (
                   <img 
                     src={profileForm.avatar} 
-                    alt="Avatar preview" 
+                    alt="Xem trước ảnh đại diện"
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-400">
+                  <div className="w-full h-full flex items-center justify-center text-slate-600">
                     <Camera className="w-8 h-8" />
                   </div>
                 )}
@@ -114,33 +113,13 @@ export default function ProfileInfoForm({ user, profileForm, setProfileForm, han
                     )}
                   </Button>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowUrlInput(!showUrlInput)}
-                    className="h-9 px-3 text-xs text-slate-600 dark:text-slate-400 cursor-pointer"
-                  >
-                    <LinkIcon className="w-3.5 h-3.5 mr-1.5" />
-                    {showUrlInput ? 'Ẩn ô nhập link' : 'Hoặc dán URL'}
-                  </Button>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600">
                   Hỗ trợ định dạng PNG, JPG, WEBP (tối đa 5MB).
                 </p>
               </div>
             </div>
 
-            {/* Optional URL input toggle */}
-            {showUrlInput && (
-              <div className="pt-2 animate-in fade-in duration-200">
-                <Input 
-                  aria-label="Đường dẫn ảnh đại diện" value={profileForm.avatar}
-                  onChange={(e) => setProfileForm(p => ({ ...p, avatar: e.target.value }))}
-                  placeholder="https://example.com/anh-dai-dien.jpg"
-                  className="text-xs font-mono"
-                />
-              </div>
-            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -156,9 +135,9 @@ export default function ProfileInfoForm({ user, profileForm, setProfileForm, han
               <Input 
                 id="profile-email" value={user.email}
                 disabled
-                className="bg-slate-50 dark:bg-slate-900 text-slate-500"
+                className="bg-slate-50 dark:bg-slate-900 text-slate-600"
               />
-              <p className="text-xs text-slate-400">Email không thể thay đổi</p>
+              <p className="text-xs text-slate-600">Email không thể thay đổi</p>
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="profile-phone">Số điện thoại</label>

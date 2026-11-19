@@ -10,6 +10,7 @@ import { recipeImageProps, handleRecipeImageError } from '../../lib/recipeImages
 import { validServings } from '../../lib/menuLists'
 import { Button } from '../ui/button'
 import QueryError from '../ui/QueryError'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../ui/dialog'
 import RecipePicker from './RecipePicker'
 import MenuItemDeleteDialog from './MenuItemDeleteDialog'
 
@@ -23,12 +24,19 @@ export default function CustomMenuDetail({ list, onClose }) {
   const failure = (error) =>
     toast.error(error?.EM || 'Không thể cập nhật món ăn. Vui lòng thử lại.')
   return (
+    <Dialog open onOpenChange={open => { if (!open && !busy) onClose() }}>
+    <DialogContent
+      className="max-h-[85dvh] overflow-y-auto sm:max-w-4xl"
+      showCloseButton={!busy}
+      onEscapeKeyDown={event => { if (busy) event.preventDefault() }}
+      onInteractOutside={event => { if (busy) event.preventDefault() }}
+    >
     <section
-      className="space-y-4 rounded-2xl border bg-white p-5 dark:bg-slate-900"
+      className="min-w-0 space-y-4"
       aria-label={`Chi tiết ${list.listName}`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="break-words text-xl font-bold">{list.listName}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3 pr-6">
+        <DialogTitle className="break-words text-xl font-bold">{list.listName}</DialogTitle>
         <div className="flex gap-2">
           <Button
             disabled={busy || !query.isSuccess}
@@ -36,17 +44,18 @@ export default function CustomMenuDetail({ list, onClose }) {
           >
             Thêm món
           </Button>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" disabled={busy} onClick={onClose}>
             Đóng chi tiết
           </Button>
         </div>
       </div>
+      <DialogDescription>Danh sách món ăn trong thực đơn. Bạn có thể thêm món, thay đổi khẩu phần hoặc bỏ món.</DialogDescription>
       {query.isPending ? (
         <p role="status">Đang tải món ăn…</p>
       ) : query.isError ? (
         <QueryError onRetry={query.refetch} isRetrying={query.isFetching} />
       ) : !query.data?.DT?.items?.length ? (
-        <p className="py-6 text-sm text-slate-500">
+        <p className="py-6 text-sm text-slate-600">
           Thực đơn chưa có món ăn. Chọn “Thêm món” để bắt đầu.
         </p>
       ) : (
@@ -64,7 +73,7 @@ export default function CustomMenuDetail({ list, onClose }) {
               >
                 {item.title}
               </Link>}
-              <p className="mt-1 break-words text-sm text-slate-500">{item.cookTimeMinutes} phút · {({ Easy: 'Dễ', Medium: 'Trung bình', Hard: 'Khó' })[item.difficulty] || item.difficulty} · {item.authorName}</p>
+              <p className="mt-1 break-words text-sm text-slate-600">{item.cookTimeMinutes} phút · {({ Easy: 'Dễ', Medium: 'Trung bình', Hard: 'Khó' })[item.difficulty] || item.difficulty} · {item.authorName}</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <label className="flex items-center gap-2 text-sm">
@@ -73,7 +82,7 @@ export default function CustomMenuDetail({ list, onClose }) {
                     key={item.targetServings}
                     type="number"
                     min="1"
-                    max="2147483647"
+                    max="100"
                     defaultValue={item.targetServings}
                     aria-label={`Khẩu phần ${item.title}`}
                     disabled={busy || item.isRecipeDeleted}
@@ -86,7 +95,7 @@ export default function CustomMenuDetail({ list, onClose }) {
                       const servings = Number(event.target.value)
                       if (!validServings(servings)) {
                         event.target.value = item.targetServings
-                        toast.error('Khẩu phần phải là số nguyên dương.')
+                        toast.error('Khẩu phần phải là số nguyên từ 1 đến 100.')
                         return
                       }
                       if (servings !== item.targetServings)
@@ -143,5 +152,7 @@ export default function CustomMenuDetail({ list, onClose }) {
         }}
       />
     </section>
+    </DialogContent>
+    </Dialog>
   )
 }

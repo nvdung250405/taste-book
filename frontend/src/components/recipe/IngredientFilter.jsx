@@ -104,7 +104,7 @@ export default function IngredientFilter({ value, onChange }) {
                     </button>
                   ))
                 ) : (
-                  <p className="p-3 text-sm text-slate-500">
+                  <p className="p-3 text-sm text-slate-600">
                     Không tìm thấy nguyên liệu.
                   </p>
                 )}

@@ -22,6 +22,7 @@ import { changeRecipeIngredient, recipeIngredientPayload } from '../lib/recipeIn
 import { recipeStatus } from '../lib/collectionFilters'
 import { isQualitativeUnit } from '../lib/shoppingList'
 import { adminRecipePayload } from '../lib/adminRecipeForm'
+import { validServings } from '../lib/menuLists'
 
 import RecipeBasicInfoForm from '../components/recipe/RecipeBasicInfoForm'
 import RecipeIngredientsForm from '../components/recipe/RecipeIngredientsForm'
@@ -88,7 +89,7 @@ export default function RecipeFormPage({ admin = false }) {
         className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center"
       >
         <h1 className="text-2xl font-bold">Không thể tải công thức</h1>
-        <p className="text-slate-500">
+        <p className="text-slate-600">
           Vui lòng thử lại để chỉnh sửa công thức.
         </p>
         <div className="flex gap-3">
@@ -269,6 +270,8 @@ function RecipeForm({ id, recipe, admin }) {
     if (creating || updating) return
     if (isUploading) return toast.error('Vui lòng đợi ảnh tải lên hoàn tất')
     setSubmitError('')
+    if (!validServings(formData.servings))
+      return toast.error('Khẩu phần phải là số nguyên từ 1 đến 100 người.')
     let standardPayload
     if (admin) {
       if (categoriesError || fetchingCategories) {
@@ -293,14 +296,12 @@ function RecipeForm({ id, recipe, admin }) {
       return toast.error('Vui lòng nhập mô tả món ăn')
     if (!formData.prepTime || Number(formData.prepTime) <= 0)
       return toast.error('Thời gian nấu phải lớn hơn 0')
-    if (!formData.servings || Number(formData.servings) <= 0)
-      return toast.error('Khẩu phần phải lớn hơn 0')
     if (formData.categories.length === 0)
       return toast.error('Vui lòng chọn ít nhất 1 danh mục')
 
     const validIngs = formData.ingredients.filter((i) => i.name.trim())
     if (validIngs.length === 0) return toast.error('Cần ít nhất 1 nguyên liệu')
-    if (validIngs.some(i => !isQualitativeUnit(i.unit) && (!Number.isFinite(Number(i.quantity)) || Number(i.quantity) <= 0)))
+    if (validIngs.some(i => !isQualitativeUnit(i.unit) && (!Number.isFinite(Number(String(i.quantity).replace(',', '.'))) || Number(String(i.quantity).replace(',', '.')) <= 0)))
       return toast.error('Số lượng nguyên liệu định lượng phải lớn hơn 0')
     const validSteps = formData.steps.filter((s) => s.content.trim())
     if (validSteps.length === 0)
@@ -383,7 +384,7 @@ function RecipeForm({ id, recipe, admin }) {
                 ? 'Chỉnh sửa công thức'
                 : 'Tạo công thức mới'}
           </h1>
-          <p className="text-slate-500 mt-1">
+          <p className="text-slate-600 mt-1">
             {admin
               ? 'Công thức hệ thống được công khai và duyệt ngay sau khi lưu.'
               : 'Chia sẻ công thức nấu ăn của bạn với mọi người'}
@@ -395,7 +396,6 @@ function RecipeForm({ id, recipe, admin }) {
         <fieldset disabled={creating || updating} className="min-w-0 space-y-8">
           <RecipeBasicInfoForm
             admin={admin}
-            confirmPublic={isEdit && !admin && recipe?.isPublic === false}
             isUploading={isUploading}
             setIsUploading={setIsUploading}
             formData={formData}
@@ -465,7 +465,7 @@ function RecipeForm({ id, recipe, admin }) {
           </Button>
         </div>
       </form>
-      <Dialog open={confirmSubmission} onOpenChange={setConfirmSubmission}><DialogContent><DialogHeader><DialogTitle>Gửi công thức để kiểm duyệt?</DialogTitle><DialogDescription>Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa, xóa hoặc chuyển công thức về riêng tư trong thời gian chờ kết quả.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setConfirmSubmission(false)}>Hủy</Button><Button onClick={() => handleSubmit(null, true)}>Xác nhận gửi duyệt</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={confirmSubmission} onOpenChange={setConfirmSubmission}><DialogContent><DialogHeader><DialogTitle>Gửi công thức để kiểm duyệt?</DialogTitle><DialogDescription>Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa, xóa hoặc chuyển công thức về riêng tư trong thời gian chờ kết quả. Nếu bị từ chối, bạn có thể chỉnh sửa và gửi lại. Nếu được duyệt công khai, quyền sửa/xóa qua chức năng cá nhân tiếp tục bị khóa.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setConfirmSubmission(false)}>Hủy</Button><Button onClick={() => handleSubmit(null, true)}>Xác nhận gửi duyệt</Button></DialogFooter></DialogContent></Dialog>
     </div>
   )
 }

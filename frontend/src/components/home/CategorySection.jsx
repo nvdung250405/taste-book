@@ -65,7 +65,7 @@ export default function CategorySection({ categories, loadingCats }) {
           <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
             Khám phá danh mục
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
             Lựa chọn món ăn theo sở thích của bạn
           </p>
         </div>
@@ -85,26 +85,28 @@ export default function CategorySection({ categories, loadingCats }) {
         <div className="relative group/carousel">
           {/* Left arrow — overlay căn giữa với card */}
           <button
+            aria-label="Danh mục trước"
             onClick={() => scroll('left')}
             className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-20
               w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
               shadow-md items-center justify-center text-slate-600 dark:text-slate-300
               hover:bg-orange-50 hover:text-orange-500 hover:border-orange-200
               dark:hover:bg-orange-950/30 dark:hover:text-orange-400
-              opacity-0 group-hover/carousel:opacity-100 transition-all duration-200"
+              opacity-0 group-hover/carousel:opacity-100 focus-visible:opacity-100 transition-all duration-200"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
 
           {/* Right arrow — overlay căn giữa với card */}
           <button
+            aria-label="Danh mục tiếp theo"
             onClick={() => scroll('right')}
             className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-20
               w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
               shadow-md items-center justify-center text-slate-600 dark:text-slate-300
               hover:bg-orange-50 hover:text-orange-500 hover:border-orange-200
               dark:hover:bg-orange-950/30 dark:hover:text-orange-400
-              opacity-0 group-hover/carousel:opacity-100 transition-all duration-200"
+              opacity-0 group-hover/carousel:opacity-100 focus-visible:opacity-100 transition-all duration-200"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

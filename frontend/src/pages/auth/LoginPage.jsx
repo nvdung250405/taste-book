@@ -44,7 +44,7 @@ export default function LoginPage() {
         {/* Bên trái - Ảnh & Thương hiệu */}
         <div className="hidden md:flex flex-col justify-between bg-slate-900 p-8 relative overflow-hidden group">
           {/* Ảnh nền trang trí */}
-          <div className="absolute inset-0 bg-[url('/images/auth-login-bg.jpg')] bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-105" />
+          <div className="absolute inset-0 bg-[url('/images/optimized/auth-login-bg-960.webp')] bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-105" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
 
           <div className="relative z-10 flex items-center gap-2 text-white">
@@ -72,7 +72,7 @@ export default function LoginPage() {
               <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Đăng nhập
               </h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
                 Nhập email và mật khẩu của bạn để truy cập tài khoản
               </p>
             </div>
@@ -120,9 +120,11 @@ export default function LoginPage() {
                     placeholder="••••••••"
                   />
                   <button
+                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                    aria-pressed={showPassword}
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-600 dark:hover:text-slate-200"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -139,7 +141,7 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="text-center text-sm text-slate-500">
+            <div className="text-center text-sm text-slate-600">
               Bạn chưa có tài khoản?{' '}
               <Link
                 to="/register"

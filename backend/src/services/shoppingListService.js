@@ -1,6 +1,6 @@
 import db from "../models/index";
 import { Op } from "sequelize";
-import { isQualitativeUnit } from "./unitService";
+import { isQualitativeUnit, isMasterDataId, lockMasterData } from "./unitService";
 
 const isString = (value) =>
   Object.prototype.toString.call(value) === "[object String]" && value === String(value);
@@ -189,22 +189,28 @@ const generateShoppingList = async (userId, rawData = {}) => {
       where: {
         id: { [Op.in]: cleanIds },
       },
+      attributes: ["id", "userId", "listName"],
       include: [
         {
           model: db.RecipeListItem,
           as: "recipeListItems",
+          attributes: ["id", "recipeListId", "recipeId", "targetServings"],
           include: [
             {
               model: db.Recipe,
               as: "recipe",
               required: false,
+              attributes: ["id", "title", "defaultServings", "isDeleted"],
               include: [
                 {
                   model: db.RecipeIngredient,
                   as: "ingredients",
+                  // One batched read for all recipe IDs, including recipes shared by menus.
+                  separate: true,
+                  attributes: ["id", "recipeId", "ingredientId", "customIngredientName", "quantity", "unitId", "customUnit"],
                   include: [
-                    { model: db.Ingredient, as: "ingredient" },
-                    { model: db.Unit, as: "unitGroup" },
+                    { model: db.Ingredient, as: "ingredient", attributes: ["id", "ingredientName"] },
+                    { model: db.Unit, as: "unitGroup", attributes: ["id", "unitName"] },
                   ],
                 },
               ],
@@ -571,13 +577,14 @@ const updateShoppingListItemStatus = async (userId, shoppingListId, itemId, rawD
 };
 
 /**
- * 7.5 Thêm món mua ngoài tự do vào danh sách đi chợ (UC-18)
+ * 7.5 Thêm nguyên liệu chuẩn hoặc món tự nhập vào danh sách đi chợ (UC-18)
  * @param {number} userId
  * @param {number|string} shoppingListId
- * @param {{ itemName: string, totalQuantity?: number, unit: string }} rawData
+ * @param {{ ingredientId?: number, itemName?: string, totalQuantity?: number, unit?: string }} rawData
  * @returns {Promise<{ EC: number, EM: string, DT: any }>}
  */
 const addShoppingListItem = async (userId, shoppingListId, rawData = {}) => {
+  let transaction;
   try {
     if (!userId) {
       return {
@@ -588,7 +595,7 @@ const addShoppingListItem = async (userId, shoppingListId, rawData = {}) => {
     }
 
     const sId = Number(shoppingListId);
-    if (!sId || isNaN(sId) || !Number.isInteger(sId) || sId <= 0) {
+    if (!isMasterDataId(shoppingListId) || sId > 2147483647) {
       return {
         EC: 1,
         EM: "Mã danh sách đi chợ không hợp lệ!",
@@ -596,10 +603,47 @@ const addShoppingListItem = async (userId, shoppingListId, rawData = {}) => {
       };
     }
 
-    if (!isString(rawData?.itemName)) {
+    if (!rawData || typeof rawData !== "object" || Array.isArray(rawData)) {
+      return { EC: 1, EM: "Dữ liệu nguyên liệu không hợp lệ!", DT: null };
+    }
+    const isMaster = rawData.ingredientId !== undefined && rawData.ingredientId !== null;
+    if (isMaster && (!isMasterDataId(rawData.ingredientId) || Number(rawData.ingredientId) > 2147483647)) {
+      return { EC: 1, EM: "Mã nguyên liệu không hợp lệ!", DT: null };
+    }
+
+    transaction = await db.sequelize.transaction({ isolationLevel: "READ COMMITTED" });
+    if (isMaster) await lockMasterData(transaction);
+    // Lock the parent even when no item exists yet, so concurrent additions
+    // cannot both insert a new row or overwrite one another's quantity.
+    const shoppingList = await db.ShoppingList.findByPk(sId, { transaction, lock: "UPDATE" });
+    if (!shoppingList) {
+      return { EC: 3, EM: "Không tìm thấy danh sách đi chợ!", DT: null };
+    }
+    if (Number(shoppingList.userId) !== Number(userId)) {
+      return { EC: 4, EM: "Bạn không có quyền chỉnh sửa danh sách đi chợ này!", DT: null };
+    }
+
+    let itemName = rawData.itemName;
+    let unit = rawData.unit;
+    if (isMaster) {
+      const ingredient = await db.Ingredient.findByPk(Number(rawData.ingredientId), {
+        include: [{ model: db.Unit, as: "defaultUnit", attributes: ["id", "unitName"] }],
+        transaction,
+      });
+      if (!ingredient) {
+        return { EC: 3, EM: "Không tìm thấy nguyên liệu chuẩn!", DT: null };
+      }
+      itemName = ingredient.ingredientName;
+      unit = ingredient.defaultUnit?.unitName;
+      if (!unit) {
+        return { EC: 1, EM: "Nguyên liệu chuẩn chưa có đơn vị mặc định hợp lệ!", DT: null };
+      }
+    }
+
+    if (!isString(itemName)) {
       return { EC: 1, EM: "Tên món phát sinh phải là chuỗi!", DT: null };
     }
-    const cleanItemName = rawData.itemName.trim();
+    const cleanItemName = itemName.trim();
     if (!cleanItemName) {
       return {
         EC: 1,
@@ -616,10 +660,10 @@ const addShoppingListItem = async (userId, shoppingListId, rawData = {}) => {
       };
     }
 
-    if (!isString(rawData?.unit)) {
+    if (!isString(unit)) {
       return { EC: 1, EM: "Đơn vị tính phải là chuỗi!", DT: null };
     }
-    const cleanUnit = rawData.unit.trim();
+    const cleanUnit = unit.trim();
     if (!cleanUnit) {
       return {
         EC: 1,
@@ -648,37 +692,38 @@ const addShoppingListItem = async (userId, shoppingListId, rawData = {}) => {
       if (!Number.isFinite(cleanQuantity)) {
         return { EC: 1, EM: "Số lượng phải là số hữu hạn!", DT: null };
       }
-      if (cleanQuantity < 0 || (!isQualitative && cleanQuantity === 0)) {
+      if (cleanQuantity < 0) {
         return {
           EC: 1,
-          EM: "Số lượng phải lớn hơn 0; chỉ đơn vị định tính mới được dùng 0!",
+          EM: "Số lượng không được nhỏ hơn 0!",
           DT: null,
         };
       }
     }
 
-    cleanQuantity = roundQuantity(parseQuantity(cleanQuantity), isQualitative);
-
-    const shoppingList = await db.ShoppingList.findByPk(sId);
-    if (!shoppingList) {
-      return {
-        EC: 3,
-        EM: "Không tìm thấy danh sách đi chợ!",
-        DT: null,
-      };
+    // Món phát sinh có thể dùng 0 để nhắc mua; số dương vẫn phải qua kiểm tra làm tròn.
+    if (cleanQuantity !== 0) {
+      cleanQuantity = roundQuantity(parseQuantity(cleanQuantity), isQualitative);
     }
 
-    if (shoppingList.userId !== Number(userId)) {
-      return {
-        EC: 4,
-        EM: "Bạn không có quyền chỉnh sửa danh sách đi chợ này!",
-        DT: null,
-      };
+    let existingItem;
+    if (isMaster) {
+      existingItem = await db.ShoppingListItem.findOne({
+        where: { shoppingListId: sId, ingredientId: Number(rawData.ingredientId), unit: cleanUnit },
+        transaction,
+        lock: "UPDATE",
+      });
+      if (existingItem) {
+        const sum = addQuantity(parseQuantity(existingItem.totalQuantity), parseQuantity(cleanQuantity));
+        cleanQuantity = sum.numerator === 0n ? 0 : roundQuantity(sum, isQualitative);
+        await existingItem.update({ totalQuantity: cleanQuantity, isPurchased: false }, { transaction });
+      }
     }
 
-    const existingItems = await db.ShoppingListItem.findAll({
-      where: { shoppingListId: sId },
+    const existingItems = isMaster ? [] : await db.ShoppingListItem.findAll({
+      where: { shoppingListId: sId, ingredientId: null },
       attributes: ["itemName", "unit"],
+      transaction,
     });
     const normalize = (value) => value.normalize("NFC").trim().toLowerCase();
     const duplicate = existingItems.some((item) =>
@@ -693,24 +738,29 @@ const addShoppingListItem = async (userId, shoppingListId, rawData = {}) => {
       };
     }
 
-    const newItem = await db.ShoppingListItem.create({
+    const newItem = existingItem || await db.ShoppingListItem.create({
       shoppingListId: sId,
-      ingredientId: null,
+      ingredientId: isMaster ? Number(rawData.ingredientId) : null,
       itemName: cleanItemName,
       totalQuantity: cleanQuantity,
       unit: cleanUnit,
       isPurchased: false,
-    });
+    }, { transaction });
+
+    await transaction.commit();
+    transaction = null;
 
     return {
       EC: 0,
-      EM: "Thêm món phát sinh thành công!",
+      EM: isMaster ? "Thêm nguyên liệu chuẩn thành công!" : "Thêm món phát sinh thành công!",
       DT: {
         itemId: newItem.id,
+        ingredientId: newItem.ingredientId,
         itemName: newItem.itemName,
         totalQuantity: Number(newItem.totalQuantity),
         unit: newItem.unit,
         isPurchased: newItem.isPurchased,
+        merged: !!existingItem,
       },
     };
   } catch (error) {
@@ -723,6 +773,14 @@ const addShoppingListItem = async (userId, shoppingListId, rawData = {}) => {
       EM: "Lỗi kết nối máy chủ!",
       DT: null,
     };
+  } finally {
+    if (transaction && !transaction.finished) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        console.error("addShoppingListItem rollback error:", rollbackError);
+      }
+    }
   }
 };
 

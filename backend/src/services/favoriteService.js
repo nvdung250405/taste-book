@@ -1,5 +1,5 @@
 import db from "../models/index";
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import { collectionKeyword, collectionTextMatch } from "./recipeSearchService";
 
 const parseRecipeId = (recipeId) => {
@@ -55,7 +55,7 @@ const getUserFavorites = async (userId, query = {}) => {
 
     const offset = (pageNumber - 1) * limitNumber;
 
-    // 2. Truy vấn dữ liệu có phân trang kết hợp findAndCountAll
+    // COUNT only needs the author join when filtering by the author's name.
     const where = { userId: Number(userId) };
     if (keyword) {
       where[Op.or] = [
@@ -63,34 +63,48 @@ const getUserFavorites = async (userId, query = {}) => {
         collectionTextMatch("recipe->author.username", keyword),
         collectionTextMatch("FavoriteRecipe.personalNotes", keyword),
       ];
+    } else {
+      // Filter visibility before LIMIT, then hydrate only the selected page.
+      where[Op.and] = [Sequelize.literal(`EXISTS (SELECT 1 FROM "Recipes" AS "visibleRecipe"
+        WHERE "visibleRecipe"."id" = "FavoriteRecipe"."recipeId" AND "visibleRecipe"."isDeleted" = FALSE)`)];
     }
-    const { count, rows } = await db.FavoriteRecipe.findAndCountAll({
-      where,
-      include: [
-        {
-          model: db.Recipe,
-          as: "recipe",
-          where: { isDeleted: false },
-          include: [
-            {
-              model: db.User,
-              as: "author",
-              attributes: ["id", "username"],
-            },
-          ],
-          attributes: [
-            "id",
-            "title",
-            "thumbnailUrl",
-            "cookTimeMinutes",
-            "difficulty",
-          ],
-        },
-      ],
-      order: [["createdAt", "DESC"], ["recipeId", "DESC"]],
-      limit: limitNumber,
-      offset: offset,
-    });
+    const recipeInclude = {
+      model: db.Recipe, as: "recipe", where: { isDeleted: false }, attributes: [],
+      ...(keyword ? { include: [{ model: db.User, as: "author", attributes: [] }] } : {}),
+    };
+    const [count, rows] = await Promise.all([
+      db.FavoriteRecipe.count({ where, include: keyword ? [recipeInclude] : [] }),
+      db.FavoriteRecipe.findAll({
+        where,
+        attributes: ["recipeId", "personalNotes", "createdAt"],
+        subQuery: !keyword,
+        include: [
+          {
+            model: db.Recipe,
+            as: "recipe",
+            where: { isDeleted: false },
+            required: !!keyword,
+            include: [
+              {
+                model: db.User,
+                as: "author",
+                attributes: ["id", "username"],
+              },
+            ],
+            attributes: [
+              "id",
+              "title",
+              "thumbnailUrl",
+              "cookTimeMinutes",
+              "difficulty",
+            ],
+          },
+        ],
+        order: [["createdAt", "DESC"], ["recipeId", "DESC"]],
+        limit: limitNumber,
+        offset: offset,
+      }),
+    ]);
 
     const formattedFavorites = rows.map((item) => {
       const recipe = item.recipe || {};

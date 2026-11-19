@@ -13,10 +13,17 @@ test('equivalent unit spelling and different ingredients do not raise warnings',
 test('custom item supports Vietnamese decimal input and the actual API contract', () => {
   assert.deepEqual(customItemPayload(' Sữa ', '1,5', ' lít '), { itemName: 'Sữa', totalQuantity: 1.5, unit: 'lít' })
 })
-test('rejects empty fields, zero, negative and non-finite quantities', () => {
-  for (const quantity of ['', '0', '-1', 'Infinity', 'abc']) assert.throws(() => customItemPayload('Sữa', quantity, 'lít'))
+test('rejects empty fields, negative and non-finite quantities', () => {
+  for (const quantity of ['', '-1', 'Infinity', 'abc']) assert.throws(() => customItemPayload('Sữa', quantity, 'lít'))
   assert.throws(() => customItemPayload(' ', '1', 'kg'))
   assert.throws(() => customItemPayload('Sữa', '1', ' '))
+})
+
+test('custom shopping reminders allow explicit zero without accepting positive quantities rounded down to zero', () => {
+  for (const quantity of ['0', '0.00', '0,0', ' 0 ']) {
+    assert.deepEqual(customItemPayload('Sữa', quantity, 'lít'), { itemName: 'Sữa', totalQuantity: 0, unit: 'lít' })
+  }
+  assert.throws(() => customItemPayload('Sữa', '0.004', 'lít'))
 })
 
 test('empty custom item fields have the required Vietnamese validation messages', () => {

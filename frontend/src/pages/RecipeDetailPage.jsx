@@ -145,12 +145,12 @@ function RecipeDetail({ id }) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-          <ChefHat className="w-10 h-10 text-slate-400" />
+          <ChefHat className="w-10 h-10 text-slate-600" />
         </div>
         <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-300">
           Không tìm thấy công thức
         </h2>
-        <p className="text-slate-500 text-sm">
+        <p className="text-slate-600 text-sm">
           Công thức này có thể đã bị xóa hoặc không tồn tại.
         </p>
         <Button onClick={() => navigate(-1)} variant="outline">
@@ -178,7 +178,7 @@ function RecipeDetail({ id }) {
       {/* Back button */}
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-slate-500 hover:text-orange-500 transition-colors mb-6 text-sm font-medium"
+        className="flex items-center gap-2 text-slate-600 hover:text-orange-500 transition-colors mb-6 text-sm font-medium"
       >
         <ArrowLeft className="w-4 h-4" /> Quay lại
       </button>

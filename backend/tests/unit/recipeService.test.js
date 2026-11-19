@@ -1,3 +1,4 @@
+import { mockPage } from "../helpers/mockPage";
 import recipeService from "../../src/services/recipeService";
 import db from "../../src/models/index";
 import { Op } from "sequelize";
@@ -92,6 +93,45 @@ describe.each(["createRecipe", "updateRecipe", "adminCreateRecipe", "adminUpdate
       expect(db.sequelize.query.mock.invocationCallOrder[0]).toBeLessThan(db.RecipeIngredient.bulkCreate.mock.invocationCallOrder[0]);
       expect(transaction.commit).toHaveBeenCalledTimes(1);
     });
+
+    test.each([0, 101, 1000, 1.5, null, true])("từ chối khẩu phần mặc định %p trước khi ghi", async defaultServings => {
+      data.defaultServings = defaultServings;
+      expect(await invoke()).toMatchObject({ EC: 1, EM: "Khẩu phần mặc định phải là số nguyên từ 1 đến 100!", DT: null });
+      expect(db.Recipe.create).not.toHaveBeenCalled();
+      expect(db.RecipeIngredient.bulkCreate).not.toHaveBeenCalled();
+    });
+
+    test.each([1, 100])("nhận khẩu phần mặc định tại biên %i", async defaultServings => {
+      data.defaultServings = defaultServings;
+      expect((await invoke()).EC).toBe(0);
+      expect(transaction.commit).toHaveBeenCalledTimes(1);
+    });
+
+    test.each(["categories", "categoryIds"])("chặn chọn thủ công danh mục cộng đồng qua %s", async field => {
+      delete data.categories;
+      data[field] = [1];
+      jest.spyOn(db.Category, "findAll").mockResolvedValue([
+        { id: 1, categoryName: "Đóng góp của cộng đồng", createdBy: null },
+      ]);
+      expect(await invoke()).toMatchObject({ EC: 1, DT: null, EM: expect.stringContaining("Không được tự chọn") });
+      expect(db.sequelize.transaction).not.toHaveBeenCalled();
+      expect(db.Recipe.create).not.toHaveBeenCalled();
+      expect(db.RecipeCategory.bulkCreate).not.toHaveBeenCalled();
+    });
+
+    test("kiểm tra lại danh mục sau khi lấy khóa, không lách bằng đổi tên đồng thời", async () => {
+      db.Category.findAll.mockResolvedValueOnce([{ id: 1, categoryName: "Món canh", createdBy: null }])
+        .mockResolvedValue([{ id: 1, categoryName: "Đóng góp của cộng đồng", createdBy: null }]);
+      expect((await invoke()).EC).toBe(1);
+      expect(transaction.rollback).toHaveBeenCalledTimes(1);
+      expect(db.RecipeCategory.bulkCreate).not.toHaveBeenCalled();
+      expect(db.RecipeCategory.destroy).not.toHaveBeenCalled();
+    });
+
+    test("vẫn cho chọn danh mục thông thường", async () => {
+      db.Category.findAll.mockResolvedValue([{ id: 1, categoryName: "Món canh", createdBy: null }]);
+      expect((await invoke()).EC).toBe(0);
+    });
   },
 );
 
@@ -127,6 +167,29 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
         },
       ],
     };
+
+    test.each(["servings", "targetServings"])("TC-07-10: %s phải nằm trong khoảng 1 đến 100", async field => {
+      const find = jest.spyOn(db.Recipe, "findOne").mockResolvedValue(mockRecipe);
+      for (const value of [0, -1, 1.5, 100.5, 101, "101", 999999999, Infinity, "abc"]) {
+        expect(await recipeService.scaleRecipeIngredients(101, { [field]: value })).toEqual({
+          EC: 1, EM: "Số khẩu phần ăn phải là số nguyên từ 1 đến 100!", DT: null,
+        });
+      }
+      expect(find).not.toHaveBeenCalled();
+    });
+
+    test.each([1, 50, 100])("TC-07-10: tính đúng định lượng cho %i người", async servings => {
+      jest.spyOn(db.Recipe, "findOne").mockResolvedValue(mockRecipe);
+      const result = await recipeService.scaleRecipeIngredients(101, { servings });
+      expect(result).toMatchObject({ EC: 0, DT: {
+        targetServings: servings, scaleFactor: servings / 2,
+        ingredients: [
+          { ingredientName: "Thịt bò", scaledQuantity: 300 * servings / 2, unit: "gam" },
+          { ingredientName: "Muối", scaledQuantity: 0, unit: "vừa đủ" },
+          { ingredientName: "Tiêu", scaledQuantity: 0, unit: "tùy khẩu vị" },
+        ],
+      } });
+    });
 
     test("thành công: tính toán định lượng tỷ lệ thuận theo 4 người ăn (EC: 0, scaleFactor: 2)", async () => {
       jest.spyOn(db.Recipe, "findOne").mockResolvedValue(mockRecipe);
@@ -165,23 +228,23 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
     test("thất bại: số người ăn âm hoặc bằng 0 (EC: 1)", async () => {
       const res1 = await recipeService.scaleRecipeIngredients(101, { servings: 0 });
       expect(res1.EC).toBe(1);
-      expect(res1.EM).toContain("phải lớn hơn 0");
+      expect(res1.EM).toContain("phải là số nguyên từ 1 đến 100");
 
       const res2 = await recipeService.scaleRecipeIngredients(101, { servings: -3 });
       expect(res2.EC).toBe(1);
-      expect(res2.EM).toContain("phải lớn hơn 0");
+      expect(res2.EM).toContain("phải là số nguyên từ 1 đến 100");
     });
 
     test("thất bại: số người ăn là số thập phân không phải số nguyên (EC: 1)", async () => {
       const res = await recipeService.scaleRecipeIngredients(101, { servings: 2.5 });
       expect(res.EC).toBe(1);
-      expect(res.EM).toContain("phải lớn hơn 0");
+      expect(res.EM).toContain("phải là số nguyên từ 1 đến 100");
     });
 
     test("thất bại: số người ăn không phải là số (EC: 1)", async () => {
       const res = await recipeService.scaleRecipeIngredients(101, { servings: "abc" });
       expect(res.EC).toBe(1);
-      expect(res.EM).toContain("phải lớn hơn 0");
+      expect(res.EM).toContain("phải là số nguyên từ 1 đến 100");
     });
 
     test("thất bại: không tìm thấy công thức nấu ăn (EC: 3)", async () => {
@@ -296,7 +359,8 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
       "lọc tại database, không tải danh sách ID trung gian: %s (#72)", async (keyword) => {
         const ingredientLookup = jest.spyOn(db.RecipeIngredient, "findAll").mockResolvedValue([]);
         const categoryLookup = jest.spyOn(db.RecipeCategory, "findAll").mockResolvedValue([]);
-        const query = jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({ count: 25, rows: [] });
+        jest.spyOn(db.Category, "findOne").mockResolvedValue({ id: 2, createdBy: null });
+        const query = mockPage(db.Recipe, { count: 25, rows: [] });
 
         const result = await recipeService.getRecipes({ keyword, categoryId: "2", ingredientId: "3", page: "2", limit: "10" });
 
@@ -309,22 +373,22 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
         expect(options).toMatchObject({
           where: { isPublic: true, approvalStatus: "Approved", isDeleted: false },
           bind: { recipeSearchKeyword: `%${keyword}%`, recipeSearchCategoryId: 2, recipeSearchIngredientId: 3 },
-          limit: 10, offset: 10, distinct: true,
+          limit: 10, offset: 10,
           order: [["createdAt", "DESC"], ["id", "DESC"]],
         });
         const conditions = options.where[Op.and];
-        const ingredientSql = conditions[0][Op.or][1].val;
-        expect(ingredientSql).toContain("EXISTS");
+        const ingredientSql = conditions[0].val;
+        expect(ingredientSql).toContain("UNION");
         expect(ingredientSql).toContain('$recipeSearchKeyword');
         expect(ingredientSql).not.toContain(`%${keyword}%`);
-        expect(ingredientSql.includes("unaccent(")).toBe(keyword !== "bò");
+        expect(ingredientSql.includes("unaccent(")).toBe(true);
         expect(conditions[1].val).toContain('$recipeSearchCategoryId');
         expect(conditions[2].val).toContain('$recipeSearchIngredientId');
       },
     );
 
     test.each([{}, { keyword: "" }])("không tìm kiếm vẫn giữ phân trang mặc định: %j (#72)", async (params) => {
-      const query = jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({ count: 0, rows: [] });
+      const query = mockPage(db.Recipe, { count: 0, rows: [] });
       expect((await recipeService.getRecipes(params)).DT).toMatchObject({ recipes: [], total: 0, totalPages: 0 });
       expect(query.mock.calls[0][0]).toMatchObject({ bind: {}, limit: 10, offset: 0 });
       expect(query.mock.calls[0][0].where[Op.and]).toBeUndefined();
@@ -335,7 +399,7 @@ describe("Kiểm thử đơn vị dịch vụ công thức", () => {
         { recipeId: 101 },
       ]);
 
-      jest.spyOn(db.Recipe, "findAndCountAll").mockResolvedValue({
+      mockPage(db.Recipe, {
         count: 1,
         rows: [
           {

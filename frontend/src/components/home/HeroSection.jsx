@@ -32,13 +32,19 @@ export default function HeroSection() {
     <section className="relative w-full h-[340px] sm:h-[420px] md:h-[500px] flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
+        <picture className="block h-full w-full">
+        <source type="image/webp" srcSet="/images/optimized/hero-bg-640.webp 640w, /images/optimized/hero-bg-1280.webp 1280w, /images/optimized/hero-bg-1920.webp 1920w" sizes="100vw" />
         <img
           src="/images/hero-bg.jpg"
           alt="Nền trang chủ TasteBook - Ẩm thực Việt Nam"
           className="w-full h-full object-cover"
           fetchPriority="high"
           loading="eager"
+          decoding="async"
+          width="1920"
+          height="1072"
         />
+        </picture>
         <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
       </div>
 
@@ -56,9 +62,10 @@ export default function HeroSection() {
         
         {/* Search Bar */}
         <div className="w-full max-w-2xl mt-2 sm:mt-4 relative flex items-center group">
-          <Search className="absolute left-3 sm:left-4 w-5 sm:w-6 h-5 sm:h-6 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
+          <Search aria-hidden="true" className="absolute left-3 sm:left-4 w-5 sm:w-6 h-5 sm:h-6 text-slate-300 group-focus-within:text-orange-500 transition-colors" />
           <Input 
             id="hero-search-input"
+            aria-label="Tìm món ăn hoặc nguyên liệu"
             type="text"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
@@ -80,12 +87,12 @@ export default function HeroSection() {
           <span className="text-sm text-slate-300 mr-2">Phổ biến:</span>
           {POPULAR_TAGS.map((tag) => (
             <Badge
+              asChild
               key={tag}
-              onClick={() => handleTagClick(tag)}
               variant="outline"
               className="text-slate-300 border-white/20 hover:bg-white/10 cursor-pointer backdrop-blur-sm transition-colors"
             >
-              {tag}
+              <button type="button" onClick={() => handleTagClick(tag)}>{tag}</button>
             </Badge>
           ))}
         </div>

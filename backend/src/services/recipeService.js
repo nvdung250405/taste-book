@@ -1,7 +1,7 @@
 import db from "../models/index";
 import { Op } from "sequelize";
 import { normalizeIngredientQuantity, lockMasterData } from "./unitService";
-import { validateLockedReferences, isPositiveInteger, systemIngredientUnitError, cookingStepsError, ingredientQuantityError } from "./recipeValidation";
+import { validateLockedReferences, recipeCategoriesError, isPositiveInteger, systemIngredientUnitError, cookingStepsError, ingredientQuantityError } from "./recipeValidation";
 import { getRecipes } from "./recipeSearchService";
 import { getRecipeById, scaleRecipeIngredients, getMyRecipes } from "./recipeReadService";
 import { ensureCommunityCategory } from "./recipeCategoryService";
@@ -121,11 +121,11 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
     if (
       defaultServings === undefined ||
       defaultServings === null ||
-      !isPositiveInteger(defaultServings)
+      !isPositiveInteger(defaultServings) || Number(defaultServings) > 100
     ) {
       return {
         EC: 1,
-        EM: "Khẩu phần mặc định phải là số nguyên dương!",
+        EM: "Khẩu phần mặc định phải là số nguyên từ 1 đến 100!",
         DT: null,
       };
     }
@@ -155,6 +155,9 @@ const createRecipe = async (user, data = {}, isAdminCreate = false) => {
         DT: null,
       };
     }
+
+    const categoryError = recipeCategoriesError(validCategories);
+    if (categoryError) return categoryError;
 
     // Kiểm tra và chuẩn hóa từng nguyên liệu
     const processedIngredients = [];
@@ -496,11 +499,11 @@ const updateRecipe = async (recipeId, user, data) => {
     if (
       defaultServings === undefined ||
       defaultServings === null ||
-      !isPositiveInteger(defaultServings)
+      !isPositiveInteger(defaultServings) || Number(defaultServings) > 100
     ) {
       return {
         EC: 1,
-        EM: "Khẩu phần mặc định phải là số nguyên dương!",
+        EM: "Khẩu phần mặc định phải là số nguyên từ 1 đến 100!",
         DT: null,
       };
     }
@@ -530,6 +533,9 @@ const updateRecipe = async (recipeId, user, data) => {
         DT: null,
       };
     }
+
+    const categoryError = recipeCategoriesError(validCategories);
+    if (categoryError) return categoryError;
 
     // Kiểm tra và chuẩn hóa từng nguyên liệu
     const processedIngredients = [];

@@ -9,21 +9,15 @@ export default function MainLayout() {
   const navigate = useNavigate()
 
   const { data: profileRes, isLoading: profileLoading } = useProfile()
-  const { mutate: logoutMutate, isPending: loggingOut } = useLogout()
+  const { mutateAsync: logout, isPending: loggingOut } = useLogout()
 
   const user = profileRes?.DT || null
   const isAuthenticated = !!user
 
   const handleLogout = () => {
     if (loggingOut) return
-    logoutMutate(undefined, {
-      onSuccess: () => {
-        navigate('/login')
-      },
-      onError: () => {
-        navigate('/login')
-      },
-    })
+    const returnHome = () => navigate('/', { replace: true })
+    void logout().then(returnHome, returnHome)
   }
 
   const isActive = (path) => {

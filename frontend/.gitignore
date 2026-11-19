@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Generated audit reports and image variants
+performance-results/
+playwright-report/
+test-results/
+public/images/optimized/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

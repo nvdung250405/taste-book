@@ -22,6 +22,7 @@ tastebook.sql
 tastebook_postgres.sql
 tastebook_tsql.sql
 *.sql
+!seed_production.sql
 
 # Nhật ký & File chạy tự động (Logs)
 *.log

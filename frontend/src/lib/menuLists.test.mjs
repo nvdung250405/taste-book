@@ -30,10 +30,10 @@ test('validates menu names against the existing API and reserved calendar prefix
   assert.equal(menuNameError('Tiệc gia đình', lists, 1), '')
   assert.equal(menuNameError('Bữa trưa', lists), '')
 })
-test('serving counts obey positive int32 constraints', () => {
-  for (const value of ['', 0, -1, 1.5, Infinity, 'abc', 2147483648])
+test('serving counts match the API range of 1 to 100', () => {
+  for (const value of ['', 0, -1, 1.5, Infinity, 'abc', 101, '101', 2147483647])
     assert.equal(validServings(value), false)
-  for (const value of [1, '2', 2147483647])
+  for (const value of [1, '2', 100, '100'])
     assert.equal(validServings(value), true)
 })
 test('reuses the date/meal list without creating duplicates', async () => {

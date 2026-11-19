@@ -4,10 +4,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { toast } from 'sonner';
-import { UtensilsCrossed, UserPlus } from 'lucide-react';
+import { UtensilsCrossed, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { useRegister } from '../../hooks/queries/useAuthQueries';
 
 export default function RegisterPage() {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -81,7 +83,7 @@ export default function RegisterPage() {
           <div className="mx-auto w-full max-w-sm space-y-6">
             <div className="space-y-2 text-center md:text-left">
               <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Tạo tài khoản</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
                 Tham gia cộng đồng TasteBook ngay hôm nay
               </p>
             </div>
@@ -133,28 +135,40 @@ export default function RegisterPage() {
                 <label className="text-sm font-medium leading-none" htmlFor="password">
                   Mật khẩu
                 </label>
+                <div className="relative">
                 <Input 
                   id="password" 
-                  type="password" 
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
-                  className="bg-slate-50 dark:bg-slate-800"
+                  className="bg-slate-50 dark:bg-slate-800 pr-12"
                 />
+                <button type="button" aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} aria-controls="password" aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-md text-slate-500 hover:text-orange-600 focus-visible:outline-2 focus-visible:outline-orange-500">
+                  {showPassword ? <EyeOff aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}
+                </button>
+                </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium leading-none" htmlFor="confirmPassword">
                   Xác nhận mật khẩu
                 </label>
+                <div className="relative">
                 <Input 
                   id="confirmPassword" 
-                  type="password" 
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   placeholder="••••••••"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="bg-slate-50 dark:bg-slate-800"
+                  className="bg-slate-50 dark:bg-slate-800 pr-12"
                 />
+                <button type="button" aria-label={showConfirmPassword ? 'Ẩn xác nhận mật khẩu' : 'Hiện xác nhận mật khẩu'} aria-controls="confirmPassword" aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword(value => !value)} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-md text-slate-500 hover:text-orange-600 focus-visible:outline-2 focus-visible:outline-orange-500">
+                  {showConfirmPassword ? <EyeOff aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}
+                </button>
+                </div>
               </div>
 
               <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white mt-2 cursor-pointer" disabled={isLoading}>
@@ -163,7 +177,7 @@ export default function RegisterPage() {
               </Button>
             </form>
 
-            <div className="text-center text-sm text-slate-500">
+            <div className="text-center text-sm text-slate-600">
               Đã có tài khoản?{' '}
               <Link to="/login" className="font-semibold text-orange-500 hover:text-orange-600 underline-offset-4 hover:underline">
                 Đăng nhập
@@ -175,7 +189,7 @@ export default function RegisterPage() {
         {/* Bên phải - Ảnh & Thương hiệu */}
         <div className="hidden md:flex flex-col justify-between bg-slate-900 p-8 relative overflow-hidden group order-1 md:order-2">
           {/* Ảnh nền trang trí */}
-          <div className="absolute inset-0 bg-[url('/images/auth-register-bg.jpg')] bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-105" />
+          <div className="absolute inset-0 bg-[url('/images/optimized/auth-register-bg-960.webp')] bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-105" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
           
           <div className="relative z-10 flex items-center justify-end gap-2 text-white">

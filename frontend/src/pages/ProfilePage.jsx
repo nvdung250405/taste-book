@@ -18,7 +18,7 @@ export default function ProfilePage() {
   const user = profileRes?.DT
   if (isLoading) return <div role="status" className="py-20 text-center">Đang tải hồ sơ…</div>
   if (isError && !user) return <QueryError title="Không thể tải hồ sơ" onRetry={refetch} isRetrying={isFetching} />
-  if (!user) return <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4"><UserCircle className="w-16 h-16 text-slate-500" /><p>Bạn chưa đăng nhập</p><Button onClick={() => navigate('/login')}>Đăng nhập ngay</Button></div>
+  if (!user) return <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4"><UserCircle className="w-16 h-16 text-slate-600" /><p>Bạn chưa đăng nhập</p><Button onClick={() => navigate('/login')}>Đăng nhập ngay</Button></div>
   return <>
     <h1 className="text-3xl font-bold mb-6">Hồ sơ cá nhân</h1>
     {isError && <QueryError title="Không thể cập nhật dữ liệu hồ sơ" onRetry={refetch} isRetrying={isFetching} />}

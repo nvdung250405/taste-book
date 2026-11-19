@@ -3,6 +3,10 @@ import axiosClient from './axiosClient';
 const recipesApi = {
   // --- PUBLIC & USER RECIPES ---
 
+  getHomeRecipes(params = { limit: 6 }) {
+    return axiosClient.get('/home', { params });
+  },
+
   // Tìm kiếm / lọc công thức public
   getRecipes(params) {
     // params: { keyword/search, categoryId, ingredientId, difficulty, maxTime, page, limit, sortBy, sortOrder }

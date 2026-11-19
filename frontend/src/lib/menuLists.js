@@ -7,7 +7,7 @@ export const isWeeklyList = (list) =>
 export const validServings = (value) =>
   Number.isInteger(Number(value)) &&
   Number(value) >= 1 &&
-  Number(value) <= 2147483647
+  Number(value) <= 100
 export function menuNameError(value, lists, currentId) {
   const name = value.trim()
   if (!name) return 'Vui lòng nhập tên thực đơn.'

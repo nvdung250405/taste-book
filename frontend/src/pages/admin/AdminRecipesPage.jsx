@@ -32,14 +32,15 @@ export default function AdminRecipesPage() {
   const [params, setParams] = useSearchParams()
   const difficulty = params.get('difficulty') || ''
   const maxTime = params.get('maxTime') || ''
-  const scope = params.get('scope') === 'admin' ? 'admin' : 'all'
+  const scope = ['admin', 'community'].includes(params.get('scope')) ? params.get('scope') : 'all'
   const query = useAdminRecipes({
-    scope,
+    scope: scope === 'community' ? 'all' : scope,
     ...(search.trim() ? { keyword: search.trim() } : {}),
   })
   // The all-scope DTO currently omits author.role; only the admin-only API can
   // establish ownership. If it fails, editing stays disabled.
   const adminOnly = useAdminRecipes({ scope: 'admin' })
+  const loading = query.isPending || (scope === 'community' && adminOnly.isPending)
   const canManage = (recipe) =>
     adminOnly.isSuccess &&
     adminOnly.data?.DT?.recipes?.some(
@@ -51,14 +52,15 @@ export default function AdminRecipesPage() {
   const [error, setError] = useState('')
   const recipes = (query.data?.DT?.recipes || []).filter(
     (recipe) =>
+      (scope !== 'community' || (adminOnly.isSuccess && !canManage(recipe))) &&
       (!difficulty || recipe.difficulty === difficulty) &&
       (!maxTime || Number(recipe.cookTimeMinutes) <= Number(maxTime)),
   )
   const totalPages = Math.max(1, Math.ceil(recipes.length / 10))
   useEffect(() => {
-    if (query.isSuccess && !query.isFetching && page > totalPages)
+    if (query.isSuccess && !query.isFetching && (scope !== 'community' || adminOnly.isSuccess) && page > totalPages)
       setPage(totalPages)
-  }, [query.isSuccess, query.isFetching, page, totalPages, setPage])
+  }, [query.isSuccess, query.isFetching, scope, adminOnly.isSuccess, page, totalPages, setPage])
   const changeFilters = (changes) => {
     const next = new URLSearchParams(params)
     if (searchQuery) next.set('search', searchQuery)
@@ -95,7 +97,7 @@ export default function AdminRecipesPage() {
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Quản lý công thức chuẩn
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-600">
             Công thức đã duyệt từ hệ thống và cộng đồng. Chỉ được sửa/xóa bài do
             Admin tạo.
           </p>
@@ -103,6 +105,7 @@ export default function AdminRecipesPage() {
         <div className="flex gap-2">
           <Button
             variant="outline"
+            className="h-10 rounded-xl"
             disabled={query.isFetching}
             onClick={() => {
               query.refetch()
@@ -113,6 +116,7 @@ export default function AdminRecipesPage() {
             <RefreshCw
               className={`h-4 w-4 ${query.isFetching ? 'animate-spin' : ''}`}
             />
+            Làm mới
           </Button>
           <Button
             asChild
@@ -133,6 +137,7 @@ export default function AdminRecipesPage() {
         {[
           ['all', 'Tất cả công thức đã duyệt'],
           ['admin', 'Chỉ công thức của Admin'],
+          ['community', 'Chỉ công thức cộng đồng'],
         ].map(([value, label]) => (
           <Button
             key={value}
@@ -154,7 +159,7 @@ export default function AdminRecipesPage() {
       )}
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
           <Input
             aria-label="Tìm công thức chuẩn"
             value={searchQuery}
@@ -201,11 +206,11 @@ export default function AdminRecipesPage() {
           </Button>
         )}
       </div>
-      {query.isError ? (
+      {query.isError || (scope === 'community' && adminOnly.isError) ? (
         <QueryError
           title="Không thể tải công thức chuẩn"
-          onRetry={query.refetch}
-          isRetrying={query.isFetching}
+          onRetry={() => { query.refetch(); if (scope === 'community') adminOnly.refetch() }}
+          isRetrying={query.isFetching || (scope === 'community' && adminOnly.isFetching)}
         />
       ) : (
         <Card className="gap-0 overflow-hidden rounded-2xl py-0">
@@ -214,7 +219,7 @@ export default function AdminRecipesPage() {
               <caption className="sr-only">
                 Danh sách công thức chuẩn hệ thống
               </caption>
-              <thead className="border-b bg-slate-50 text-slate-500 dark:bg-slate-900">
+              <thead className="border-b bg-slate-50 text-slate-600 dark:bg-slate-900">
                 <tr>
                   {[
                     'Công thức',
@@ -235,7 +240,7 @@ export default function AdminRecipesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {query.isPending ? (
+                {loading ? (
                   <tr>
                     <td colSpan={6} className="p-12 text-center" role="status">
                       Đang tải công thức…
@@ -243,7 +248,7 @@ export default function AdminRecipesPage() {
                   </tr>
                 ) : !recipes.length ? (
                   <tr>
-                    <td colSpan={6} className="p-12 text-center text-slate-500">
+                    <td colSpan={6} className="p-12 text-center text-slate-600">
                       {search || difficulty || maxTime
                         ? 'Không tìm thấy công thức phù hợp.'
                         : 'Chưa có công thức chuẩn. Hãy thêm công thức đầu tiên.'}
@@ -269,7 +274,7 @@ export default function AdminRecipesPage() {
                           />
                           <div className="max-w-64 break-words font-medium">
                             {recipe.title}
-                            <span className="mt-1 block text-xs font-normal text-slate-500">
+                            <span className="mt-1 block text-xs font-normal text-slate-600">
                               #{recipe.recipeId} · Đã duyệt
                             </span>
                           </div>
@@ -340,9 +345,9 @@ export default function AdminRecipesPage() {
               </tbody>
             </table>
           </div>
-          {!query.isPending && (
+          {!loading && (
             <div className="flex flex-wrap items-center justify-between gap-3 border-t p-4 [&_nav]:mt-0">
-              <p className="text-sm text-slate-500" aria-live="polite">
+              <p className="text-sm text-slate-600" aria-live="polite">
                 {recipes.length ? (page - 1) * 10 + 1 : 0}–
                 {Math.min(page * 10, recipes.length)} / {recipes.length} công
                 thức

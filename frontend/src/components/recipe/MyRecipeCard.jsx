@@ -119,9 +119,9 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
         </h2>
 
         {/* Meta info */}
-        <div className="flex items-center gap-4 text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-3">
+        <div className="flex items-center gap-4 text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-3">
           <div className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <Clock className="w-3.5 h-3.5 text-slate-600" />
             <span>
               {recipe.cookTimeMinutes || recipe.prepTime || recipe.time || '30'}
               p
@@ -129,7 +129,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
           </div>
 
           <div className="flex items-center gap-1">
-            <ChefHat className="w-3.5 h-3.5 text-slate-400" />
+            <ChefHat className="w-3.5 h-3.5 text-slate-600" />
             <span>
               {recipe.difficulty === 'Easy'
                 ? 'Dễ'
@@ -141,7 +141,7 @@ export default function MyRecipeCard({ recipe, index, gridColumns, onDelete }) {
 
           {recipe.defaultServings && (
             <div className="flex items-center gap-1">
-              <Users className="w-3.5 h-3.5 text-slate-400" />
+              <Users className="w-3.5 h-3.5 text-slate-600" />
               <span>{recipe.defaultServings} người</span>
             </div>
           )}

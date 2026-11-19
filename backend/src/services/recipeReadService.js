@@ -34,6 +34,9 @@ const getRecipeById = async (id, viewerId = null, viewerRole = null) => {
         {
           model: db.RecipeIngredient,
           as: "ingredients",
+          // Avoid multiplying categories × ingredients × cooking steps in one JOIN.
+          separate: true,
+          order: [["id", "ASC"]],
           include: [
             {
               model: db.Ingredient,
@@ -51,11 +54,9 @@ const getRecipeById = async (id, viewerId = null, viewerRole = null) => {
           model: db.CookingStep,
           as: "cookingSteps",
           attributes: ["id", "stepNumber", "instruction"],
+          separate: true,
+          order: [["stepNumber", "ASC"], ["id", "ASC"]],
         },
-      ],
-      order: [
-        [{ model: db.CookingStep, as: "cookingSteps" }, "stepNumber", "ASC"],
-        [{ model: db.RecipeIngredient, as: "ingredients" }, "id", "ASC"],
       ],
     });
 
@@ -155,11 +156,12 @@ const scaleRecipeIngredients = async (
       String(rawServings).trim() === "" ||
       isNaN(numServings) ||
       !Number.isInteger(numServings) ||
-      numServings <= 0
+      numServings <= 0 ||
+      numServings > 100
     ) {
       return {
         EC: 1,
-        EM: "Số khẩu phần ăn phải lớn hơn 0!",
+        EM: "Số khẩu phần ăn phải là số nguyên từ 1 đến 100!",
         DT: null,
       };
     }

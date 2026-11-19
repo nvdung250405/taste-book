@@ -7,14 +7,6 @@ import { toast } from 'sonner'
 import { Button } from '../ui/button'
 import CategoryFormDialog from '../category/CategoryFormDialog'
 import QueryError from '../ui/QueryError'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '../ui/dialog'
 
 const DIFFICULTIES = ['Dễ', 'Trung bình', 'Khó']
 
@@ -32,7 +24,6 @@ export default function RecipeBasicInfoForm({
   admin = false,
 }) {
   const [creatingCategory, setCreatingCategory] = useState(false)
-  const [publicConfirmation, setPublicConfirmation] = useState(false)
 
   const handleFileChange = async (e) => {
     if (isUploading) return
@@ -87,7 +78,7 @@ export default function RecipeBasicInfoForm({
                 <>
                   <img
                     src={formData.thumbnail}
-                    alt="Preview"
+                    alt="Xem trước ảnh công thức"
                     className="w-full h-full object-cover"
                     onError={(e) => (e.target.style.display = 'none')}
                   />
@@ -105,7 +96,7 @@ export default function RecipeBasicInfoForm({
                   <p className="text-base font-medium text-slate-700 dark:text-slate-200 mb-1">
                     Tải ảnh lên
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-600">
                     Kéo thả hoặc bấm để chọn ảnh
                     <br />
                     PNG, JPG (Max 5MB)
@@ -133,19 +124,6 @@ export default function RecipeBasicInfoForm({
               )}
             </div>
 
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <ImageIcon className="w-4 h-4 text-slate-500" />
-              </div>
-              <Input
-                aria-label="Đường dẫn ảnh món ăn"
-                name="thumbnail"
-                value={formData.thumbnail}
-                onChange={handleChange}
-                placeholder="Hoặc dán URL ảnh trực tiếp..."
-                className="pl-9 bg-transparent"
-              />
-            </div>
           </div>
 
           {/* Cột phải: Thông tin chi tiết */}
@@ -155,7 +133,7 @@ export default function RecipeBasicInfoForm({
                 htmlFor="recipe-title"
                 className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
               >
-                Tên món ăn <span className="text-red-500">*</span>
+                Tên món ăn <span className="text-red-700">*</span>
               </label>
               <Input
                 id="recipe-title"
@@ -169,7 +147,7 @@ export default function RecipeBasicInfoForm({
               />
               <p
                 id="recipe-title-count"
-                className="mt-1 text-right text-xs text-slate-500"
+                className="mt-1 text-right text-xs text-slate-600"
               >
                 {formData.title.length}/255 ký tự
               </p>
@@ -224,6 +202,12 @@ export default function RecipeBasicInfoForm({
                   value={formData.servings}
                   onChange={handleChange}
                   min="1"
+                  max="100"
+                  step="1"
+                  onInvalid={(event) => {
+                    event.preventDefault()
+                    toast.error('Khẩu phần phải là số nguyên từ 1 đến 100 người.')
+                  }}
                 />
               </div>
               <div className="sm:min-w-[200px]">
@@ -299,14 +283,14 @@ export default function RecipeBasicInfoForm({
                 />
               )}
               {!categoriesError && fetchingCategories && !categories.length && (
-                <p role="status" className="text-sm text-slate-500">
+                <p role="status" className="text-sm text-slate-600">
                   Đang tải danh mục...
                 </p>
               )}
               {!categoriesError &&
                 !fetchingCategories &&
                 !categories.length && (
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-600">
                     {admin
                       ? 'Chưa có danh mục hệ thống. Hãy tạo tại trang Quản lý danh mục.'
                       : 'Chưa có danh mục. Bạn có thể tạo danh mục mới.'}
@@ -333,7 +317,7 @@ export default function RecipeBasicInfoForm({
                       }`}
                     >
                       {cat.categoryName || cat.name || cat.title}
-                      {cat.createdBy === null && <span className="ml-1 text-xs opacity-75">· Hệ thống</span>}
+                      {cat.createdBy === null && <span className="ml-1 text-xs">· Hệ thống</span>}
                     </button>
                   )
                 })}
@@ -350,10 +334,6 @@ export default function RecipeBasicInfoForm({
                       checked={formData.isPublic !== false} // default to true if undefined
                       onChange={(e) => {
                         const checked = e.target.checked
-                        if (checked) {
-                          setPublicConfirmation(true)
-                          return
-                        }
                         setFormData((p) => ({ ...p, isPublic: checked }))
                       }}
                       className="sr-only peer"
@@ -364,7 +344,7 @@ export default function RecipeBasicInfoForm({
                     <span className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
                       Công khai công thức
                     </span>
-                    <span className="block text-xs text-slate-500 dark:text-slate-500 mt-0.5">
+                    <span className="block text-xs text-slate-600 dark:text-slate-500 mt-0.5">
                       Chia sẻ để mọi người cùng xem (bỏ chọn nếu muốn giữ riêng
                       tư)
                     </span>
@@ -375,34 +355,6 @@ export default function RecipeBasicInfoForm({
           </div>
         </div>
       </CardContent>
-      <Dialog open={publicConfirmation} onOpenChange={setPublicConfirmation}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Chuyển công thức sang công khai?</DialogTitle>
-            <DialogDescription>
-              Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa, xóa hoặc chuyển công thức về riêng tư trong thời gian chờ kết quả.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPublicConfirmation(false)}
-            >
-              Giữ riêng tư
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                setFormData((p) => ({ ...p, isPublic: true }))
-                setPublicConfirmation(false)
-              }}
-            >
-              Xác nhận công khai
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   )
 }
